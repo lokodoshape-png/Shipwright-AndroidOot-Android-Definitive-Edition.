@@ -11,51 +11,67 @@ import java.io.OutputStream;
 
 public class AssetCopyUtil {
 
+    public interface ProgressListener {
+        void onProgress(long copiedBytes, long totalBytes, String currentFile);
+    }
+
     public static void copyAssetsToExternal(Context context, String assetsFolderPath, String externalFolderPath) throws IOException {
-        AssetManager assetManager = context.getAssets();
-        String[] assetFiles = assetManager.list(assetsFolderPath);
+        copyAssetsToExternal(context, assetsFolderPath, externalFolderPath, null);
+    }
 
-        for (String assetFile : assetFiles) {
-            String assetPath = assetsFolderPath + File.separator + assetFile;
-            String externalPath = externalFolderPath + File.separator + assetFile;
+    public static void copyAssetsToExternal(Context context, String assetsFolderPath, String externalFolderPath,
+                                            ProgressListener listener) throws IOException {
+        AssetManager manager = context.getAssets();
+        long totalBytes = calculateAssetBytes(manager, assetsFolderPath);
+        long[] copiedBytes = new long[]{0};
+        copyAssetTree(manager, assetsFolderPath, new File(externalFolderPath), totalBytes, copiedBytes, listener);
+    }
 
-            if (assetManager.list(assetPath).length > 0) {
-                // It's a directory
-                // Check if the directory exists in the external storage
-                File externalDir = new File(externalPath);
-                if (!externalDir.exists()) {
-                    externalDir.mkdirs(); // Create the directory if it doesn't exist
-                }
-
-                // Recursively copy contents of the directory
-                copyAssetsToExternal(context, assetPath, externalPath);
+    private static long calculateAssetBytes(AssetManager manager, String path) throws IOException {
+        long total = 0;
+        String[] children = manager.list(path);
+        if (children == null) return 0;
+        for (String child : children) {
+            String childPath = path + "/" + child;
+            String[] nested = manager.list(childPath);
+            if (nested != null && nested.length > 0) {
+                total += calculateAssetBytes(manager, childPath);
             } else {
-                // It's a file
-                File externalFile = new File(externalPath);
-                if (!externalFile.exists()) {
-                    // Check if the file exists in the external storage
-                    InputStream in = null;
-                    OutputStream out = null;
+                try (InputStream in = manager.open(childPath)) {
+                    total += in.available();
+                }
+            }
+        }
+        return total;
+    }
 
-                    try {
-                        in = assetManager.open(assetPath);
-                        out = new FileOutputStream(externalPath);
-
-                        byte[] buffer = new byte[256 * 1024];
-                        int read;
-                        while ((read = in.read(buffer)) != -1) {
-                            out.write(buffer, 0, read);
-                        }
-
-                    } finally {
-                        if (in != null) {
-                            in.close();
-                        }
-                        if (out != null) {
-                            out.close();
-                        }
+    private static void copyAssetTree(AssetManager manager, String assetPath, File targetDir,
+                                      long totalBytes, long[] copiedBytes, ProgressListener listener) throws IOException {
+        if (!targetDir.exists() && !targetDir.mkdirs()) {
+            throw new IOException("Não foi possível criar " + targetDir.getAbsolutePath());
+        }
+        String[] children = manager.list(assetPath);
+        if (children == null) return;
+        for (String child : children) {
+            String childPath = assetPath + "/" + child;
+            String[] nested = manager.list(childPath);
+            File target = new File(targetDir, child);
+            if (nested != null && nested.length > 0) {
+                copyAssetTree(manager, childPath, target, totalBytes, copiedBytes, listener);
+            } else if (!target.exists()) {
+                try (InputStream in = manager.open(childPath);
+                     OutputStream out = new FileOutputStream(target)) {
+                    byte[] buffer = new byte[256 * 1024];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                        copiedBytes[0] += read;
+                        if (listener != null) listener.onProgress(copiedBytes[0], totalBytes, child);
                     }
                 }
+            } else {
+                // Existing user files are intentionally preserved and count as completed.
+                if (listener != null) listener.onProgress(copiedBytes[0], totalBytes, child);
             }
         }
     }
