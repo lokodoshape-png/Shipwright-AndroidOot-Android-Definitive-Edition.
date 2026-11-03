@@ -246,7 +246,7 @@ public class MainActivity extends SDLActivity{
 
             byte[] buffer = new byte[256 * 1024];
             int read;
-            long totalOtrBytes = getAssets().open("soh.otr").available();
+            long totalOtrBytes = in.available();
             long copiedOtrBytes = 0;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
