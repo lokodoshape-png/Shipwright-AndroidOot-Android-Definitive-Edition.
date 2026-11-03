@@ -21,7 +21,8 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Página de Mods** (Configurações > Modificações): lista os mods da pasta, liga e desliga cada um e instala novos
   pelo botão "Adicionar mod...", que abre o seletor de arquivos do Android. Aceita `.otr`, `.o2r` e `.zip`; os
   `.otr`/`.o2r` de dentro de um `.zip` são extraídos. Um mod desligado ganha o final `.desativado` e não é carregado.
-  As mudanças valem na próxima vez que o jogo abrir.
+  Ligar, desligar ou instalar um mod vale na hora para texturas e textos (inclusive tradução). Modelos, sons e o resto
+  do mod passam a valer quando o jogo é aberto de novo, e a página avisa quando é o caso.
 - **Controles de toque somem com o menu aberto** e voltam sozinhos ao fechar, para todo toque ir para o menu.
   O menu fecha com o botão Voltar do Android.
 
@@ -47,6 +48,10 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
   largo que o original e ganhou um pouco mais de espaço.
 
 ### Android
+- **Barra de porcentagem ao criar os arquivos do jogo a partir da ROM** (a extração que gera o `oot.otr`). Antes
+  aparecia só uma mensagem em inglês e a tela ficava parada; agora mostra quantos grupos de arquivos já foram
+  extraídos e avisa quando está gravando o `oot.otr`. A importação da ROM e a preparação dos arquivos já tinham barra
+  desde a 0.4.
 - **Pasta própria `OOT-DE`** na raiz do armazenamento, no lugar da `SOH` que era dividida com o Ship of Harkinian
   original. Na primeira abertura da 0.5, o app copia saves, mods, o `oot.otr` e as configurações da pasta `SOH`
   para a `OOT-DE`. A pasta `SOH` não é apagada.

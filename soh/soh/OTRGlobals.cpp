@@ -70,6 +70,7 @@
 #include <functions.h>
 #include "Enhancements/item-tables/ItemTableManager.h"
 #include "soh/SohGui/SohGui.hpp"
+#include "soh/SohGui/ModsMenu.h"
 #include "soh/SohGui/ImGuiUtils.h"
 #include "ActorDB.h"
 #include "SaveManager.h"
@@ -1523,6 +1524,9 @@ extern "C" void Graph_ProcessGfxCommands(Gfx* commands) {
             audio.cv_from_thread.wait(Lock);
         }
     }
+
+    // OOT D.E.: mods switched on or off in the Mods menu are applied here, between two frames.
+    ModsMenu::ApplyPendingChanges();
 
     bool curAltAssets = CVarGetInteger(CVAR_SETTING("AltAssets"), 0);
     if (prevAltAssets != curAltAssets) {

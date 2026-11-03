@@ -4,7 +4,8 @@
 #include <vector>
 
 // "Mods" page of the port menu: lists the archives in <app folder>/mods, turns them on and off, and installs new
-// ones from a file the player picks. Mods are loaded when the game starts, so changes apply on the next launch.
+// ones from a file the player picks. Turning a mod on or off applies at once to textures and text; models, sounds
+// and other data of the mod take effect on the next launch.
 namespace ModsMenu {
 
 struct ModFile {
@@ -27,5 +28,9 @@ bool SetEnabled(const ModFile& mod, bool enabled);
 std::string OpenPicker();
 
 void Draw();
+
+// Adds or removes the archives of the mods switched in the menu, between two frames (called from OTRGlobals.cpp, at
+// the end of the frame, where the alternate assets switch is applied too).
+void ApplyPendingChanges();
 
 } // namespace ModsMenu

@@ -397,6 +397,35 @@ public class MainActivity extends SDLActivity{
         }
     }
 
+    // Called by the native extractor (Extract.cpp) while it turns the ROM into oot.otr.
+    private ProgressDialog extractionDialog;
+
+    public void showExtractionProgress(final int percent, final String message) {
+        runOnUiThread(() -> {
+            if (isFinishing()) return;
+            if (extractionDialog == null) {
+                extractionDialog = new ProgressDialog(this);
+                extractionDialog.setTitle("Criando os arquivos do jogo");
+                extractionDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                extractionDialog.setIndeterminate(false);
+                extractionDialog.setMax(100);
+                extractionDialog.setCancelable(false);
+            }
+            extractionDialog.setProgress(Math.max(0, Math.min(100, percent)));
+            extractionDialog.setMessage(message + "\n\nNão feche o app.");
+            if (!extractionDialog.isShowing()) extractionDialog.show();
+        });
+    }
+
+    public void hideExtractionProgress() {
+        runOnUiThread(() -> {
+            if (extractionDialog != null) {
+                if (extractionDialog.isShowing()) extractionDialog.dismiss();
+                extractionDialog = null;
+            }
+        });
+    }
+
     private void importRomWithProgress(Uri sourceUri) {
         ProgressDialog dialog = new ProgressDialog(this);
         dialog.setTitle("Importando ROM");
