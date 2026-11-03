@@ -71,6 +71,9 @@
 #include "Enhancements/item-tables/ItemTableManager.h"
 #include "soh/SohGui/SohGui.hpp"
 #include "soh/SohGui/ModsMenu.h"
+#ifdef __ANDROID__
+#include "port/mobile/MobileImpl.h"
+#endif
 #include "soh/SohGui/ImGuiUtils.h"
 #include "ActorDB.h"
 #include "SaveManager.h"
@@ -1527,6 +1530,25 @@ extern "C" void Graph_ProcessGfxCommands(Gfx* commands) {
 
     // OOT D.E.: mods switched on or off in the Mods menu are applied here, between two frames.
     ModsMenu::ApplyPendingChanges();
+
+#ifdef __ANDROID__
+    // OOT D.E.: libultraship only hides/shows the touch controls when the menu is toggled with the menu key, so
+    // closing it with the X button (or any other way) left them hidden. Follow the real menu state every frame;
+    // the Java side ignores calls that do not change anything.
+    {
+        static int sLastMenuVisible = -1;
+        const int menuVisible =
+            Ship::Context::GetInstance()->GetWindow()->GetGui()->GetMenuOrMenubarVisible() ? 1 : 0;
+        if (menuVisible != sLastMenuVisible) {
+            if (menuVisible) {
+                Ship::Mobile::DisableTouchArea();
+            } else {
+                Ship::Mobile::EnableTouchArea();
+            }
+            sLastMenuVisible = menuVisible;
+        }
+    }
+#endif
 
     bool curAltAssets = CVarGetInteger(CVAR_SETTING("AltAssets"), 0);
     if (prevAltAssets != curAltAssets) {

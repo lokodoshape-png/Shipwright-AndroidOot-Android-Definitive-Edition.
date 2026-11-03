@@ -21,6 +21,8 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Abas e barra lateral sem cortes no celular.** As abas de cima usam nomes curtos (Ajustes, Melhorias,
   Randomizador, Dev) e cabem sem a barra de rolagem que cobria o texto. A barra lateral fica larga o bastante para o
   nome mais longo da aba aberta ("Editor de personalização" aparecia cortado dos dois lados).
+- **Controles de toque voltam sempre que o menu fecha.** Antes eles só voltavam quando o menu era fechado pelo
+  botão de menu; fechando pelo X, ficavam escondidos. Agora o app segue o estado real do menu a cada quadro.
 - **Menu sob medida para a tela do celular.** O número de colunas agora depende de quanto texto cabe, e não da
   resolução: num celular as opções ficam em uma ou duas colunas largas em vez de três estreitas. Nomes longos de
   caixas de seleção quebram em mais de uma linha, o nome de um controle deslizante sobe para cima dele quando não
