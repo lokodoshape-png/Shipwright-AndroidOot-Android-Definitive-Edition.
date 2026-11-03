@@ -15,6 +15,7 @@ on:
     types: [opened, synchronize]
   release:
     types: [published, edited]
+  workflow_dispatch:
 
 ###############################################################################
 
@@ -43,6 +44,14 @@ jobs:
           path: |
             Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Attach APK to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Android/app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Upload Built APK to Github Release
   #  upload-release-artifacts:
