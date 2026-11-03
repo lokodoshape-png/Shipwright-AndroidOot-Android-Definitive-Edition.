@@ -646,7 +646,9 @@ void Menu::DrawElement() {
     windowWidth = window->WorkRect.GetWidth();
 
     ImGui::PushFont(OTRGlobals::Instance->fontStandardLargest);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 8.0f));
+    // Compact, consistent navigation tabs: preserve readable text while reducing
+    // oversized padding that makes the header look crowded on Android screens.
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 5.0f));
     const char* headerCvar = CVAR_SETTING("Menu.ActiveHeader");
     std::string headerIndex = CVarGetString(headerCvar, "Settings");
     ImVec2 pos = window->DC.CursorPos;
