@@ -3720,7 +3720,7 @@ void RandomizerSettingsWindow::DrawElement() {
         }
         if (strnlen(seedString, MAX_SEED_STRING_SIZE) == 0) {
             ImGui::SameLine(17.0f);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Leave blank for random seed");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "%s", UIWidgets::Tr("Leave blank for random seed"));
         }
         UIWidgets::PopStyleInput();
     }
@@ -3737,12 +3737,12 @@ void RandomizerSettingsWindow::DrawElement() {
     ImGui::SameLine();
     if (!CVarGetInteger(CVAR_RANDOMIZER_SETTING("DontGenerateSpoiler"), 0)) {
         std::string spoilerfilepath = CVarGetString(CVAR_GENERAL("SpoilerLog"), "");
-        ImGui::Text("Spoiler File: %s", spoilerfilepath.c_str());
+        ImGui::Text(UIWidgets::Tr("Spoiler File: %s"), spoilerfilepath.c_str());
     }
 
     // RANDOTODO settings presets
     // std::string presetfilepath = CVarGetString(CVAR_RANDOMIZER_SETTING("LoadedPreset"), "");
-    // ImGui::Text("Settings File: %s", presetfilepath.c_str());
+    // ImGui::Text(UIWidgets::Tr("Settings File: %s"), presetfilepath.c_str());
 
     UIWidgets::Separator(true, true, 0.f, 0.f);
 
@@ -3751,7 +3751,7 @@ void RandomizerSettingsWindow::DrawElement() {
 
     UIWidgets::PushStyleTabs(THEME_COLOR);
     if (ImGui::BeginTabBar("Randomizer Settings", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton)) {
-        if (ImGui::BeginTabItem("World")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("World"))) {
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
             if (mSettings->GetOptionGroup(RSG_WORLD_IMGUI_TABLE).RenderImGui()) {
                 mNeedsUpdate = true;
@@ -3760,7 +3760,7 @@ void RandomizerSettingsWindow::DrawElement() {
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Items")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Items"))) {
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
             ImGui::BeginDisabled(CVarGetInteger(CVAR_RANDOMIZER_SETTING("LogicRules"), RO_LOGIC_GLITCHLESS) ==
                                  RO_LOGIC_VANILLA);
@@ -3772,7 +3772,7 @@ void RandomizerSettingsWindow::DrawElement() {
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Gameplay")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Gameplay"))) {
             ImGui::BeginDisabled(CVarGetInteger(CVAR_RANDOMIZER_SETTING("LogicRules"), RO_LOGIC_GLITCHLESS) ==
                                  RO_LOGIC_VANILLA);
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
@@ -3784,7 +3784,7 @@ void RandomizerSettingsWindow::DrawElement() {
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Locations")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Locations"))) {
             ImGui::BeginDisabled(CVarGetInteger(CVAR_SETTING("DisableChanges"), 0) || disableEditingRandoSettings ||
                                  CVarGetInteger(CVAR_RANDOMIZER_SETTING("LogicRules"), RO_LOGIC_GLITCHLESS) ==
                                      RO_LOGIC_VANILLA);
@@ -3803,8 +3803,8 @@ void RandomizerSettingsWindow::DrawElement() {
             }
 
             if (ImGui::BeginTable("tableRandoLocations", 2, ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV)) {
-                ImGui::TableSetupColumn("Included", ImGuiTableColumnFlags_WidthStretch, 200.0f);
-                ImGui::TableSetupColumn("Excluded", ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                ImGui::TableSetupColumn(UIWidgets::Tr("Included"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                ImGui::TableSetupColumn(UIWidgets::Tr("Excluded"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::TableHeadersRow();
                 ImGui::PopItemFlag();
@@ -3925,7 +3925,7 @@ void RandomizerSettingsWindow::DrawElement() {
             locationsTabOpen = false;
         }
 
-        if (ImGui::BeginTabItem("Tricks/Glitches")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Tricks/Glitches"))) {
             if (!tricksTabOpen) {
                 tricksTabOpen = true;
                 // RandomizerTricks::UpdateImGuiVisibility();
@@ -3965,7 +3965,7 @@ void RandomizerSettingsWindow::DrawElement() {
                     ImGui::SameLine();
                     ImGui::TextColored(
                         ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
-                        "Heads up! This will disable all rando settings except for entrance shuffle and starter items");
+                        "%s", UIWidgets::Tr("Heads up! This will disable all rando settings except for entrance shuffle and starter items"));
                 }
                 ImGui::PopItemWidth();
                 ImGui::EndTable();
@@ -4110,8 +4110,8 @@ void RandomizerSettingsWindow::DrawElement() {
             }
 
             if (ImGui::BeginTable("tableRandoTricks", 2, ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV)) {
-                ImGui::TableSetupColumn("Disabled Tricks", ImGuiTableColumnFlags_WidthStretch, 200.0f);
-                ImGui::TableSetupColumn("Enabled Tricks", ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                ImGui::TableSetupColumn(UIWidgets::Tr("Disabled Tricks"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                ImGui::TableSetupColumn(UIWidgets::Tr("Enabled Tricks"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::TableHeadersRow();
                 ImGui::PopItemFlag();
@@ -4323,11 +4323,11 @@ void RandomizerSettingsWindow::DrawElement() {
                 } else {
                     ImGui::TableNextColumn();
                     ImGui::BeginChild("ChildTricksDisabled", ImVec2(0, -8));
-                    ImGui::Text("Requires Logic Turned On.");
+                    ImGui::Text("%s", UIWidgets::Tr("Requires Logic Turned On."));
                     ImGui::EndChild();
                     ImGui::TableNextColumn();
                     ImGui::BeginChild("ChildTricksEnabled", ImVec2(0, -8));
-                    ImGui::Text("Requires Logic Turned On.");
+                    ImGui::Text("%s", UIWidgets::Tr("Requires Logic Turned On."));
                     ImGui::EndChild();
                 }
                 ImGui::EndTable();
@@ -4339,7 +4339,7 @@ void RandomizerSettingsWindow::DrawElement() {
             tricksTabOpen = false;
         }
 
-        if (ImGui::BeginTabItem("Starting Inventory")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Starting Inventory"))) {
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
             if (mSettings->GetOptionGroup(RSG_STARTING_INVENTORY_IMGUI_TABLE).RenderImGui()) {
                 mNeedsUpdate = true;

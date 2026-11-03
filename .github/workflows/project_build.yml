@@ -5,8 +5,9 @@ name: Build Android APK (OOT D.E.)
 ###############################################################################
 
 # Every push to main (the OOT D.E. line) builds the APK and publishes it on the Releases page as
-# android-<versionName>-build-<run>, the same scheme as the 2Ship MM3D fork. Pull requests only build
-# the APK and keep it as a workflow artifact, so a change can be tested before it is merged.
+# android-<versionName>-build-<run>, the same scheme as the 2Ship MM3D fork. Pull requests from this
+# repository publish a pre-release (android-<versionName>-teste-build-<run>) so the test APK has a direct
+# download link, without opening the zip of the workflow artifact.
 on:
   push:
     branches: [main]
@@ -81,16 +82,25 @@ jobs:
 
       # The release holds only the app; the game data (oot.otr) is generated on the phone from the user's own ROM.
       - name: Publish release
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION_NAME: ${{ steps.version.outputs.name }}
           VERSION_CODE: ${{ steps.version.outputs.code }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -e
-          short_sha="${GITHUB_SHA::7}"
-          tag="android-${VERSION_NAME}-build-${GITHUB_RUN_NUMBER}"
-          apk="ootde-${VERSION_NAME}-android-build-${GITHUB_RUN_NUMBER}.apk"
+          target_sha="${PR_HEAD_SHA:-$GITHUB_SHA}"
+          branch="${PR_HEAD_REF:-$GITHUB_REF_NAME}"
+          short_sha="${target_sha::7}"
+          if [ -n "$PR_HEAD_SHA" ]; then
+            tag="android-${VERSION_NAME}-teste-build-${GITHUB_RUN_NUMBER}"
+            apk="ootde-${VERSION_NAME}-teste-build-${GITHUB_RUN_NUMBER}.apk"
+          else
+            tag="android-${VERSION_NAME}-build-${GITHUB_RUN_NUMBER}"
+            apk="ootde-${VERSION_NAME}-android-build-${GITHUB_RUN_NUMBER}.apk"
+          fi
           cp Android/app/build/outputs/apk/release/*.apk "$apk"
 
           # Release notes: the CHANGELOG.md section of this version, plus the install steps.
@@ -104,7 +114,7 @@ jobs:
             echo
             echo "**Como instalar**"
             echo "1. Baixe o arquivo \`$apk\` abaixo, em Assets, e instale no celular. Ele atualiza o OOT D.E. que você já tem."
-            echo "2. Na primeira vez, permita o acesso a todos os arquivos. O app atualiza os arquivos dele na pasta \`SOH\` e mantém saves, mods e o \`oot.otr\`."
+            echo "2. Na primeira vez, permita o acesso a todos os arquivos. O app atualiza os arquivos dele na pasta \`OOT-DE\` e mantém saves, mods e o \`oot.otr\`. Ao vir da 0.4 ou anterior, ele copia saves, mods e o \`oot.otr\` da pasta \`SOH\`."
             echo "3. Se ainda não tiver o \`oot.otr\`, escolha a sua ROM do Ocarina of Time quando o app pedir."
             echo
             echo "A ROM e os arquivos do jogo não fazem parte deste download."
@@ -112,14 +122,15 @@ jobs:
             echo "## Mudanças desta versão"
             cat changes.md
             echo
-            echo "Commit: ${GITHUB_SHA} (branch ${GITHUB_REF_NAME})"
+            if [ -n "$PR_HEAD_SHA" ]; then echo "Versão de teste (ainda não está na main)."; echo; fi
+            echo "Commit: ${target_sha} (branch ${branch})"
           } > notes.md
 
           latest="--latest"
-          if [ "$GITHUB_REF_NAME" != "main" ]; then latest="--prerelease"; fi
+          if [ "$branch" != "main" ]; then latest="--prerelease"; fi
           # Release creation sometimes gets a transient HTTP 403 from the API, so it is retried a few times.
           for attempt in 1 2 3 4 5; do
-            if gh release create "$tag" "$apk" --target "$GITHUB_SHA" \
+            if gh release create "$tag" "$apk" --target "$target_sha" \
               --title "OOT D.E. ${VERSION_NAME} Android - build ${GITHUB_RUN_NUMBER} (${short_sha})" \
               --notes-file notes.md $latest; then
               exit 0

@@ -71,6 +71,37 @@ MessageTableEntry* OTRMessage_LoadTable(const std::string& filePath, bool isNES)
     return table;
 }
 
+// OOT D.E.: rebuilds the message tables after a mod was switched on or off in the Mods menu (ModsMenu.cpp), which
+// has already marked the mod's text resources as dirty. The old table points into the old text, so it is freed only
+// once the new one is in place. The credits table is left alone (it is read once, at startup).
+extern "C" void OTRMessage_ReloadTables() {
+    struct Table {
+        MessageTableEntry** ptr;
+        const char* path;
+        bool isNes;
+    };
+    const Table tables[] = {
+        { &sNesMessageEntryTablePtr, "text/nes_message_data_static/nes_message_data_static", true },
+        { &sGerMessageEntryTablePtr, "text/ger_message_data_static/ger_message_data_static", false },
+        { &sFraMessageEntryTablePtr, "text/fra_message_data_static/fra_message_data_static", false },
+        { &sJpnMessageEntryTablePtr, "text/jpn_message_data_static/jpn_message_data_static", false },
+    };
+    for (const Table& table : tables) {
+        if (*table.ptr == nullptr) {
+            continue;
+        }
+        MessageTableEntry* newTable = OTRMessage_LoadTable(table.path, table.isNes);
+        if (newTable == nullptr && table.isNes) {
+            newTable = OTRMessage_LoadTable("text/nes_message_data_static/ntsc_nes_message_data_static", false);
+        }
+        if (newTable != nullptr) {
+            MessageTableEntry* oldTable = *table.ptr;
+            *table.ptr = newTable;
+            free(oldTable);
+        }
+    }
+}
+
 extern "C" void OTRMessage_Init() {
     // OTRTODO: Added a lot of null checks here so that we don't malloc the table multiple times causing a memory leak.
     // We really ought to fix the implementation such that we aren't malloc'ing new tables.

@@ -56,6 +56,54 @@
 
 extern "C" uint32_t CRC32C(unsigned char* data, size_t dataSize);
 
+#ifdef __ANDROID__
+#include <algorithm>
+#include <atomic>
+#include <cstdio>
+#include <chrono>
+#include <thread>
+
+// Counter of XML files ZAPD still has to process during an extraction (ZAPDTR/ZAPD/Main.cpp).
+extern volatile int numWorkersLeft;
+
+// OOT D.E.: progress of the extraction (the step that turns the ROM into oot.otr) in a dialog of the Android app.
+static void ShowExtractionProgress(int percent, const char* message) {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    if (env == nullptr || activity == nullptr) {
+        return;
+    }
+    jclass activityClass = env->GetObjectClass(activity);
+    jmethodID method = env->GetMethodID(activityClass, "showExtractionProgress", "(ILjava/lang/String;)V");
+    if (method != nullptr) {
+        jstring text = env->NewStringUTF(message);
+        env->CallVoidMethod(activity, method, (jint)percent, text);
+        env->DeleteLocalRef(text);
+    } else {
+        env->ExceptionClear();
+    }
+    env->DeleteLocalRef(activityClass);
+    env->DeleteLocalRef(activity);
+}
+
+static void HideExtractionProgress() {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    if (env == nullptr || activity == nullptr) {
+        return;
+    }
+    jclass activityClass = env->GetObjectClass(activity);
+    jmethodID method = env->GetMethodID(activityClass, "hideExtractionProgress", "()V");
+    if (method != nullptr) {
+        env->CallVoidMethod(activity, method);
+    } else {
+        env->ExceptionClear();
+    }
+    env->DeleteLocalRef(activityClass);
+    env->DeleteLocalRef(activity);
+}
+#endif
+
 static constexpr uint32_t OOT_PAL_GC = 0x09465AC3;
 static constexpr uint32_t OOT_PAL_MQ = 0x1D4136F3;
 static constexpr uint32_t OOT_PAL_GC_DBG1 = 0x871E1C92; // 03-21-2002 build
@@ -705,7 +753,36 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     // Work this out in the temporary folder
     std::string tempdir = Mkdtemp();
     std::string curdir = std::filesystem::current_path().string();
-#if defined(_WIN32) || defined(__ANDROID__)
+#ifdef __ANDROID__
+    ShowExtractionProgress(0, "Preparando a extração...");
+#endif
+#if defined(__ANDROID__)
+    // OOT D.E.: copy only what this ROM needs. The assets folder has the XML files of all 14 ROM versions (about 7700
+    // small files); copying all of them to the temporary folder took most of the preparation time on a phone.
+    {
+        const std::filesystem::path source = installPath + "/assets";
+        const std::filesystem::path xmlsFolder = source / "extractor" / "xmls";
+        const std::filesystem::path wantedXmls = xmlsFolder / version;
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(source, ec);
+             !ec && it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+            const std::filesystem::path& entry = it->path();
+            // Skip the XML folders of the other ROM versions.
+            if (it->is_directory(ec) && entry.parent_path() == xmlsFolder && entry != wantedXmls) {
+                it.disable_recursion_pending();
+                continue;
+            }
+            const std::filesystem::path target = std::filesystem::path(tempdir) / "assets" / entry.lexically_relative(source);
+            if (it->is_directory(ec)) {
+                std::filesystem::create_directories(target, ec);
+            } else {
+                std::filesystem::create_directories(target.parent_path(), ec);
+                std::filesystem::copy_file(entry, target, std::filesystem::copy_options::overwrite_existing, ec);
+            }
+            ec.clear();
+        }
+    }
+#elif defined(_WIN32)
     std::filesystem::copy(installPath + "/assets", tempdir + "/assets",
                           std::filesystem::copy_options::recursive | std::filesystem::copy_options::update_existing);
 #else
@@ -745,6 +822,50 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     // extraction.
     ShowWindow(cmdWindow, SW_SHOW);
     SetWindowPos(cmdWindow, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+#elif defined(__ANDROID__)
+    // OOT D.E.: a progress bar instead of the "Extracting" message. ZAPD processes one XML file per resource group;
+    // numWorkersLeft counts the ones still to do. Once it is back to 0, ZAPD is writing the oot.otr file.
+    int totalXmls = 0;
+    {
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(xmlPath, ec);
+             !ec && it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+            if (it->is_regular_file(ec)) {
+                totalXmls++;
+            }
+        }
+    }
+    std::atomic<bool> extracting(true);
+    std::thread progressThread([&extracting, totalXmls]() {
+        bool started = false;
+        int lastPercent = -1;
+        while (extracting.load()) {
+            int left = numWorkersLeft;
+            int percent;
+            const char* message;
+            char text[128];
+            if (left > 0) {
+                started = true;
+            }
+            if (!started || totalXmls <= 0) {
+                percent = 1;
+                message = "Lendo a ROM...";
+            } else if (left > 0) {
+                int done = std::max(0, totalXmls - left);
+                percent = 2 + done * 88 / totalXmls;
+                snprintf(text, sizeof(text), "Extraindo os arquivos do jogo: %d de %d", done, totalXmls);
+                message = text;
+            } else {
+                percent = 92;
+                message = "Gravando o oot.otr (pode levar alguns minutos)...";
+            }
+            if (percent != lastPercent || left > 0) {
+                ShowExtractionProgress(percent, message);
+                lastPercent = percent;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        }
+    });
 #else
     // Show extraction in background message until linux/mac can have visual progress
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Extracting",
@@ -754,6 +875,12 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
 #endif
 
     zapd_main(argc, (char**)argv.data());
+
+#ifdef __ANDROID__
+    extracting.store(false);
+    progressThread.join();
+    ShowExtractionProgress(97, "Copiando o oot.otr para a pasta do jogo...");
+#endif
 
 #ifdef _WIN32
     // Hide the command window again.
@@ -766,5 +893,8 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
     std::filesystem::current_path(curdir);
     std::filesystem::remove_all(tempdir);
 
+#ifdef __ANDROID__
+    HideExtractionProgress();
+#endif
     return 0;
 }

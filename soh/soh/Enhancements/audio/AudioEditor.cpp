@@ -502,7 +502,7 @@ void AudioEditor::DrawElement() {
     if (ImGui::BeginTabBar("SfxContextTabBar", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton)) {
 
         static ImVec2 cellPadding(8.0f, 8.0f);
-        if (ImGui::BeginTabItem("Audio Options")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Audio Options"))) {
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
             ImGui::BeginTable("Audio Options", 1, ImGuiTableFlags_SizingStretchSame);
             ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
@@ -579,19 +579,19 @@ void AudioEditor::DrawElement() {
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Background Music")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Background Music"))) {
             Draw_SfxTab("backgroundMusic", SEQ_BGM_WORLD, "Background Music");
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Fanfares")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Fanfares"))) {
             Draw_SfxTab("fanfares", SEQ_FANFARE, "Fanfares");
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Events")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Events"))) {
             Draw_SfxTab("event", SEQ_BGM_EVENT, "Events");
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Battle Music")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Battle Music"))) {
             Draw_SfxTab("battleMusic", SEQ_BGM_BATTLE, "Battle Music");
             ImGui::EndTabItem();
         }
@@ -600,17 +600,17 @@ void AudioEditor::DrawElement() {
             Draw_SfxTab("ocarina", SEQ_OCARINA, "Ocarina");
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Sound Effects")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Sound Effects"))) {
             Draw_SfxTab("sfx", SEQ_SFX, "Sound Effects");
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Voices")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Voices"))) {
             Draw_SfxTab("voice", SEQ_VOICE, "Voices");
             ImGui::EndTabItem();
         }
 
         static bool excludeTabOpen = false;
-        if (ImGui::BeginTabItem("Audio Shuffle Pool Management")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Audio Shuffle Pool Management"))) {
             ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
             if (!excludeTabOpen) {
                 excludeTabOpen = true;
@@ -700,8 +700,8 @@ void AudioEditor::DrawElement() {
             ImGui::EndTable();
 
             if (ImGui::BeginTable("tableAllSequences", 2, ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV)) {
-                ImGui::TableSetupColumn("Included", ImGuiTableColumnFlags_WidthStretch, 200.0f);
-                ImGui::TableSetupColumn("Excluded", ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                ImGui::TableSetupColumn(UIWidgets::Tr("Included"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                ImGui::TableSetupColumn(UIWidgets::Tr("Excluded"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
                 ImGui::TableHeadersRow();
                 ImGui::TableNextRow();
 

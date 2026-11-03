@@ -3,6 +3,7 @@
 #include <soh/GameVersions.h>
 #include "soh/ResourceManagerHelpers.h"
 #include "UIWidgets.hpp"
+#include "ModsMenu.h"
 #include <spdlog/fmt/fmt.h>
 
 extern "C" {
@@ -365,6 +366,19 @@ void SohMenu::AddMenuSettings() {
         .CVar(CVAR_TEXTURE_FILTER)
         .RaceDisable(false)
         .Options(ComboboxOptions().Tooltip("Sets the applied Texture Filtering.").ComboMap(textureFilteringMap));
+    // OOT D.E.: 3DS-style lighting filter (applied in the Fast3D OpenGL shader, see patches/libultraship-ootde.patch).
+    AddWidget(path, "Iluminação estilo 3DS", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SETTING("Lighting3DS"))
+        .RaceDisable(false)
+        .Options(CheckboxOptions().Tooltip(
+            "Filtro de imagem inspirado no Ocarina of Time 3D: cores mais vivas, um pouco mais de luz e contraste, "
+            "tom mais quente e brilho suave nas partes claras. Vale na hora, sem reiniciar."));
+    AddWidget(path, "Intensidade da iluminação 3DS: %d %%", WIDGET_CVAR_SLIDER_INT)
+        .CVar(CVAR_SETTING("Lighting3DSStrength"))
+        .RaceDisable(false)
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_SETTING("Lighting3DS"), 0); })
+        .Options(IntSliderOptions().Min(10).Max(200).DefaultValue(100).ShowButtons(true).Format("").Tooltip(
+            "100% é o ajuste recomendado. Abaixo disso o efeito fica mais leve; acima, mais forte."));
 
     path.column = SECTION_COLUMN_2;
     AddWidget(path, "Advanced Graphics Options", WIDGET_SEPARATOR_TEXT);
@@ -446,6 +460,21 @@ void SohMenu::AddMenuSettings() {
             });
         })
         .Options(ButtonOptions().Tooltip("Displays a test notification."));
+
+    // Mods: list, turn on/off and install mod archives from the menu.
+    path.sidebarName = "Mods";
+    path.column = SECTION_COLUMN_1;
+    AddSidebarEntry("Settings", path.sidebarName, 1);
+    AddWidget(path, "Mods", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "ModsList", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        ModsMenu::Draw();
+    });
+    AddWidget(path, "Use Alternate Assets", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SETTING("AltAssets"))
+        .RaceDisable(false)
+        .Options(CheckboxOptions().Tooltip(
+            "Toggle between standard assets and alternate assets. Usually mods will indicate if "
+            "this setting has to be used or not."));
 }
 
 } // namespace SohGui

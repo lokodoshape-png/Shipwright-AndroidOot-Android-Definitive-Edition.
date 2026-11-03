@@ -1,4 +1,5 @@
 #include "Presets.h"
+#include "soh/SohGui/UIWidgets.hpp"
 #include <variant>
 #include <string>
 #include <cstdint>
@@ -52,7 +53,7 @@ void DrawPresetSelector(PresetType presetTypeId) {
         comboboxTooltip += std::string(iter->second.label) + " - " + std::string(iter->second.description);
     }
 
-    ImGui::Text("Presets");
+    ImGui::Text("%s", UIWidgets::Tr("Presets"));
     UIWidgets::PushStyleCombobox(THEME_COLOR);
     if (ImGui::BeginCombo("##PresetsComboBox", selectedPresetDef.label)) {
         for (auto iter = presetTypeDef.presets.begin(); iter != presetTypeDef.presets.end(); ++iter) {

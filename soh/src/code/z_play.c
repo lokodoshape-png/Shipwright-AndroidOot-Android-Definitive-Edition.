@@ -1685,6 +1685,9 @@ time_t Play_GetRealTime() {
     return t1 - t2;
 }
 
+s32 HoldBFastForward_GetExtraFrames(PlayState* play);
+bool HoldBFastForward_ShouldContinue(PlayState* play);
+
 void Play_Main(GameState* thisx) {
     PlayState* play = (PlayState*)thisx;
 
@@ -1718,6 +1721,11 @@ void Play_Main(GameState* thisx) {
 
     if ((HREG(80) != 10) || (HREG(81) != 0)) {
         Play_Update(play);
+        // Hold B to fast-forward cutscenes (soh/Enhancements/HoldBFastForward.cpp): extra logic frames, one draw.
+        s32 extraFrames = HoldBFastForward_GetExtraFrames(play);
+        for (s32 i = 0; i < extraFrames && HoldBFastForward_ShouldContinue(play); i++) {
+            Play_Update(play);
+        }
     }
 
     PLAY_LOG(4583);

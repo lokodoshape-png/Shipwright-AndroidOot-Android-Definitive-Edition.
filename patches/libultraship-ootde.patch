@@ -1,0 +1,104 @@
+diff --git a/src/Context.cpp b/src/Context.cpp
+index 84aef37..397c7de 100644
+--- a/src/Context.cpp
++++ b/src/Context.cpp
+@@ -375,7 +375,7 @@ std::string Context::GetShortName() {
+ 
+ std::string Context::GetAppBundlePath() {
+ #if defined(__ANDROID__)
+-    const char* externaldir = "/storage/emulated/0/SOH";//SDL_AndroidGetExternalStoragePath();
++    const char* externaldir = "/storage/emulated/0/OOT-DE";//SDL_AndroidGetExternalStoragePath();
+     if (externaldir != NULL) {
+         return externaldir;
+     }
+@@ -416,7 +416,7 @@ std::string Context::GetAppBundlePath() {
+ 
+ std::string Context::GetAppDirectoryPath(std::string appName) {
+ #if defined(__ANDROID__)
+-    const char* externaldir = "/storage/emulated/0/SOH";//SDL_AndroidGetExternalStoragePath();
++    const char* externaldir = "/storage/emulated/0/OOT-DE";//SDL_AndroidGetExternalStoragePath();
+     if (externaldir != NULL) {
+         return externaldir;
+     }
+diff --git a/src/graphic/Fast3D/gfx_opengl.cpp b/src/graphic/Fast3D/gfx_opengl.cpp
+index f372937..b4a011e 100644
+--- a/src/graphic/Fast3D/gfx_opengl.cpp
++++ b/src/graphic/Fast3D/gfx_opengl.cpp
+@@ -60,6 +60,7 @@ struct ShaderProgram {
+     uint8_t attrib_sizes[16];
+     uint8_t num_attribs;
+     GLint frame_count_location;
++    GLint color_grade_location;
+     GLint noise_scale_location;
+ };
+ 
+@@ -91,6 +92,8 @@ static int8_t last_depth_test;
+ static int8_t last_depth_mask;
+ static int8_t last_zmode_decal;
+ static bool srgb_mode = false;
++// OOT D.E.: strength of the 3DS-style lighting filter (0 = off).
++static float current_color_grade = 0.0f;
+ 
+ GLint max_msaa_level = 1;
+ GLuint pixel_depth_rb, pixel_depth_fb;
+@@ -125,6 +128,7 @@ static void gfx_opengl_vertex_array_set_attribs(struct ShaderProgram* prg) {
+ static void gfx_opengl_set_uniforms(struct ShaderProgram* prg) {
+     glUniform1i(prg->frame_count_location, frame_count);
+     glUniform1f(prg->noise_scale_location, current_noise_scale);
++    glUniform4f(prg->color_grade_location, current_color_grade, 0.0f, 0.0f, 0.0f);
+ }
+ 
+ static void gfx_opengl_unload_shader(struct ShaderProgram* old_prg) {
+@@ -542,6 +546,7 @@ static struct ShaderProgram* gfx_opengl_create_and_load_new_shader(uint64_t shad
+ 
+     prg->frame_count_location = glGetUniformLocation(shader_program, "frame_count");
+     prg->noise_scale_location = glGetUniformLocation(shader_program, "noise_scale");
++    prg->color_grade_location = glGetUniformLocation(shader_program, "color_grade");
+ 
+     gfx_opengl_load_shader(prg);
+ 
+@@ -751,6 +756,10 @@ static void gfx_opengl_on_resize() {
+ 
+ static void gfx_opengl_start_frame() {
+     frame_count++;
++    // OOT D.E.: 3DS-style lighting filter, read once per frame (Graphics menu).
++    current_color_grade = CVarGetInteger("gSettings.Lighting3DS", 0)
++                              ? CVarGetInteger("gSettings.Lighting3DSStrength", 100) / 100.0f
++                              : 0.0f;
+ }
+ 
+ static void gfx_opengl_end_frame() {
+diff --git a/src/graphic/Fast3D/shaders/opengl/default.shader.fs b/src/graphic/Fast3D/shaders/opengl/default.shader.fs
+index b15e159..ac33ba0 100644
+--- a/src/graphic/Fast3D/shaders/opengl/default.shader.fs
++++ b/src/graphic/Fast3D/shaders/opengl/default.shader.fs
+@@ -43,6 +43,8 @@ out vec4 vOutColor;
+ 
+ uniform int frame_count;
+ uniform float noise_scale;
++// OOT D.E.: 3DS-style lighting filter. x = strength (0 = off).
++uniform vec4 color_grade;
+ 
+ #define TEX_OFFSET(off) @{texture}(tex, texCoord - off / texSize)
+ #define WRAP(x, low, high) mod((x)-(low), (high)-(low)) + (low)
+@@ -178,6 +180,20 @@ void main() {
+         @end
+     @end
+ 
++    // OOT D.E.: 3DS-style lighting filter: livelier colors, a little more contrast and light, warm tint and
++    // softly glowing highlights. color_grade.x is the strength chosen in the menu (0 = off).
++    if (color_grade.x > 0.0) {
++        float cgS = color_grade.x;
++        vec3 cg = texel.rgb;
++        float cgL = dot(cg, vec3(0.299, 0.587, 0.114));
++        cg = mix(vec3(cgL), cg, 1.0 + 0.35 * cgS);
++        cg = (cg - 0.5) * (1.0 + 0.12 * cgS) + 0.5;
++        cg *= 1.0 + 0.08 * cgS;
++        cg *= vec3(1.0 + 0.05 * cgS, 1.0 + 0.015 * cgS, 1.0 - 0.04 * cgS);
++        cg += vec3(smoothstep(0.55, 1.0, cgL) * 0.07 * cgS);
++        texel.rgb = clamp(cg, 0.0, 1.0);
++    }
++
+     @if(o_texture_edge && o_alpha)
+         if (texel.a > 0.19) texel.a = 1.0; else discard;
+     @end

@@ -12,6 +12,75 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
+
+### Menu do Ship
+- **Menu traduzido por inteiro.** Nomes das opções, dicas (tooltips), opções das listas e páginas agora passam
+  pela tradução pt-BR. Antes as caixas de seleção, o tipo de opção mais comum, continuavam em inglês, e várias
+  opções de Configurações só eram traduzidas nas abas. Todo o texto fica em `soh/soh/SohGui/MenuTranslations.cpp`.
+- **Abas e barra lateral sem cortes no celular.** As abas de cima usam nomes curtos (Ajustes, Melhorias,
+  Randomizador, Dev) e cabem sem a barra de rolagem que cobria o texto. A barra lateral fica larga o bastante para o
+  nome mais longo da aba aberta ("Editor de personalização" aparecia cortado dos dois lados).
+- **Iluminação estilo 3DS** (Ajustes > Gráficos): filtro de imagem com cores mais vivas, um pouco mais de luz e
+  contraste, tom mais quente e brilho suave nas partes claras, com intensidade de 10% a 200%. Vale na hora.
+- **Controles de toque voltam sempre que o menu fecha.** Antes eles só voltavam quando o menu era fechado pelo
+  botão de menu; fechando pelo X, ficavam escondidos. Agora o app segue o estado real do menu a cada quadro.
+- **Menu sob medida para a tela do celular.** O número de colunas agora depende de quanto texto cabe, e não da
+  resolução: num celular as opções ficam em uma ou duas colunas largas em vez de três estreitas. Nomes longos de
+  caixas de seleção quebram em mais de uma linha, o nome de um controle deslizante sobe para cima dele quando não
+  sobra espaço, e as listas de escolha nunca passam da borda. As tabelas de ajustes do randomizador viram seções
+  empilhadas quando a tela é estreita.
+- **Janelas internas em português.** Editor de cosméticos (inclusive os nomes de cada cor), editor de áudio,
+  controles, visualizador de comandos, estatísticas, parciais de tempo, rastreadores, randomizador (nomes das opções,
+  valores e grupos), plandomizer, editor de resolução e ferramentas de desenvolvedor. As descrições longas das
+  opções do randomizador e os nomes dos locais nos rastreadores continuam em inglês por enquanto.
+- **Página de Mods** (Configurações > Modificações): lista os mods da pasta, liga e desliga cada um e instala novos
+  pelo botão "Adicionar mod...", que abre o seletor de arquivos do Android. Aceita `.otr`, `.o2r` e `.zip`; os
+  `.otr`/`.o2r` de dentro de um `.zip` são extraídos. Um mod desligado ganha o final `.desativado` e não é carregado.
+  Ligar, desligar ou instalar um mod vale na hora para texturas e textos (inclusive tradução). Modelos, sons e o resto
+  do mod passam a valer quando o jogo é aberto de novo, e a página avisa quando é o caso.
+- **Controles de toque somem com o menu aberto** e voltam sozinhos ao fechar, para todo toque ir para o menu.
+  O menu fecha com o botão Voltar do Android.
+
+### Jogo
+- **Segure B para acelerar as cenas** (Aprimoramentos > Pulos e acelerações > Cenas, ligado por padrão). Depois de
+  segurar B por um instante a cena roda 5 vezes mais rápido (ajustável de 2x a 10x), sem pular nada. Vale para as
+  cenas do jogo depois da seleção de arquivo, não para a abertura da tela de título, e para quando há uma pergunta
+  na tela.
+- **Opcional: passar diálogos ao segurar B** (desligado por padrão). Com ele ligado, as caixas de diálogo das cenas
+  passam sozinhas enquanto B está segurado. Se "Pular texto" também estiver ligado, as duas telas mostram um aviso
+  de incompatibilidade, porque "Pular texto" já faz isso em todos os diálogos.
+- **Aviso "Segure B para acelerar"** no canto inferior direito quando a cena começa; enquanto acelera, mostra
+  "Acelerando >>". Pode ser desligado na mesma tela.
+
+- **Skulltulas e Pedaços de Coração no mapa** (Aprimoramentos > Qualidade de vida > Menu de pausa, ligado por padrão). No mapa do
+  menu de pausa, ao escolher uma região aparece ao lado do ponto dela o ícone da Skulltula dourada e o do Pedaço de
+  Coração com a conta, por exemplo `1/4`. A conta vem do save e muda assim que você pega um. Região com tudo pego fica
+  com o ponto e os números em dourado e a carinha do Link piscando ao lado. Valem as 56 Skulltulas e os 35 Pedaços de
+  Coração fora das masmorras.
+- **Correção: letras grudadas na tradução.** O jogo reservava para cada letra a largura da letra original daquela
+  posição da fonte. A tradução põe o Á no lugar do Î e o Ó no lugar do Ù, que são mais estreitos, então o Á e o Ó
+  ficavam por cima da letra seguinte ("Á" ganhou a largura do A e "Ó" a do O). O "f" da fonte traduzida também é mais
+  largo que o original e ganhou um pouco mais de espaço.
+
+### Android
+- **Barra de porcentagem ao criar os arquivos do jogo a partir da ROM** (a extração que gera o `oot.otr`). Antes
+  aparecia só uma mensagem em inglês e a tela ficava parada; agora mostra quantos grupos de arquivos já foram
+  extraídos e avisa quando está gravando o `oot.otr`. A importação da ROM e a preparação dos arquivos já tinham barra
+  desde a 0.4.
+- **Preparação e criação dos arquivos mais rápidas.** A criação do `oot.otr` copiava os arquivos de extração das 14
+  versões da ROM (cerca de 7700 arquivos pequenos) para uma pasta temporária; agora copia só os da sua ROM (cerca de
+  550) e usa todos os núcleos do celular menos um (antes, metade). A preparação na primeira abertura e depois de
+  atualizar copia os recursos em várias tarefas ao mesmo tempo, sem abrir cada arquivo duas vezes.
+- **Pasta própria `OOT-DE`** na raiz do armazenamento, no lugar da `SOH` que era dividida com o Ship of Harkinian
+  original. Na primeira abertura da 0.5, o app copia saves, mods, o `oot.otr` e as configurações da pasta `SOH`
+  para a `OOT-DE`. A pasta `SOH` não é apagada.
+- `versionCode 13` e `versionName 0.5`.
+
+### Builds
+- O nome da pasta fica no libultraship (submódulo) e é trocado pelo `patches/libultraship-ootde.patch`, aplicado
+  pelo script de build antes de compilar.
+
 ## [0.4] — Identidade visual, progresso da preparação e correções
 
 ### Android
@@ -27,7 +96,7 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Correção: o app travava ao cancelar a escolha da ROM** ou quando a importação falhava. O extrator ficava
   esperando para sempre; agora ele volta para a pergunta anterior.
 - **Correção: saves antigos podiam ser copiados por cima dos atuais.** A migração da pasta antiga
-  `Android/data/.../files` agora só acontece quando ainda não existe `SOH/Save`.
+  `Android/data/.../files` agora só acontece quando ainda não existe a pasta `Save`.
 - **Correção: o botão de esconder os controles de toque** precisava de dois toques depois de reabrir o app com os
   controles escondidos.
 - Mensagens da preparação e da importação em português.

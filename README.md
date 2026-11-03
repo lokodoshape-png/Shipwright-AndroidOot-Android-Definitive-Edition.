@@ -6,7 +6,7 @@ Brasil, ícone próprio e preparação dos arquivos com progresso.
 - **Download:** página [Releases](https://github.com/lokodoshape-png/Shipwright-AndroidOot-Android-Definitive-Edition./releases), arquivo `ootde-<versão>-android-build-N.apk`.
 - **O que mudou em cada versão:** [CHANGELOG.md](CHANGELOG.md).
 - **Como as versões são organizadas:** [docs/VERSOES.md](docs/VERSOES.md).
-- Os arquivos do jogo ficam na pasta `SOH` do celular. O jogo não vem com a ROM; você gera o `oot.otr` da sua própria cópia.
+- Os arquivos do jogo ficam na pasta `OOT-DE` do celular (até a 0.4 era `SOH`). O jogo não vem com a ROM; você gera o `oot.otr` da sua própria cópia.
 
 O texto abaixo é o README original do port.
 

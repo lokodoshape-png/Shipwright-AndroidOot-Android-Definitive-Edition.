@@ -119,7 +119,7 @@ void ResolutionCustomWidget(WidgetInfo& info) {
         if ((aspectRatioX > 0.0f) && (aspectRatioY > 0.0f)) {
             // So basically we're "faking" this one by setting aspectRatioX instead.
             UIWidgets::PushStyleInput(THEME_COLOR);
-            if (ImGui::InputInt("Horiz. Pixel Count", &horizontalPixelCount, 8, 320)) {
+            if (ImGui::InputInt(UIWidgets::Tr("Horiz. Pixel Count"), &horizontalPixelCount, 8, 320)) {
                 item_aspectRatio = default_aspectRatio;
                 if (horizontalPixelCount < SCREEN_WIDTH) {
                     horizontalPixelCount = SCREEN_WIDTH;
@@ -147,7 +147,7 @@ void ResolutionCustomWidget(WidgetInfo& info) {
     }
     // Vertical Resolution part 2
     UIWidgets::PushStyleInput(THEME_COLOR);
-    if (ImGui::InputInt("Vertical Pixel Count", &verticalPixelCount, 8, 240)) {
+    if (ImGui::InputInt(UIWidgets::Tr("Vertical Pixel Count"), &verticalPixelCount, 8, 240)) {
         item_pixelCount = default_pixelCount;
         update[UPDATE_verticalPixelCount] = true;
 
@@ -169,7 +169,7 @@ void ResolutionCustomWidget(WidgetInfo& info) {
         CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".PixelPerfectMode", 0) ? ImGuiTreeNodeFlags_DefaultOpen
                                                                                : ImGuiTreeNodeFlags_None;
     UIWidgets::PushStyleHeader(THEME_COLOR);
-    if (ImGui::CollapsingHeader("Integer Scaling Settings", IntegerScalingResolvedImGuiFlag)) {
+    if (ImGui::CollapsingHeader(UIWidgets::Tr("Integer Scaling Settings"), IntegerScalingResolvedImGuiFlag)) {
         const bool disabled_pixelPerfectMode =
             !CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".PixelPerfectMode", 0) || disabled_everything;
         // Pixel Perfect Mode
@@ -221,7 +221,7 @@ void ResolutionCustomWidget(WidgetInfo& info) {
 
     // Collapsible panel for additional settings
     UIWidgets::PushStyleHeader(THEME_COLOR);
-    if (ImGui::CollapsingHeader("Additional Settings")) {
+    if (ImGui::CollapsingHeader(UIWidgets::Tr("Additional Settings"))) {
 #if defined(__SWITCH__) || defined(__WIIU__)
         // Disable aspect correction, stretching the framebuffer to fill the viewport.
         // This option is only really needed on systems limited to 16:9 TV resolutions, such as consoles.
@@ -242,7 +242,7 @@ void ResolutionCustomWidget(WidgetInfo& info) {
             // Having this button should hopefully prevent support headaches.
             ImGui::TextColored(messageColor[MESSAGE_QUESTION], ICON_FA_QUESTION_CIRCLE
                                " If the image is stretched and you don't know why, click this.");
-            if (ImGui::Button("Click to reenable aspect correction.")) {
+            if (ImGui::Button(UIWidgets::Tr("Click to reenable aspect correction."))) {
                 CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".IgnoreAspectCorrection", 0);
                 Ship::Context::GetInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
             }
@@ -489,7 +489,7 @@ void RegisterResolutionWidgets() {
                     ImGui::Dummy({ 0, 2 });
                     const float resolvedAspectRatio =
                         (float)gfx_current_dimensions.width / gfx_current_dimensions.height;
-                    ImGui::Text("Aspect ratio: %.2f:1", resolvedAspectRatio);
+                    ImGui::Text(UIWidgets::Tr("Aspect ratio: %.2f:1"), resolvedAspectRatio);
                 }
             }
         });

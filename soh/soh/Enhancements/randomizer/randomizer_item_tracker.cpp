@@ -1139,7 +1139,7 @@ void DrawTotalChecks() {
     } else {
         ImGui::SetWindowFontScale(1);
     }
-    ImGui::Text("Checks: %d/%d", totalChecksGotten, totalChecks);
+    ImGui::Text(UIWidgets::Tr("Checks: %d/%d"), totalChecksGotten, totalChecks);
     ImGui::EndGroup();
 }
 
@@ -1710,8 +1710,8 @@ static std::unordered_map<int32_t, const char*> minimalDisplayTypes = {
 void ItemTrackerSettingsWindow::DrawElement() {
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, { 8.0f, 8.0f });
     ImGui::BeginTable("itemTrackerSettingsTable", 2, ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV);
-    ImGui::TableSetupColumn("General settings", ImGuiTableColumnFlags_WidthStretch, 200.0f);
-    ImGui::TableSetupColumn("Section settings", ImGuiTableColumnFlags_WidthStretch, 200.0f);
+    ImGui::TableSetupColumn(UIWidgets::Tr("General settings"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
+    ImGui::TableSetupColumn(UIWidgets::Tr("Section settings"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
     ImGui::TableHeadersRow();
     ImGui::TableNextRow();
     ImGui::TableNextColumn();

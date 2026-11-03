@@ -1,4 +1,5 @@
 #include "TimeDisplay.h"
+#include "soh/SohGui/UIWidgets.hpp"
 #include "soh/Enhancements/gameplaystats.h"
 #include <global.h>
 
@@ -179,7 +180,7 @@ void TimeDisplayWindow::Draw() {
                      ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
     ImGui::SetWindowFontScale(fontScale);
     if (activeTimers.size() == 0) {
-        ImGui::Text("No Enabled Timers...");
+        ImGui::Text("%s", UIWidgets::Tr("No Enabled Timers..."));
     } else {
         ImGui::BeginTable("Timer List", 2, ImGuiTableFlags_NoClip);
         for (auto& timers : activeTimers) {

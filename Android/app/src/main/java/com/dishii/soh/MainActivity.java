@@ -25,6 +25,8 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import android.util.Log;
+import android.database.Cursor;
+import android.provider.OpenableColumns;
 
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -42,6 +44,14 @@ import android.app.ProgressDialog;
 public class MainActivity extends SDLActivity{
 
     SharedPreferences preferences;
+    // The app's own folder on the phone. It must match libultraship's Context.cpp (patches/libultraship-ootde.patch).
+    static final String DATA_FOLDER = "OOT-DE";
+    // Folder used before 0.5, shared with the original Ship of Harkinian app. Its files are copied, never moved.
+    static final String OLD_DATA_FOLDER = "SOH";
+
+    static File getDataFolder() {
+        return new File(Environment.getExternalStorageDirectory(), DATA_FOLDER);
+    }
     private static final CountDownLatch setupLatch = new CountDownLatch(1);
     private ProgressDialog setupProgressDialog;
     // True when this install is newer than the one that created the SOH folder: the files the app ships
@@ -113,6 +123,7 @@ public class MainActivity extends SDLActivity{
 
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 2296;
     private static final int FILE_PICKER_REQUEST_CODE = 0;
+    private static final int MOD_PICKER_REQUEST_CODE = 4;
 
     private void requestStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -141,7 +152,7 @@ public class MainActivity extends SDLActivity{
 
     public void checkAndSetupFiles() {
         doVersionCheck();
-        File targetRootFolder = new File(Environment.getExternalStorageDirectory(), "SOH");
+        File targetRootFolder = getDataFolder();
         File assetsFolder = new File(targetRootFolder, "assets");
         File sohOtrFile = new File(targetRootFolder, "soh.otr");
 
@@ -177,7 +188,7 @@ public class MainActivity extends SDLActivity{
         File sourceSavesDir = new File(sourceOldRoot, "Save"); // how to tell if there's anything to migrate
 
         // === Migration from old Android/data/.../files/ directory ===
-        // Skipped once SOH/Save exists, so an update never puts old saves over newer ones.
+        // Skipped once Save exists in the data folder, so an update never puts old saves over newer ones.
         boolean hasCurrentSaves = new File(targetRootFolder, "Save").isDirectory();
         if (sourceOldRoot != null && sourceSavesDir.isDirectory() && !hasCurrentSaves) {
             Log.i("setupFiles", "Migrating old data from: " + sourceOldRoot.getAbsolutePath());
@@ -213,11 +224,49 @@ public class MainActivity extends SDLActivity{
             if (!targetRootFolder.mkdirs()) {
                 Log.e("setupFiles", "Failed to create root folder");
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Não foi possível criar a pasta SOH", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Não foi possível criar a pasta " + DATA_FOLDER, Toast.LENGTH_LONG).show();
                     if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
                 });
                 setupLatch.countDown();
                 return;
+            }
+        }
+
+        // From 0.5 on the app has its own folder. The first time, saves, mods, oot.otr and settings are copied from
+        // the old SOH folder, which stays as it is (the original Ship of Harkinian app may still use it).
+        File oldRootFolder = new File(Environment.getExternalStorageDirectory(), OLD_DATA_FOLDER);
+        if (oldRootFolder.isDirectory() && !preferences.getBoolean("copiedFromSohFolder", false)) {
+            updateSetupProgress(7, "Copiando saves e mods da pasta SOH...");
+            boolean copyOk = true;
+            File[] oldFiles = oldRootFolder.listFiles();
+            if (oldFiles != null) {
+                for (File file : oldFiles) {
+                    String name = file.getName();
+                    // The app's own files come from the APK; the ROM copy is not needed once oot.otr exists.
+                    if (name.equals("assets") || name.equals("soh.otr") || name.endsWith(".tmp") || name.equals("OOT.z64")) {
+                        continue;
+                    }
+                    File dest = new File(targetRootFolder, name);
+                    if (dest.exists()) {
+                        continue; // never overwrite anything already in OOT-DE
+                    }
+                    try {
+                        if (file.isDirectory()) {
+                            AssetCopyUtil.copyDirectory(file, dest);
+                        } else {
+                            AssetCopyUtil.copyFile(file, dest);
+                        }
+                        Log.i("setupFiles", "Copied from SOH: " + name);
+                    } catch (IOException e) {
+                        copyOk = false;
+                        Log.e("setupFiles", "Failed to copy from SOH: " + name, e);
+                    }
+                }
+            }
+            if (copyOk) {
+                preferences.edit().putBoolean("copiedFromSohFolder", true).apply();
+                runOnUiThread(() -> Toast.makeText(this, "Saves, mods e oot.otr copiados para a pasta " + DATA_FOLDER,
+                        Toast.LENGTH_LONG).show());
             }
         }
 
@@ -319,6 +368,23 @@ public class MainActivity extends SDLActivity{
                 nativeHandleSelectedFile("");
             }
 
+        } else if (requestCode == MOD_PICKER_REQUEST_CODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                java.util.List<Uri> uris = new java.util.ArrayList<>();
+                if (data.getClipData() != null) {
+                    for (int i = 0; i < data.getClipData().getItemCount(); i++) {
+                        uris.add(data.getClipData().getItemAt(i).getUri());
+                    }
+                } else if (data.getData() != null) {
+                    uris.add(data.getData());
+                }
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    for (Uri uri : uris) {
+                        installMod(uri);
+                    }
+                });
+            }
+
         } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
             // Handle MANAGE_EXTERNAL_STORAGE result
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -329,6 +395,35 @@ public class MainActivity extends SDLActivity{
                 }
             }
         }
+    }
+
+    // Called by the native extractor (Extract.cpp) while it turns the ROM into oot.otr.
+    private ProgressDialog extractionDialog;
+
+    public void showExtractionProgress(final int percent, final String message) {
+        runOnUiThread(() -> {
+            if (isFinishing()) return;
+            if (extractionDialog == null) {
+                extractionDialog = new ProgressDialog(this);
+                extractionDialog.setTitle("Criando os arquivos do jogo");
+                extractionDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                extractionDialog.setIndeterminate(false);
+                extractionDialog.setMax(100);
+                extractionDialog.setCancelable(false);
+            }
+            extractionDialog.setProgress(Math.max(0, Math.min(100, percent)));
+            extractionDialog.setMessage(message + "\n\nNão feche o app.");
+            if (!extractionDialog.isShowing()) extractionDialog.show();
+        });
+    }
+
+    public void hideExtractionProgress() {
+        runOnUiThread(() -> {
+            if (extractionDialog != null) {
+                if (extractionDialog.isShowing()) extractionDialog.dismiss();
+                extractionDialog = null;
+            }
+        });
     }
 
     private void importRomWithProgress(Uri sourceUri) {
@@ -343,11 +438,11 @@ public class MainActivity extends SDLActivity{
         dialog.show();
 
         Executors.newSingleThreadExecutor().execute(() -> {
-            File destinationDirectory = new File(Environment.getExternalStorageDirectory(), "SOH");
+            File destinationDirectory = getDataFolder();
             File destinationFile = new File(destinationDirectory, "OOT.z64");
             try {
                 if (!destinationDirectory.exists() && !destinationDirectory.mkdirs()) {
-                    throw new IOException("Não foi possível criar a pasta SOH.");
+                    throw new IOException("Não foi possível criar a pasta " + DATA_FOLDER + ".");
                 }
 
                 long totalBytes = -1;
@@ -395,6 +490,119 @@ public class MainActivity extends SDLActivity{
                 });
             }
         });
+    }
+
+    // Called from the port menu (ModsMenu.cpp) to add mods.
+    public void openModPicker() {
+        runOnUiThread(() -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("*/*");
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            startActivityForResult(intent, MOD_PICKER_REQUEST_CODE);
+        });
+    }
+
+    private static boolean isModArchiveName(String name) {
+        String lower = name.toLowerCase();
+        return lower.endsWith(".otr") || lower.endsWith(".o2r") || lower.endsWith(".zip");
+    }
+
+    private static void copyStream(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[256 * 1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+        }
+    }
+
+    private void showToast(String text) {
+        runOnUiThread(() -> Toast.makeText(this, text, Toast.LENGTH_LONG).show());
+    }
+
+    // Copies a mod into the mods folder. A .zip that only wraps .otr/.o2r files (how mods are often downloaded)
+    // has those files taken out; any other .zip is a mod archive itself and is copied as it is. Runs off the UI thread.
+    private void installMod(Uri uri) {
+        File folder = new File(getDataFolder(), "mods");
+
+        String name = null;
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (column >= 0) {
+                    name = cursor.getString(column);
+                }
+            }
+        } catch (Exception e) {
+            Log.w("mods", "Could not read the file name", e);
+        }
+        if (name == null || name.isEmpty()) {
+            name = "mod.otr";
+        }
+        name = name.replaceAll("[/\\\\]", "_");
+        if (!isModArchiveName(name)) {
+            showToast("Escolha um mod .otr, .o2r ou .zip (" + name + ")");
+            return;
+        }
+        if (!folder.isDirectory() && !folder.mkdirs()) {
+            showToast("Não foi possível criar a pasta " + folder.getPath());
+            return;
+        }
+
+        java.util.List<String> installed = new java.util.ArrayList<>();
+        try {
+            if (name.toLowerCase().endsWith(".zip")) {
+                // First pass: does the zip only wrap mod archives (plus readme files)?
+                boolean hasArchives = false;
+                boolean hasOther = false;
+                try (java.util.zip.ZipInputStream zip =
+                         new java.util.zip.ZipInputStream(getContentResolver().openInputStream(uri))) {
+                    java.util.zip.ZipEntry entry;
+                    while ((entry = zip.getNextEntry()) != null) {
+                        if (entry.isDirectory()) {
+                            continue;
+                        }
+                        String lower = new File(entry.getName()).getName().toLowerCase();
+                        if (lower.endsWith(".otr") || lower.endsWith(".o2r")) {
+                            hasArchives = true;
+                        } else if (!lower.endsWith(".txt") && !lower.endsWith(".md") && !lower.endsWith(".pdf")
+                                && !lower.endsWith(".png") && !lower.endsWith(".jpg")) {
+                            hasOther = true;
+                        }
+                    }
+                }
+                if (hasArchives && !hasOther) {
+                    try (java.util.zip.ZipInputStream zip =
+                             new java.util.zip.ZipInputStream(getContentResolver().openInputStream(uri))) {
+                        java.util.zip.ZipEntry entry;
+                        while ((entry = zip.getNextEntry()) != null) {
+                            String entryName = new File(entry.getName()).getName();
+                            String lower = entryName.toLowerCase();
+                            if (entry.isDirectory() || !(lower.endsWith(".otr") || lower.endsWith(".o2r"))) {
+                                continue;
+                            }
+                            try (OutputStream out = new FileOutputStream(new File(folder, entryName))) {
+                                copyStream(zip, out);
+                            }
+                            installed.add(entryName);
+                        }
+                    }
+                }
+            }
+            if (installed.isEmpty()) {
+                try (InputStream in = getContentResolver().openInputStream(uri);
+                     OutputStream out = new FileOutputStream(new File(folder, name))) {
+                    if (in == null) throw new IOException("Não foi possível abrir o arquivo.");
+                    copyStream(in, out);
+                }
+                installed.add(name);
+            }
+        } catch (Exception e) {
+            Log.e("mods", "Failed to install the mod", e);
+            showToast("Erro ao instalar o mod: " + e.getMessage());
+            return;
+        }
+        showToast("Mod instalado: " + android.text.TextUtils.join(", ", installed) + ". Feche e abra o jogo para usar.");
     }
 
     public void openFilePicker() {
@@ -448,6 +656,7 @@ public class MainActivity extends SDLActivity{
         view.setKeepScreenOn(true);
 
         final ViewGroup buttonGroup = overlayView.findViewById(R.id.button_group);
+        touchButtonGroup = buttonGroup;
 
         buttonA = overlayView.findViewById(R.id.buttonA);
         buttonB = overlayView.findViewById(R.id.buttonB);
@@ -503,27 +712,43 @@ public class MainActivity extends SDLActivity{
     }
 
     private void setupToggleButton(Button button, ViewGroup uiGroup){
-        boolean isHidden = preferences.getBoolean("controlsVisible", false); // Default to 'false' (visible)
-        uiGroup.setVisibility(isHidden ? View.INVISIBLE : View.VISIBLE); // Set the initial visibility based on the saved state
-        //if(isHidden){
-        //    detachController();
-        //}
-        button.setOnClickListener(new View.OnClickListener() {
-            // Starts from the saved state, so the first tap after a restart does not repeat it.
-            boolean isHidden = uiGroup.getVisibility() != View.VISIBLE;
-            @Override
-            public void onClick(View v) {
-                if (isHidden) {
-                    uiGroup.setVisibility(View.VISIBLE); // Show UI elements
-                    //attachController();
-                } else {
-                    uiGroup.setVisibility(View.INVISIBLE); // Hide UI elements
-                    //detachController();
-                }
-                isHidden = !isHidden; // Toggle state
-                preferences.edit().putBoolean("controlsVisible", isHidden).apply();
-            }
+        // The preference is named "controlsVisible" but holds whether the user hid the controls (kept for old installs).
+        controlsHiddenByUser = preferences.getBoolean("controlsVisible", false);
+        updateTouchControlsVisibility();
+        button.setOnClickListener(v -> {
+            controlsHiddenByUser = !controlsHiddenByUser;
+            preferences.edit().putBoolean("controlsVisible", controlsHiddenByUser).apply();
+            updateTouchControlsVisibility();
         });
+    }
+
+    // Shows the touch controls only when the user has not hidden them and the port menu is closed, so every touch
+    // goes to the menu while it is open. Must run on the UI thread.
+    private void updateTouchControlsVisibility() {
+        if (touchButtonGroup == null) {
+            return;
+        }
+        boolean menuOpen = !TouchAreaEnabled;
+        boolean hidden = controlsHiddenByUser || menuOpen;
+        touchButtonGroup.setVisibility(hidden ? View.INVISIBLE : View.VISIBLE);
+        if (buttonToggle != null) {
+            buttonToggle.setVisibility(menuOpen ? View.INVISIBLE : View.VISIBLE);
+        }
+        if (hidden) {
+            // Let go of anything the overlay was holding, so the game does not see a stuck button or stick.
+            for (int button : new int[] { ControllerButtons.BUTTON_A, ControllerButtons.BUTTON_B,
+                    ControllerButtons.BUTTON_X, ControllerButtons.BUTTON_Y, ControllerButtons.BUTTON_LB,
+                    ControllerButtons.BUTTON_RB, ControllerButtons.BUTTON_START, ControllerButtons.BUTTON_BACK }) {
+                setButton(button, false);
+            }
+            setButton(ControllerButtons.AXIS_RT, false);
+            setAxis(ControllerButtons.AXIS_LX, (short) 0);
+            setAxis(ControllerButtons.AXIS_LY, (short) 0);
+            setAxis(ControllerButtons.AXIS_RX, (short) 0);
+            setAxis(ControllerButtons.AXIS_RY, (short) 0);
+            setCameraState(0, 0.0f);
+            setCameraState(1, 0.0f);
+        }
     }
 
     // Function to set a touch listener for each button
@@ -571,13 +796,24 @@ public class MainActivity extends SDLActivity{
         });
     }
 
-    boolean TouchAreaEnabled = true;
+    // False while the port menu is open. The native side (libultraship) calls DisableTouchArea/EnableTouchArea
+    // every frame from the game thread, so only a change is passed on to the UI thread.
+    volatile boolean TouchAreaEnabled = true;
+    private boolean controlsHiddenByUser = false;
+    private ViewGroup touchButtonGroup;
 
     void DisableTouchArea(){
-        TouchAreaEnabled = false;
+        setMenuOpen(true);
     }
     void EnableTouchArea(){
-        TouchAreaEnabled = true;
+        setMenuOpen(false);
+    }
+    private void setMenuOpen(boolean open) {
+        if (TouchAreaEnabled != open) {
+            return;
+        }
+        TouchAreaEnabled = !open;
+        runOnUiThread(this::updateTouchControlsVisibility);
     }
 
     private void setupLookAround(FrameLayout rightScreenArea) {

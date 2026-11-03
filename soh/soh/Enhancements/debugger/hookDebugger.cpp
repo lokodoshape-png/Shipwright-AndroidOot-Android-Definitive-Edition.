@@ -15,18 +15,18 @@ void DrawHookRegisteringInfos(const char* hookName) {
     size_t numHooks = (*hookData[hookName]).size();
 
     if (numHooks == 0) {
-        ImGui::TextColored(grey, "No hooks found");
+        ImGui::TextColored(grey, "%s", UIWidgets::Tr("No hooks found"));
         return;
     }
 
-    ImGui::Text("Total Registered: %d", numHooks);
+    ImGui::Text(UIWidgets::Tr("Total Registered: %d"), numHooks);
 
     if (ImGui::BeginTable(("Table##" + std::string(hookName)).c_str(), 4,
                           ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
                               ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit)) {
         ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Registration Info", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn(UIWidgets::Tr("Type"), ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn(UIWidgets::Tr("Registration Info"), ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("# Calls", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
         for (auto& [id, hookInfo] : (*hookData[hookName])) {
@@ -47,10 +47,10 @@ void DrawHookRegisteringInfos(const char* hookName) {
                     ImGui::Text("Ptr");
                     break;
                 case HOOK_TYPE_FILTER:
-                    ImGui::Text("Filter");
+                    ImGui::Text("%s", UIWidgets::Tr("Filter"));
                     break;
                 default:
-                    ImGui::TextColored(red, "[UNKNOWN]");
+                    ImGui::TextColored(red, "%s", UIWidgets::Tr("[UNKNOWN]"));
                     break;
             }
 
@@ -66,7 +66,7 @@ void DrawHookRegisteringInfos(const char* hookName) {
                 ImGui::TextWrapped("%s(%d:%d) <-\u00A0%s", hookInfo.registering.file, hookInfo.registering.line,
                                    hookInfo.registering.column, parentFunction.c_str());
             } else {
-                ImGui::TextColored(yellow, "[Unavailable]");
+                ImGui::TextColored(yellow, "%s", UIWidgets::Tr("[Unavailable]"));
             }
 
             ImGui::TableNextColumn();

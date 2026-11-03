@@ -33,3 +33,9 @@ Mesma organização usada no fork 2Ship MM3D (lokodoshape-png/2ship2harkinian-An
 
 ## Tags antigas
 - `v0.1-android.1` e `v0.2-android.1` são das versões feitas antes desta organização e ficam como estão.
+
+## Pasta do app no celular
+- Desde a 0.5 o app usa `/storage/emulated/0/OOT-DE`. O caminho está em dois lugares, que precisam ser iguais:
+  `DATA_FOLDER` no `MainActivity.java` e o `patches/libultraship-ootde.patch` (o libultraship é um submódulo).
+- O `docker/scripts/build_android_project.sh` aplica esse patch antes de compilar. Numa build pelo Android Studio,
+  aplique antes com `git -C libultraship apply ../patches/libultraship-ootde.patch`.

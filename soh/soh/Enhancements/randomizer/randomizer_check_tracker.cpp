@@ -983,7 +983,7 @@ void CheckTrackerWindow::DrawElement() {
     BeginFloatWindows("Check Tracker", mIsVisible, ImGuiWindowFlags_NoScrollbar);
 
     if (!GameInteractor::IsSaveLoaded() || !initialized) {
-        ImGui::Text("Waiting for file load..."); // TODO Language
+        ImGui::Text("%s", UIWidgets::Tr("Waiting for file load...")); // TODO Language
         EndFloatWindows();
         return;
     }
@@ -2036,8 +2036,8 @@ void CheckTrackerSettingsWindow::DrawElement() {
     }
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, { 8.0f, 8.0f });
     if (ImGui::BeginTable("CheckTrackerSettingsTable", 2, ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV)) {
-        ImGui::TableSetupColumn("General settings", ImGuiTableColumnFlags_WidthStretch, 200.0f);
-        ImGui::TableSetupColumn("Section settings", ImGuiTableColumnFlags_WidthStretch, 200.0f);
+        ImGui::TableSetupColumn(UIWidgets::Tr("General settings"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
+        ImGui::TableSetupColumn(UIWidgets::Tr("Section settings"), ImGuiTableColumnFlags_WidthStretch, 200.0f);
         ImGui::TableHeadersRow();
         ImGui::TableNextRow();
         ImGui::TableNextColumn();

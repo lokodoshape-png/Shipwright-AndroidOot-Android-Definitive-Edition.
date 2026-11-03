@@ -17,80 +17,30 @@ extern "C" {
 extern PlayState* gPlayState;
 }
 
+// Tabs, sidebar entries and headers use the same pt-BR dictionary as the widgets (MenuTranslations.cpp).
 static std::string TranslateMenuNavigationLabel(const std::string& source) {
-    static const std::unordered_map<std::string, std::string> translations = {
-        {"Settings", "Configurações"}, {"Enhancements", "Aprimoramentos"},
-        {"Randomizer", "Aleatorizador"}, {"Network", "Rede"},
-        {"Dev Tools", "Ferramentas de desenvolvedor"}, {"General", "Geral"},
-        {"Audio", "Áudio"}, {"Graphics", "Gráficos"}, {"Controls", "Controles"},
-        {"Input Viewer", "Visualizador de comandos"}, {"Notifications", "Notificações"},
-        {"Quality of Life", "Qualidade de vida"}, {"Skips & Speed-ups", "Pulos e acelerações"},
-        {"Items", "Itens"}, {"Fixes", "Correções"}, {"Difficulty", "Dificuldade"},
-        {"Minigames", "Minijogos"}, {"Extra Modes", "Modos extras"}, {"Cheats", "Trapaças"},
-        {"Cosmetics Editor", "Editor de personalização"}, {"Audio Editor", "Editor de áudio"},
-        {"Gameplay Stats", "Estatísticas de jogo"}, {"Time Splits", "Tempos parciais"},
-        {"Timers", "Cronômetros"}, {"Plandomizer", "Planejador de itens"},
-        {"Item Tracker", "Rastreador de itens"}, {"Entrance Tracker", "Rastreador de entradas"},
-        {"Check Tracker", "Rastreador de verificações"}, {"Stats", "Estatísticas"},
-        {"Console", "Console"}, {"Save Editor", "Editor de salvamento"},
-        {"Hook Debugger", "Depurador de ganchos"}, {"Collision Viewer", "Visualizador de colisões"},
-        {"Actor Viewer", "Visualizador de atores"}, {"DList Viewer", "Visualizador de listas de desenho"},
-        {"Value Viewer", "Visualizador de valores"}, {"Message Viewer", "Visualizador de mensagens"},
-        {"Gfx Debugger", "Depurador gráfico"}, {"Search", "Pesquisar"},
-        {"Crowd Control", "Controle da comunidade"},
-        {"Menu Settings", "Configurações do menu"}, {"Menu Theme", "Tema do menu"},
-        {"Menu Controller Navigation", "Navegação do menu por controle"},
-        {"Menu Background Opacity", "Opacidade do fundo do menu"},
-        {"General Settings", "Configurações gerais"}, {"Cursor Always Visible", "Cursor sempre visível"},
-        {"Search In Sidebar", "Pesquisar na barra lateral"},
-        {"Search Input Autofocus", "Foco automático na pesquisa"},
-        {"Alt Assets Tab hotkey", "Atalho da tecla Tab para recursos alternativos"},
-        {"Open App Files Folder", "Abrir pasta de arquivos do aplicativo"},
-        {"Boot", "Inicialização"}, {"Boot Sequence", "Sequência de inicialização"},
-        {"Languages", "Idiomas"}, {"Translate Title Screen", "Traduzir tela de título"},
-        {"Language", "Idioma"}, {"Accessibility", "Acessibilidade"},
-        {"Text to Speech", "Conversão de texto em fala"},
-        {"Disable Idle Camera Re-Centering", "Desativar recentralização da câmera quando ociosa"},
-        {"ImGui Menu Scaling", "Escala do menu ImGui"}, {"About", "Sobre"},
-        {"Ship Of Harkinian", "Ship of Harkinian"},
-        {"Master Volume: %d %%", "Volume principal: %d %%"},
-        {"Main Music Volume: %d %%", "Volume da música principal: %d %%"},
-        {"Sub Music Volume: %d %%", "Volume da música secundária: %d %%"},
-        {"Fanfare Volume: %d %%", "Volume das fanfarras: %d %%"},
-        {"Sound Effects Volume: %d %%", "Volume dos efeitos sonoros: %d %%"},
-        {"Audio API (Needs reload)", "API de áudio (requer reinicialização)"},
-        {"Graphics Options", "Opções gráficas"}, {"Toggle Fullscreen", "Alternar tela cheia"},
-        {"Internal Resolution", "Resolução interna"}, {"Anti-aliasing (MSAA)", "Antisserrilhamento (MSAA)"},
-        {"Current FPS", "FPS atual"}, {"Match Refresh Rate", "Sincronizar taxa de atualização"},
-        {"Renderer API (Needs reload)", "API de renderização (requer reinicialização)"},
-        {"Enable Vsync", "Ativar VSync"}, {"Enhancement Presets", "Predefinições de aprimoramentos"},
-        {"Select Preset", "Selecionar predefinição"}, {"Apply Preset##Enhancemnts", "Aplicar predefinição##Enhancemnts"},
-        {"Quality of Life", "Qualidade de vida"}, {"Skips & Speed-ups", "Pulos e acelerações"},
-        {"Popout Randomizer Settings Window", "Abrir configurações do aleatorizador em janela separada"},
-        {"Randomizer Enhancements", "Aprimoramentos do aleatorizador"},
-        {"Rando-Relevant Navi Hints", "Dicas da Navi relacionadas ao aleatorizador"},
-        {"Random Rupee Names", "Nomes aleatórios para rupias"},
-        {"Use Custom Key Models", "Usar modelos personalizados de chaves"},
-        {"Map & Compass Colors Match Dungeon", "Cores do mapa e da bússola correspondem à masmorra"},
-        {"Quest Item Fanfares", "Fanfarras de itens de missão"},
-        {"Popout Menu", "Menu em janela separada"}, {"Debug Mode", "Modo de depuração"},
-        {"OoT Registry Editor", "Editor de registro do OoT"},
-        {"Debug Save File Mode", "Modo de arquivo de salvamento de depuração"},
-        {"OoT Skulltula Debug", "Depuração das skulltulas do OoT"},
-        {"Better Debug Warp Screen", "Tela de teletransporte de depuração aprimorada"},
-        {"Debug Warp Screen Translation", "Tradução da tela de teletransporte de depuração"},
-        {"Resource logging", "Registro de recursos"}, {"Frame Advance", "Avanço de quadros"},
-        {"Clear", "Limpar"}, {"Search...", "Pesquisar..."}, {"No results found", "Nenhum resultado encontrado"},
-        {"Start typing to see results.", "Comece a digitar para ver os resultados."}
-    };
+    return UIWidgets::TranslateText(source);
+}
 
-    const auto idPosition = source.find("##");
-    const std::string visibleText = source.substr(0, idPosition);
-    const auto it = translations.find(visibleText);
-    if (it == translations.end()) {
-        return source;
+// Short names for the tabs at the top. With the full Portuguese names ("Ferramentas de desenvolvedor"...) the tabs did
+// not fit on a phone: the row got a scroll bar drawn over the text and the text was cut.
+static std::string MenuHeaderLabel(const std::string& source) {
+    if (source == "Settings") {
+        return "Ajustes";
     }
-    return it->second + (idPosition == std::string::npos ? "" : source.substr(idPosition));
+    if (source == "Enhancements") {
+        return "Melhorias";
+    }
+    if (source == "Randomizer") {
+        return "Randomizador";
+    }
+    if (source == "Dev Tools") {
+        return "Dev";
+    }
+    if (source == "Network") {
+        return "Rede";
+    }
+    return TranslateMenuNavigationLabel(source);
 }
 std::vector<ImVec2> windowTypeSizes = { {} };
 
@@ -246,7 +196,7 @@ bool ModernMenuHeaderEntry(std::string label) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec2 pos = window->DC.CursorPos;
     const ImGuiID headerId = window->GetID(std::string(label + "##Header").c_str());
-    const std::string displayLabel = TranslateMenuNavigationLabel(label);
+    const std::string displayLabel = MenuHeaderLabel(label);
     ImVec2 labelSize = ImGui::CalcTextSize(displayLabel.c_str(), ImGui::FindRenderedTextEnd(displayLabel.c_str()), true);
     ImRect bb = { pos, pos + labelSize + style.FramePadding * 2 };
     ImGui::ItemSize(bb, style.FramePadding.y);
@@ -310,7 +260,7 @@ std::unordered_map<uint32_t, disabledInfo>& Menu::GetDisabledMap() {
 }
 
 void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors menuThemeIndex) {
-    disabledTempTooltip = "This setting is disabled because: \n";
+    disabledTempTooltip = "Esta opção está desativada porque:\n";
     disabledValue = false;
     disabledTooltip = " ";
 
@@ -323,14 +273,14 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
         if (!widget.activeDisables.empty()) {
             widget.options->disabled = true;
             for (auto option : widget.activeDisables) {
-                disabledTempTooltip += std::string("\n- ") + disabledMap.at(option).reason;
+                disabledTempTooltip += std::string("\n- ") + UIWidgets::TranslateText(disabledMap.at(option).reason);
             }
             widget.options->disabledTooltip = disabledTempTooltip.c_str();
         }
     }
     if (widget.raceDisable && raceDisableActive) {
         widget.options->disabled = true;
-        disabledTempTooltip += std::string("\n- Race Lockout Active");
+        disabledTempTooltip += std::string("\n- Bloqueio de corrida ativo");
         widget.options->disabledTooltip = disabledTempTooltip.c_str();
     }
 
@@ -361,7 +311,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             case WIDGET_CVAR_CHECKBOX: {
                 auto options = std::static_pointer_cast<UIWidgets::CheckboxOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::CVarCheckbox(UIWidgets::WrappedText(widget.name.c_str(), width).c_str(), widget.cVar,
+                if (UIWidgets::CVarCheckbox(UIWidgets::WrappedText(translatedWidgetName.c_str(), width).c_str(), widget.cVar,
                                             *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
@@ -656,11 +606,11 @@ void Menu::DrawElement() {
     std::vector<ImVec2> headerSizes;
     float headerWidth = style.ItemSpacing.x + 20;
     bool headerSearch = !CVarGetInteger(CVAR_SETTING("Menu.SidebarSearch"), 0);
-    if (headerSearch) {
-        headerWidth += 200.0f + style.ItemSpacing.x + style.FramePadding.x;
-    }
+    // OOT D.E.: the tabs are drawn with exactly this padding (it used to be measured with one padding and drawn with
+    // a bigger one, so the tabs overflowed the header and a scroll bar covered their text).
+    const ImVec2 headerPadding = style.FramePadding;
     for (auto& label : menuOrder) {
-        const std::string displayLabel = TranslateMenuNavigationLabel(label);
+        const std::string displayLabel = MenuHeaderLabel(label);
         ImVec2 size = ImGui::CalcTextSize(displayLabel.c_str());
         headerSizes.push_back(size);
         headerWidth += size.x + style.FramePadding.x * 2;
@@ -688,17 +638,27 @@ void Menu::DrawElement() {
 
     std::unordered_map<std::string, SidebarEntry>* sidebar;
     float headerHeight = headerSizes.at(0).y + style.FramePadding.y * 2;
-    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_TIMES_CIRCLE) + style.FramePadding * 2;
+    // The power/reset/close buttons use the default button padding (10, 8) and a border.
+    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_TIMES_CIRCLE) + ImVec2(10.0f, 8.0f) * 2;
+    // OOT D.E.: the search box takes only the room the tabs leave, so the header never needs a scroll bar.
+    const float headerAvail = menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 4;
+    float searchWidth = 0.0f;
+    if (headerSearch) {
+        searchWidth = std::fminf(200.0f, headerAvail - headerWidth - style.ItemSpacing.x - style.FramePadding.x);
+        if (searchWidth < ImGui::GetFontSize() * 3.0f) {
+            searchWidth = ImGui::GetFontSize() * 3.0f;
+        }
+        headerWidth += searchWidth + style.ItemSpacing.x + style.FramePadding.x;
+    }
     bool scrollbar = false;
     if (headerWidth > menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 3) {
         headerHeight += style.ScrollbarSize;
         scrollbar = true;
     }
     ImGui::SetNextWindowSizeConstraints({ 0, headerHeight }, { headerWidth, headerHeight });
+    // headerHeight already has room for the scroll bar when there is one (OOT D.E.: it was added twice, which made the
+    // requested size disagree with the size constraint above).
     ImVec2 headerSelSize = { menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 3, headerHeight };
-    if (scrollbar) {
-        headerSelSize.y += style.ScrollbarSize;
-    }
     bool autoFocus = CVarGetInteger(CVAR_SETTING("Menu.SearchAutofocus"), 0);
     ImGui::BeginChild("Header Selection", headerSelSize,
                       ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
@@ -710,7 +670,7 @@ void Menu::DrawElement() {
         }
         auto& entry = menuEntries.at(label);
         std::string nextIndex = label;
-        UIWidgets::PushStyleButton(menuThemeIndex);
+        UIWidgets::PushStyleButton(menuThemeIndex, headerPadding);
         if (headerIndex != label) {
             ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
         }
@@ -744,12 +704,13 @@ void Menu::DrawElement() {
         auto color = UIWidgets::ColorValues.at(menuThemeIndex);
         color.w = 0.2f;
         ImGui::PushStyleColor(ImGuiCol_FrameBg, color);
-        menuSearch.Draw("##search", 200.0f);
+        menuSearch.Draw("##search", searchWidth);
         menuSearchText = menuSearch.InputBuf;
         menuSearchText.erase(std::remove(menuSearchText.begin(), menuSearchText.end(), ' '), menuSearchText.end());
         if (menuSearchText.length() < 1) {
-            ImGui::SameLine(headerWidth - 200.0f + style.ItemSpacing.x);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Pesquisar...");
+            ImGui::SameLine(headerWidth - searchWidth + style.ItemSpacing.x);
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "%s",
+                               searchWidth >= ImGui::CalcTextSize("Pesquisar...").x ? "Pesquisar..." : ICON_FA_SEARCH);
         }
         ImGui::PopStyleColor();
     }
@@ -822,6 +783,16 @@ void Menu::DrawElement() {
     if (menuSize.x > 1600) {
         sidebarWidth = menuSize.x * 0.15f;
     }
+    // OOT D.E.: wide enough for the longest Portuguese name ("Editor de personalização"...), which was cut on both
+    // sides, but never more than a quarter of the menu.
+    {
+        float widest = 0.0f;
+        for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
+            widest = std::fmaxf(widest, ImGui::CalcTextSize(TranslateMenuNavigationLabel(sidebarLabel).c_str()).x);
+        }
+        const float needed = widest + style.FramePadding.x * 2 + style.ItemSpacing.x * 2 + style.ScrollbarSize;
+        sidebarWidth = std::fmaxf(sidebarWidth, std::fminf(needed, menuSize.x * 0.25f));
+    }
 
     const char* sidebarCvar = menuEntries.at(headerIndex).sidebarCvar;
 
@@ -871,6 +842,12 @@ void Menu::DrawElement() {
     if (windowWidth < 800) {
         columns = 1;
     }
+    // OOT D.E.: decide by how much text fits, not by pixels. A phone has many pixels but a big font,
+    // so three columns there leave each option with a handful of letters per line.
+    const float minColumnWidth = ImGui::GetFontSize() * 17.0f;
+    while (columns > 1 && (sectionWidth - style.ItemSpacing.x * columns) / columns < minColumnWidth) {
+        columns--;
+    }
     float columnWidth = (sectionWidth - style.ItemSpacing.x * columns) / columns;
     bool useColumns = columns > 1;
     if (!useColumns || (headerSearch && menuSearchText.length() > 0)) {
@@ -913,7 +890,7 @@ void Menu::DrawElement() {
             }
             // for (auto& entryName : sidebar->at(sectionIndex).sidebarOrder) {
             for (auto& entry : sidebar->at(sectionIndex).columnWidgets.at(i)) {
-                MenuDrawItem(entry, 90 / sidebar->at(sectionIndex).columnCount, menuThemeIndex);
+                MenuDrawItem(entry, 90 / columns, menuThemeIndex);
             }
             //}
             if (useColumns) {

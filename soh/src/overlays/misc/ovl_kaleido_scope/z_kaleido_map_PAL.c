@@ -823,6 +823,9 @@ void KaleidoScope_DrawWorldMap(PlayState* play, GraphicsContext* gfxCtx) {
 
     gDPPipeSync(POLY_OPA_DISP++);
 
+    // OOT D.E.: Gold Skulltulas and Pieces of Heart of the selected region.
+    KaleidoScope_DrawWorldMapCollectibles(play, gfxCtx);
+
     if (mirroredWorld) {
         // Revert the inversion
         gSPClearExtraGeometryMode(POLY_OPA_DISP++, G_EX_INVERT_CULLING);

@@ -110,7 +110,7 @@ void DLViewerWindow::DrawElement() {
     }
 
     UIWidgets::PushStyleCombobox(THEME_COLOR);
-    if (ImGui::BeginCombo("Active Display List", activeDisplayList.c_str())) {
+    if (ImGui::BeginCombo(UIWidgets::Tr("Active Display List"), activeDisplayList.c_str())) {
         for (size_t i = 0; i < displayListSearchResults.size(); i++) {
             if (ImGui::Selectable(displayListSearchResults[i].c_str())) {
                 activeDisplayList = displayListSearchResults[i];
@@ -132,13 +132,13 @@ void DLViewerWindow::DrawElement() {
             Ship::Context::GetInstance()->GetResourceManager()->LoadResource(activeDisplayList));
 
         if (res->GetInitData()->Type != static_cast<uint32_t>(Fast::ResourceType::DisplayList)) {
-            ImGui::Text("Resource type is not a Display List. Please choose another.");
+            ImGui::Text("%s", UIWidgets::Tr("Resource type is not a Display List. Please choose another."));
             ImGui::PopFont();
             ImGui::EndDisabled();
             return;
         }
 
-        ImGui::Text("Total Instruction Size: %lu", res->Instructions.size());
+        ImGui::Text(UIWidgets::Tr("Total Instruction Size: %lu"), res->Instructions.size());
 
         for (size_t i = 0; i < res->Instructions.size(); i++) {
             std::string id = "##CMD" + std::to_string(i);
@@ -261,7 +261,7 @@ void DLViewerWindow::DrawElement() {
                 ImGui::SameLine();
                 ImGui::Text("WIDTH: %u", _SHIFTR(gfx->words.w0, 0, 10));
                 ImGui::SameLine();
-                ImGui::Text("Texture Name: %s", fileName);
+                ImGui::Text(UIWidgets::Tr("Texture Name: %s"), fileName);
             }
             if (cmd == G_SETTIMG_OTR_FILEPATH) {
                 char* fileName = (char*)gfx->words.w1;
@@ -273,7 +273,7 @@ void DLViewerWindow::DrawElement() {
                 ImGui::SameLine();
                 ImGui::Text("WIDTH: %u", _SHIFTR(gfx->words.w0, 0, 10));
                 ImGui::SameLine();
-                ImGui::Text("Texture Name: %s", fileName);
+                ImGui::Text(UIWidgets::Tr("Texture Name: %s"), fileName);
             }
             if (cmd == G_VTX) {
                 ImGui::SameLine();
@@ -293,7 +293,7 @@ void DLViewerWindow::DrawElement() {
                 ImGui::Text("Offset: %u", _SHIFTR(gfx->words.w0, 1, 7) - _SHIFTR(gfx->words.w0, 12, 8));
 
                 ImGui::SameLine();
-                ImGui::Text("Vertex Name: %s", fileName);
+                ImGui::Text(UIWidgets::Tr("Vertex Name: %s"), fileName);
             }
             if (cmd == G_VTX_OTR_FILEPATH) {
                 char* fileName = (char*)gfx->words.w1;
@@ -305,7 +305,7 @@ void DLViewerWindow::DrawElement() {
                 ImGui::Text("Offset: %u", _SHIFTR(gfx->words.w0, 1, 7) - _SHIFTR(gfx->words.w0, 12, 8));
 
                 ImGui::SameLine();
-                ImGui::Text("Vertex Name: %s", fileName);
+                ImGui::Text(UIWidgets::Tr("Vertex Name: %s"), fileName);
             }
             if (cmd == G_DL) {}
             if (cmd == G_DL_OTR_HASH) {
@@ -313,12 +313,12 @@ void DLViewerWindow::DrawElement() {
                 uint64_t hash = ((uint64_t)gfx->words.w0 << 32) + (uint64_t)gfx->words.w1;
                 const char* fileName = ResourceGetNameByCrc(hash);
                 ImGui::SameLine();
-                ImGui::Text("DL Name: %s", fileName);
+                ImGui::Text(UIWidgets::Tr("DL Name: %s"), fileName);
             }
             if (cmd == G_DL_OTR_FILEPATH) {
                 char* fileName = (char*)gfx->words.w1;
                 ImGui::SameLine();
-                ImGui::Text("DL Name: %s", fileName);
+                ImGui::Text(UIWidgets::Tr("DL Name: %s"), fileName);
             }
 
             // Skip second half of instructions that are over 128-bit wide
@@ -329,7 +329,7 @@ void DLViewerWindow::DrawElement() {
             }
             ImGui::EndGroup();
         }
-    } catch (const std::exception& e) { ImGui::Text("Error displaying DL instructions."); }
+    } catch (const std::exception& e) { ImGui::Text("%s", UIWidgets::Tr("Error displaying DL instructions.")); }
 
     ImGui::PopFont();
     ImGui::EndDisabled();
