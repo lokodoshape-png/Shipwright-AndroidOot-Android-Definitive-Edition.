@@ -12,6 +12,37 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
+
+### Menu do Ship
+- **Menu traduzido por inteiro.** Nomes das opções, dicas (tooltips), opções das listas e páginas agora passam
+  pela tradução pt-BR. Antes as caixas de seleção, o tipo de opção mais comum, continuavam em inglês, e várias
+  opções de Configurações só eram traduzidas nas abas. Todo o texto fica em `soh/soh/SohGui/MenuTranslations.cpp`.
+- **Página de Mods** (Configurações > Modificações): lista os mods da pasta, liga e desliga cada um e instala novos
+  pelo botão "Adicionar mod...", que abre o seletor de arquivos do Android. Aceita `.otr`, `.o2r` e `.zip`; os
+  `.otr`/`.o2r` de dentro de um `.zip` são extraídos. Um mod desligado ganha o final `.desativado` e não é carregado.
+  As mudanças valem na próxima vez que o jogo abrir.
+- **Controles de toque somem com o menu aberto** e voltam sozinhos ao fechar, para todo toque ir para o menu.
+  O menu fecha com o botão Voltar do Android.
+
+### Jogo
+- **Segure B para acelerar as cenas** (Aprimoramentos > Pulos e acelerações > Cenas, ligado por padrão). Depois de
+  segurar B por um instante a cena roda 5 vezes mais rápido (ajustável de 2x a 10x), sem pular nada. Vale para as
+  cenas do jogo depois da seleção de arquivo, não para a abertura da tela de título, e para quando há uma pergunta
+  na tela.
+- **Aviso "Segure B para acelerar"** no canto inferior direito quando a cena começa; enquanto acelera, mostra
+  "Acelerando >>". Pode ser desligado na mesma tela.
+
+### Android
+- **Pasta própria `OOT-DE`** na raiz do armazenamento, no lugar da `SOH` que era dividida com o Ship of Harkinian
+  original. Na primeira abertura da 0.5, o app copia saves, mods, o `oot.otr` e as configurações da pasta `SOH`
+  para a `OOT-DE`. A pasta `SOH` não é apagada.
+- `versionCode 13` e `versionName 0.5`.
+
+### Builds
+- O nome da pasta fica no libultraship (submódulo) e é trocado pelo `patches/libultraship-ootde.patch`, aplicado
+  pelo script de build antes de compilar.
+
 ## [0.4] — Identidade visual, progresso da preparação e correções
 
 ### Android
@@ -27,7 +58,7 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Correção: o app travava ao cancelar a escolha da ROM** ou quando a importação falhava. O extrator ficava
   esperando para sempre; agora ele volta para a pergunta anterior.
 - **Correção: saves antigos podiam ser copiados por cima dos atuais.** A migração da pasta antiga
-  `Android/data/.../files` agora só acontece quando ainda não existe `SOH/Save`.
+  `Android/data/.../files` agora só acontece quando ainda não existe a pasta `Save`.
 - **Correção: o botão de esconder os controles de toque** precisava de dois toques depois de reabrir o app com os
   controles escondidos.
 - Mensagens da preparação e da importação em português.

@@ -44,6 +44,14 @@ import android.app.ProgressDialog;
 public class MainActivity extends SDLActivity{
 
     SharedPreferences preferences;
+    // The app's own folder on the phone. It must match libultraship's Context.cpp (patches/libultraship-ootde.patch).
+    static final String DATA_FOLDER = "OOT-DE";
+    // Folder used before 0.5, shared with the original Ship of Harkinian app. Its files are copied, never moved.
+    static final String OLD_DATA_FOLDER = "SOH";
+
+    static File getDataFolder() {
+        return new File(Environment.getExternalStorageDirectory(), DATA_FOLDER);
+    }
     private static final CountDownLatch setupLatch = new CountDownLatch(1);
     private ProgressDialog setupProgressDialog;
     // True when this install is newer than the one that created the SOH folder: the files the app ships
@@ -144,7 +152,7 @@ public class MainActivity extends SDLActivity{
 
     public void checkAndSetupFiles() {
         doVersionCheck();
-        File targetRootFolder = new File(Environment.getExternalStorageDirectory(), "SOH");
+        File targetRootFolder = getDataFolder();
         File assetsFolder = new File(targetRootFolder, "assets");
         File sohOtrFile = new File(targetRootFolder, "soh.otr");
 
@@ -180,7 +188,7 @@ public class MainActivity extends SDLActivity{
         File sourceSavesDir = new File(sourceOldRoot, "Save"); // how to tell if there's anything to migrate
 
         // === Migration from old Android/data/.../files/ directory ===
-        // Skipped once SOH/Save exists, so an update never puts old saves over newer ones.
+        // Skipped once Save exists in the data folder, so an update never puts old saves over newer ones.
         boolean hasCurrentSaves = new File(targetRootFolder, "Save").isDirectory();
         if (sourceOldRoot != null && sourceSavesDir.isDirectory() && !hasCurrentSaves) {
             Log.i("setupFiles", "Migrating old data from: " + sourceOldRoot.getAbsolutePath());
@@ -216,11 +224,49 @@ public class MainActivity extends SDLActivity{
             if (!targetRootFolder.mkdirs()) {
                 Log.e("setupFiles", "Failed to create root folder");
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Não foi possível criar a pasta SOH", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Não foi possível criar a pasta " + DATA_FOLDER, Toast.LENGTH_LONG).show();
                     if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
                 });
                 setupLatch.countDown();
                 return;
+            }
+        }
+
+        // From 0.5 on the app has its own folder. The first time, saves, mods, oot.otr and settings are copied from
+        // the old SOH folder, which stays as it is (the original Ship of Harkinian app may still use it).
+        File oldRootFolder = new File(Environment.getExternalStorageDirectory(), OLD_DATA_FOLDER);
+        if (oldRootFolder.isDirectory() && !preferences.getBoolean("copiedFromSohFolder", false)) {
+            updateSetupProgress(7, "Copiando saves e mods da pasta SOH...");
+            boolean copyOk = true;
+            File[] oldFiles = oldRootFolder.listFiles();
+            if (oldFiles != null) {
+                for (File file : oldFiles) {
+                    String name = file.getName();
+                    // The app's own files come from the APK; the ROM copy is not needed once oot.otr exists.
+                    if (name.equals("assets") || name.equals("soh.otr") || name.endsWith(".tmp") || name.equals("OOT.z64")) {
+                        continue;
+                    }
+                    File dest = new File(targetRootFolder, name);
+                    if (dest.exists()) {
+                        continue; // never overwrite anything already in OOT-DE
+                    }
+                    try {
+                        if (file.isDirectory()) {
+                            AssetCopyUtil.copyDirectory(file, dest);
+                        } else {
+                            AssetCopyUtil.copyFile(file, dest);
+                        }
+                        Log.i("setupFiles", "Copied from SOH: " + name);
+                    } catch (IOException e) {
+                        copyOk = false;
+                        Log.e("setupFiles", "Failed to copy from SOH: " + name, e);
+                    }
+                }
+            }
+            if (copyOk) {
+                preferences.edit().putBoolean("copiedFromSohFolder", true).apply();
+                runOnUiThread(() -> Toast.makeText(this, "Saves, mods e oot.otr copiados para a pasta " + DATA_FOLDER,
+                        Toast.LENGTH_LONG).show());
             }
         }
 
@@ -363,11 +409,11 @@ public class MainActivity extends SDLActivity{
         dialog.show();
 
         Executors.newSingleThreadExecutor().execute(() -> {
-            File destinationDirectory = new File(Environment.getExternalStorageDirectory(), "SOH");
+            File destinationDirectory = getDataFolder();
             File destinationFile = new File(destinationDirectory, "OOT.z64");
             try {
                 if (!destinationDirectory.exists() && !destinationDirectory.mkdirs()) {
-                    throw new IOException("Não foi possível criar a pasta SOH.");
+                    throw new IOException("Não foi possível criar a pasta " + DATA_FOLDER + ".");
                 }
 
                 long totalBytes = -1;

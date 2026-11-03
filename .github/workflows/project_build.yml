@@ -104,7 +104,7 @@ jobs:
             echo
             echo "**Como instalar**"
             echo "1. Baixe o arquivo \`$apk\` abaixo, em Assets, e instale no celular. Ele atualiza o OOT D.E. que você já tem."
-            echo "2. Na primeira vez, permita o acesso a todos os arquivos. O app atualiza os arquivos dele na pasta \`SOH\` e mantém saves, mods e o \`oot.otr\`."
+            echo "2. Na primeira vez, permita o acesso a todos os arquivos. O app atualiza os arquivos dele na pasta \`OOT-DE\` e mantém saves, mods e o \`oot.otr\`. Ao vir da 0.4 ou anterior, ele copia saves, mods e o \`oot.otr\` da pasta \`SOH\`."
             echo "3. Se ainda não tiver o \`oot.otr\`, escolha a sua ROM do Ocarina of Time quando o app pedir."
             echo
             echo "A ROM e os arquivos do jogo não fazem parte deste download."

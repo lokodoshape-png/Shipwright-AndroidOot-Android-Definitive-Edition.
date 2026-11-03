@@ -42,6 +42,16 @@ if [ ! -d "$PROJECT_PATH" ]; then
     exit 1
 fi
 
+# OOT D.E. keeps its files in its own folder (/storage/emulated/0/OOT-DE). The folder name is hardcoded in
+# libultraship, a submodule, so it is changed by a patch applied before every build (once; skipped if present).
+LUS_PATCH="${PROJECT_PATH}/patches/libultraship-ootde.patch"
+if git -C "${PROJECT_PATH}/libultraship" apply --reverse --check "${LUS_PATCH}" >/dev/null 2>&1; then
+    echo "libultraship patch already applied"
+else
+    git -C "${PROJECT_PATH}/libultraship" apply "${LUS_PATCH}" || { echo "Error: could not apply ${LUS_PATCH}"; exit 1; }
+    echo "libultraship patch applied"
+fi
+
 # Run Container to build
 docker run --network="host" --rm \
     --name $CONTAINER_NAME \
