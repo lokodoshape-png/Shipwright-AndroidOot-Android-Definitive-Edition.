@@ -36,12 +36,14 @@ import android.widget.ImageView;
 
 import java.util.concurrent.Executors;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 
 //This class is the main SDLActivity and just sets up a bunch of default files
 public class MainActivity extends SDLActivity{
 
     SharedPreferences preferences;
     private static final CountDownLatch setupLatch = new CountDownLatch(1);
+    private ProgressDialog setupProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -195,6 +197,7 @@ public class MainActivity extends SDLActivity{
             runOnUiThread(() -> Toast.makeText(this, "Save data migrated", Toast.LENGTH_SHORT).show());
         }
 
+        updateSetupProgress(5, "Criando pasta principal...");
         // Ensure root folder exists
         if (!targetRootFolder.exists()) {
             if (!targetRootFolder.mkdirs()) {
