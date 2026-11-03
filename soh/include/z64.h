@@ -843,6 +843,11 @@ typedef enum {
 
 #define PAUSE_ITEM_NONE 999
 
+// pauseCtx->randoQuestMode values
+#define PAUSE_QUEST_MODE_STATUS 0
+#define PAUSE_QUEST_MODE_RANDO 1
+#define PAUSE_QUEST_MODE_LOG 2
+
 #define PAUSE_CURSOR_PAGE_LEFT 10
 #define PAUSE_CURSOR_PAGE_RIGHT 11
 
@@ -926,7 +931,7 @@ typedef struct {
     /* 0x027A */ u8     tradeQuestLocation;
     /* 0x027C */ SkelAnime playerSkelAnime;
     // #region SOH [Randomizer]
-    /* 0x02C0 */ u8     randoQuestMode; // 0 = Off (normal quest menu); 1 = On (Misc Collectibles menu)
+    /* 0x02C0 */ u8     randoQuestMode; // 0 = Off (normal quest menu); 1 = On (Misc Collectibles menu); 2 = OOT D.E. quest log
     // #endregion
 } PauseContext; // size = 0x2C1
 

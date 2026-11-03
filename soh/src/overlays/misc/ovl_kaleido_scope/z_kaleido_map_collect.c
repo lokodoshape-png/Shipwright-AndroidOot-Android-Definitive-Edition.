@@ -222,6 +222,26 @@ static void MapCollect_Count(PlayState* play, s32 point, MapCollectCounts* count
     }
 }
 
+// Shared with the quest log page (z_kaleido_quest_log.c).
+s32 KaleidoScope_MapCollectHeartPieceCount(void) {
+    return ARRAY_COUNT(sMapCollectHeartPieces);
+}
+
+bool KaleidoScope_MapCollectHeartPieceTaken(PlayState* play, s32 index) {
+    if ((index < 0) || (index >= ARRAY_COUNT(sMapCollectHeartPieces))) {
+        return false;
+    }
+    return MapCollect_HeartPieceTaken(play, &sMapCollectHeartPieces[index]);
+}
+
+void KaleidoScope_MapCollectSkulltulas(PlayState* play, s32 point, s16* got, s16* total) {
+    MapCollectCounts counts;
+
+    MapCollect_Count(play, point, &counts);
+    *got = counts.skullGot;
+    *total = counts.skullTotal;
+}
+
 static bool MapCollect_IsComplete(const MapCollectCounts* counts) {
     return (counts->skullGot == counts->skullTotal) && (counts->heartGot == counts->heartTotal) &&
            (counts->skullTotal + counts->heartTotal > 0);

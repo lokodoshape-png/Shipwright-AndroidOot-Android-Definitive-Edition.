@@ -1632,7 +1632,11 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
 
             gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-            if (pauseCtx->randoQuestMode) {
+            if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
+                POLY_OPA_DISP = KaleidoScope_DrawQuestLogPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
+                                                                      sSaveTexs[gSaveContext.language]);
+                KaleidoScope_DrawQuestLog(play, gfxCtx, false);
+            } else if (pauseCtx->randoQuestMode) {
                 POLY_OPA_DISP =
                     KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx, sSaveTexs[gSaveContext.language]);
                 RandoKaleido_DrawMiscCollectibles(play);
@@ -1640,6 +1644,7 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                 POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
                                                               sQuestStatusTexs[gSaveContext.language]);
                 KaleidoScope_DrawQuestStatus(play, gfxCtx);
+                KaleidoScope_DrawQuestLogHint(play, gfxCtx);
             }
         }
 
@@ -1728,7 +1733,11 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
 
                 gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-                if (pauseCtx->randoQuestMode) {
+                if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
+                    POLY_OPA_DISP = KaleidoScope_DrawQuestLogPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
+                                                                          sSaveTexs[gSaveContext.language]);
+                    KaleidoScope_DrawQuestLog(play, gfxCtx, true);
+                } else if (pauseCtx->randoQuestMode) {
                     POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
                                                                   sSaveTexs[gSaveContext.language]);
                     RandoKaleido_DrawMiscCollectibles(play);
@@ -1736,9 +1745,10 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                     POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
                                                                   sQuestStatusTexs[gSaveContext.language]);
                     KaleidoScope_DrawQuestStatus(play, gfxCtx);
+                    KaleidoScope_DrawQuestLogHint(play, gfxCtx);
                 }
 
-                if (pauseCtx->cursorSpecialPos == 0) {
+                if ((pauseCtx->cursorSpecialPos == 0) && (pauseCtx->randoQuestMode != PAUSE_QUEST_MODE_LOG)) {
                     KaleidoScope_DrawCursor(play, PAUSE_QUEST);
                 }
                 break;
@@ -4279,7 +4289,7 @@ void KaleidoScope_Update(PlayState* play) {
                     } else if (CHECK_BTN_ALL(input->press.button, BTN_CUP) && pauseCtx->pageIndex == PAUSE_QUEST) {
                         Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                                &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-                        pauseCtx->randoQuestMode ^= 1;
+                        KaleidoScope_CycleQuestMode(play);
                     }
                     break;
 
