@@ -366,6 +366,19 @@ void SohMenu::AddMenuSettings() {
         .CVar(CVAR_TEXTURE_FILTER)
         .RaceDisable(false)
         .Options(ComboboxOptions().Tooltip("Sets the applied Texture Filtering.").ComboMap(textureFilteringMap));
+    // OOT D.E.: 3DS-style lighting filter (applied in the Fast3D OpenGL shader, see patches/libultraship-ootde.patch).
+    AddWidget(path, "Iluminação estilo 3DS", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SETTING("Lighting3DS"))
+        .RaceDisable(false)
+        .Options(CheckboxOptions().Tooltip(
+            "Filtro de imagem inspirado no Ocarina of Time 3D: cores mais vivas, um pouco mais de luz e contraste, "
+            "tom mais quente e brilho suave nas partes claras. Vale na hora, sem reiniciar."));
+    AddWidget(path, "Intensidade da iluminação 3DS: %d %%", WIDGET_CVAR_SLIDER_INT)
+        .CVar(CVAR_SETTING("Lighting3DSStrength"))
+        .RaceDisable(false)
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger(CVAR_SETTING("Lighting3DS"), 0); })
+        .Options(IntSliderOptions().Min(10).Max(200).DefaultValue(100).ShowButtons(true).Format("").Tooltip(
+            "100% é o ajuste recomendado. Abaixo disso o efeito fica mais leve; acima, mais forte."));
 
     path.column = SECTION_COLUMN_2;
     AddWidget(path, "Advanced Graphics Options", WIDGET_SEPARATOR_TEXT);

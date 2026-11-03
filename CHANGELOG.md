@@ -21,6 +21,8 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Abas e barra lateral sem cortes no celular.** As abas de cima usam nomes curtos (Ajustes, Melhorias,
   Randomizador, Dev) e cabem sem a barra de rolagem que cobria o texto. A barra lateral fica larga o bastante para o
   nome mais longo da aba aberta ("Editor de personalização" aparecia cortado dos dois lados).
+- **Iluminação estilo 3DS** (Ajustes > Gráficos): filtro de imagem com cores mais vivas, um pouco mais de luz e
+  contraste, tom mais quente e brilho suave nas partes claras, com intensidade de 10% a 200%. Vale na hora.
 - **Controles de toque voltam sempre que o menu fecha.** Antes eles só voltavam quando o menu era fechado pelo
   botão de menu; fechando pelo X, ficavam escondidos. Agora o app segue o estado real do menu a cada quadro.
 - **Menu sob medida para a tela do celular.** O número de colunas agora depende de quanto texto cabe, e não da
