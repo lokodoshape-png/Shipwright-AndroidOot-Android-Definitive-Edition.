@@ -12,6 +12,12 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.6] — Randomizador em português e aviso do B em todas as cenas
+
+- **Aviso "Segure B para acelerar" em todas as cenas.** Antes ele só aparecia nas cenas roteirizadas. A maioria das
+  cenas do jogo é conduzida pelos próprios personagens e objetos com o Link parado (apresentação dos chefes, abrir
+  portas, pegar itens, Navi...), e agora essas também mostram o aviso e podem ser aceleradas segurando B.
+
 ## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
 
 ### Menu do Ship
