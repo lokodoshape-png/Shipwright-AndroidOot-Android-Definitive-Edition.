@@ -278,7 +278,7 @@ uint32_t Menu::DrawSearchResults(std::string& menuSearchText) {
                         continue;
                     }
                     const char* tooltip = info.options->tooltip;
-                    std::string widgetStr = std::string(info.name) + std::string(tooltip != NULL ? tooltip : "");
+                    std::string widgetStr = UIWidgets::TranslateText(info.name) + UIWidgets::TranslateText(tooltip != NULL ? tooltip : "");
                     std::transform(menuSearchText.begin(), menuSearchText.end(), menuSearchText.begin(), ::tolower);
                     menuSearchText.erase(std::remove(menuSearchText.begin(), menuSearchText.end(), ' '),
                                          menuSearchText.end());
