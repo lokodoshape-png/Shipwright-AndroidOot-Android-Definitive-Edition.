@@ -18,6 +18,7 @@ extern "C" {
 #include "macros.h"
 #include "variables.h"
 extern PlayState* gPlayState;
+int16_t OTRGetRectDimensionFromRightEdge(float v);
 }
 
 #define CVAR_NAME CVAR_ENHANCEMENT("HoldBToFastForward")
