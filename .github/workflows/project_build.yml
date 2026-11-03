@@ -82,7 +82,8 @@ jobs:
 
       # The release holds only the app; the game data (oot.otr) is generated on the phone from the user's own ROM.
       - name: Publish release
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        # Only main publishes: PR builds just check that the code compiles (no more test pre-releases).
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION_NAME: ${{ steps.version.outputs.name }}

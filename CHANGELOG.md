@@ -12,6 +12,13 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.6.1] — Correção do travamento no menu de pausa
+
+- **Correção: o jogo fechava ao pausar.** Os contadores de Skulltulas e Pedaços de Coração do mapa-múndi usavam
+  nomes de textura guardados em endereços ímpares, que o desenho do jogo confunde com outro tipo de endereço. Isso
+  fazia o app fechar ao abrir o menu de pausa, com ou sem mods.
+- Os APKs de teste não são mais publicados nas releases: só as versões finais da main aparecem lá.
+
 ## [0.6] — Randomizador em português e aviso do B em todas as cenas
 
 - **Aviso "Segure B para acelerar" em todas as cenas.** Antes ele só aparecia nas cenas roteirizadas. A maioria das

@@ -8,6 +8,7 @@
 // The panel is drawn with the map page's own matrix, so it turns with the page like the rest of the map.
 // Only the overworld is counted: the dungeons (and the Ice Cavern Piece of Heart) are not regions of this map.
 #include "z_kaleido_scope.h"
+#include "align_asset_macro.h"
 
 extern f32 sFontWidths[144];
 
@@ -15,18 +16,25 @@ extern f32 sFontWidths[144];
 
 #define WORLD_MAP_POINT_COUNT 12
 
-static const char sMapCollectSkullTex[] = "__OTR__textures/icon_item_24_static/gQuestIconGoldSkulltulaTex";
-static const char sMapCollectHeartTex[] = "__OTR__textures/parameter_static/gHeartQuarterTex";
-static const char sMapCollectLinkHeadTex[] = "__OTR__textures/icon_item_dungeon_static/gDungeonMapLinkHeadTex";
-static const char sMapCollectDotTex[] = "__OTR__textures/icon_item_field_static/gWorldMapDotTex";
+static const ALIGN_ASSET(2) char sMapCollectSkullTex[] = "__OTR__textures/icon_item_24_static/gQuestIconGoldSkulltulaTex";
+static const ALIGN_ASSET(2) char sMapCollectHeartTex[] = "__OTR__textures/parameter_static/gHeartQuarterTex";
+static const ALIGN_ASSET(2) char sMapCollectLinkHeadTex[] = "__OTR__textures/icon_item_dungeon_static/gDungeonMapLinkHeadTex";
+static const ALIGN_ASSET(2) char sMapCollectDotTex[] = "__OTR__textures/icon_item_field_static/gWorldMapDotTex";
+// Texture paths must sit at even addresses: the renderer treats an odd pointer as a segmented address.
+static const ALIGN_ASSET(2) char sMapCollectDigit0Tex[] = "__OTR__textures/nes_font_static/gMsgChar30Digit0Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit1Tex[] = "__OTR__textures/nes_font_static/gMsgChar31Digit1Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit2Tex[] = "__OTR__textures/nes_font_static/gMsgChar32Digit2Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit3Tex[] = "__OTR__textures/nes_font_static/gMsgChar33Digit3Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit4Tex[] = "__OTR__textures/nes_font_static/gMsgChar34Digit4Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit5Tex[] = "__OTR__textures/nes_font_static/gMsgChar35Digit5Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit6Tex[] = "__OTR__textures/nes_font_static/gMsgChar36Digit6Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit7Tex[] = "__OTR__textures/nes_font_static/gMsgChar37Digit7Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit8Tex[] = "__OTR__textures/nes_font_static/gMsgChar38Digit8Tex";
+static const ALIGN_ASSET(2) char sMapCollectDigit9Tex[] = "__OTR__textures/nes_font_static/gMsgChar39Digit9Tex";
 static const char* sMapCollectDigitTexs[] = {
-    "__OTR__textures/nes_font_static/gMsgChar30Digit0Tex", "__OTR__textures/nes_font_static/gMsgChar31Digit1Tex",
-    "__OTR__textures/nes_font_static/gMsgChar32Digit2Tex", "__OTR__textures/nes_font_static/gMsgChar33Digit3Tex",
-    "__OTR__textures/nes_font_static/gMsgChar34Digit4Tex", "__OTR__textures/nes_font_static/gMsgChar35Digit5Tex",
-    "__OTR__textures/nes_font_static/gMsgChar36Digit6Tex", "__OTR__textures/nes_font_static/gMsgChar37Digit7Tex",
-    "__OTR__textures/nes_font_static/gMsgChar38Digit8Tex", "__OTR__textures/nes_font_static/gMsgChar39Digit9Tex",
+    sMapCollectDigit0Tex, sMapCollectDigit1Tex, sMapCollectDigit2Tex, sMapCollectDigit3Tex, sMapCollectDigit4Tex, sMapCollectDigit5Tex, sMapCollectDigit6Tex, sMapCollectDigit7Tex, sMapCollectDigit8Tex, sMapCollectDigit9Tex,
 };
-static const char sMapCollectSlashTex[] = "__OTR__textures/nes_font_static/gMsgChar2FSolidusTex";
+static const ALIGN_ASSET(2) char sMapCollectSlashTex[] = "__OTR__textures/nes_font_static/gMsgChar2FSolidusTex";
 
 // World map points: 0 Haunted Wasteland/Desert Colossus, 1 Gerudo's Fortress, 2 Gerudo Valley, 3 Lake Hylia,
 // 4 Lon Lon Ranch, 5 Market/Hyrule Castle, 6 Hyrule Field, 7 Death Mountain, 8 Kakariko Village/Graveyard,
