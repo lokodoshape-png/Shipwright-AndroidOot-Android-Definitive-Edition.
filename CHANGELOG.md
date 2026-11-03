@@ -12,12 +12,14 @@ Este arquivo registra as alterações da edição OOT D.E. As versões seguem a 
 
 ### Menu em português do Brasil
 - Traduzidas as abas principais e categorias da navegação do menu.
-- Traduzidos diversos rótulos das configurações gerais, áudio, gráficos, aprimoramentos, aleatorizador e ferramentas de desenvolvedor.
+- Criada uma camada central de localização pt-BR para rótulos de widgets, botões e dicas de contexto.
+- Ampliada a tradução de categorias e opções de aprimoramentos, correções, dificuldade, minijogos, modos extras, trapaças e ferramentas de desenvolvedor.
+- Pesquisa do menu passou a considerar os rótulos e descrições localizados.
 - Mantidos os identificadores internos e sufixos de identificação do ImGui em inglês para preservar compatibilidade.
 - Traduzidos textos de pesquisa e ações básicas do menu.
 
 ### Observações
-- Esta versão é uma base inicial de desenvolvimento; a tradução de descrições, dicas de contexto, opções internas e demais telas continua em andamento.
+- A cobertura de localização ainda requer auditoria de todas as strings dinâmicas, mapas de opções, textos longos e janelas auxiliares antes de declarar a tradução integral concluída.
 - As atualizações instaláveis por cima dependem da manutenção do mesmo `applicationId` e da mesma chave de assinatura em todas as versões.
 - O APK ainda precisa ser compilado e validado antes de ser considerado uma versão de teste pronta.
 
