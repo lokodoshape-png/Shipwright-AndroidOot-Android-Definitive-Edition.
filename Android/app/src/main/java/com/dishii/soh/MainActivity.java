@@ -151,7 +151,7 @@ public class MainActivity extends SDLActivity{
                     .setCancelable(false)
                     .setPositiveButton("OK", (dialog, which) -> {
                         Executors.newSingleThreadExecutor().execute(() -> {
-                            runOnUiThread(() -> Toast.makeText(this, "Setting up files...", Toast.LENGTH_SHORT).show());
+                            runOnUiThread(() -> { setupProgressDialog = new ProgressDialog(this); setupProgressDialog.setTitle("Preparando Ocarina of Time"); setupProgressDialog.setMessage("Criando arquivos necessários..."); setupProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL); setupProgressDialog.setMax(100); setupProgressDialog.setProgress(0); setupProgressDialog.setCancelable(false); setupProgressDialog.show(); });
                             setupFilesInBackground(targetRootFolder);
                         });
                     })
@@ -198,7 +198,7 @@ public class MainActivity extends SDLActivity{
         }
 
         updateSetupProgress(5, "Criando pasta principal...");
-        // Ensure root folder exists
+        updateSetupProgress(5, "Criando pasta principal...");\n        // Ensure root folder exists
         if (!targetRootFolder.exists()) {
             if (!targetRootFolder.mkdirs()) {
                 Log.e("setupFiles", "Failed to create root folder");
@@ -208,19 +208,19 @@ public class MainActivity extends SDLActivity{
             }
         }
 
-        // Always ensure mods folder exists
+        updateSetupProgress(15, "Preparando pastas do jogo...");\n        // Always ensure mods folder exists
         File targetModsDir = new File(targetRootFolder, "mods");
         if (!targetModsDir.exists()) {
             targetModsDir.mkdirs();
         }
 
-        // Copy assets/ from internal
+        updateSetupProgress(25, "Copiando recursos do jogo...");\n        // Copy assets/ from internal
         File targetAssetsDir = new File(targetRootFolder, "assets");
         try {
             if (!targetAssetsDir.exists()) {
                 targetAssetsDir.mkdirs();
             }
-            AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath());
+            AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath());\n            updateSetupProgress(80, "Recursos copiados. Preparando dados principais...");
             runOnUiThread(() -> Toast.makeText(this, "Assets copied", Toast.LENGTH_SHORT).show());
         } catch (IOException e) {
             e.printStackTrace();
@@ -238,7 +238,7 @@ public class MainActivity extends SDLActivity{
                 out.write(buffer, 0, read);
             }
 
-            runOnUiThread(() -> Toast.makeText(this, "soh.otr copied", Toast.LENGTH_SHORT).show());
+            updateSetupProgress(95, "Finalizando preparação...");\n            runOnUiThread(() -> Toast.makeText(this, "Dados principais copiados", Toast.LENGTH_SHORT).show());
 
         } catch (IOException e) {
             e.printStackTrace();
