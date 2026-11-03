@@ -260,7 +260,7 @@ std::unordered_map<uint32_t, disabledInfo>& Menu::GetDisabledMap() {
 }
 
 void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors menuThemeIndex) {
-    disabledTempTooltip = "This setting is disabled because: \n";
+    disabledTempTooltip = "Esta opção está desativada porque:\n";
     disabledValue = false;
     disabledTooltip = " ";
 
@@ -273,14 +273,14 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
         if (!widget.activeDisables.empty()) {
             widget.options->disabled = true;
             for (auto option : widget.activeDisables) {
-                disabledTempTooltip += std::string("\n- ") + disabledMap.at(option).reason;
+                disabledTempTooltip += std::string("\n- ") + UIWidgets::TranslateText(disabledMap.at(option).reason);
             }
             widget.options->disabledTooltip = disabledTempTooltip.c_str();
         }
     }
     if (widget.raceDisable && raceDisableActive) {
         widget.options->disabled = true;
-        disabledTempTooltip += std::string("\n- Race Lockout Active");
+        disabledTempTooltip += std::string("\n- Bloqueio de corrida ativo");
         widget.options->disabledTooltip = disabledTempTooltip.c_str();
     }
 
@@ -830,6 +830,12 @@ void Menu::DrawElement() {
     if (windowWidth < 800) {
         columns = 1;
     }
+    // OOT D.E.: decide by how much text fits, not by pixels. A phone has many pixels but a big font,
+    // so three columns there leave each option with a handful of letters per line.
+    const float minColumnWidth = ImGui::GetFontSize() * 17.0f;
+    while (columns > 1 && (sectionWidth - style.ItemSpacing.x * columns) / columns < minColumnWidth) {
+        columns--;
+    }
     float columnWidth = (sectionWidth - style.ItemSpacing.x * columns) / columns;
     bool useColumns = columns > 1;
     if (!useColumns || (headerSearch && menuSearchText.length() > 0)) {
@@ -872,7 +878,7 @@ void Menu::DrawElement() {
             }
             // for (auto& entryName : sidebar->at(sectionIndex).sidebarOrder) {
             for (auto& entry : sidebar->at(sectionIndex).columnWidgets.at(i)) {
-                MenuDrawItem(entry, 90 / sidebar->at(sectionIndex).columnCount, menuThemeIndex);
+                MenuDrawItem(entry, 90 / columns, menuThemeIndex);
             }
             //}
             if (useColumns) {

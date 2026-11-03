@@ -365,25 +365,33 @@ void OptionGroup::Disable() {
     mDisabled = true;
 }
 
+// OOT D.E.: on a narrow (phone) screen the columns of a settings table are drawn one under the other.
+static bool sStackTableColumns = false;
+
 bool OptionGroup::RenderImGui() const { // NOLINT(*-no-recursion)
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     bool changed = false;
+    bool stackedTable = false;
     ImGui::BeginDisabled(mDisabled || CVarGetInteger(CVAR_SETTING("DisableChanges"), 0) ||
                          CVarGetInteger(CVAR_GENERAL("RandoGenerating"), 0) ||
                          CVarGetInteger(CVAR_GENERAL("OnFileSelectNameEntry"), 0));
-    if (mContainerType == WidgetContainerType::TABLE) {
+    if (mContainerType == WidgetContainerType::TABLE && !mSubGroups.empty() &&
+        ImGui::GetContentRegionAvail().x / mSubGroups.size() < ImGui::GetFontSize() * 16.0f) {
+        stackedTable = true;
+        sStackTableColumns = true;
+    } else if (mContainerType == WidgetContainerType::TABLE) {
         if (ImGui::BeginTable(mName.c_str(), static_cast<int>(mSubGroups.size()),
                               ImGuiTableFlags_BordersH | ImGuiTableFlags_BordersV)) {
             for (const auto column : mSubGroups) {
                 if (column->GetContainerType() == WidgetContainerType::COLUMN) {
-                    ImGui::TableSetupColumn(column->GetName().c_str(), ImGuiTableColumnFlags_WidthStretch, 200.0f);
+                    ImGui::TableSetupColumn(UIWidgets::TranslateText(column->GetName()).c_str(), ImGuiTableColumnFlags_WidthStretch, 200.0f);
                 }
             }
             ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
             for (int i = 0; i < mSubGroups.size(); i++) {
                 ImGui::TableSetColumnIndex(i);
-                ImGui::TableHeader(mSubGroups[i]->GetName().c_str());
+                ImGui::TableHeader(UIWidgets::TranslateText(mSubGroups[i]->GetName()).c_str());
                 if (!mSubGroups[i]->GetDescription().empty()) {
                     UIWidgets::Tooltip(mSubGroups[i]->GetDescription().c_str());
                 }
@@ -393,12 +401,15 @@ bool OptionGroup::RenderImGui() const { // NOLINT(*-no-recursion)
         }
     }
     if (mContainerType == WidgetContainerType::SECTION && !mName.empty()) {
-        ImGui::SeparatorText(mName.c_str());
+        ImGui::SeparatorText(UIWidgets::TranslateText(mName).c_str());
         if (!mDescription.empty()) {
             UIWidgets::Tooltip(mDescription.c_str());
         }
     }
-    if (mContainerType == WidgetContainerType::COLUMN) {
+    if (mContainerType == WidgetContainerType::COLUMN && sStackTableColumns) {
+        ImGui::SeparatorText(UIWidgets::TranslateText(mName).c_str());
+        ImGui::PushItemWidth(-FLT_MIN);
+    } else if (mContainerType == WidgetContainerType::COLUMN) {
         ImGui::TableNextColumn();
         window->DC.CurrLineTextBaseOffset = 0.0f;
         ImGui::BeginChild(mName.c_str(), ImVec2(0, -8));
@@ -427,10 +438,14 @@ bool OptionGroup::RenderImGui() const { // NOLINT(*-no-recursion)
             }
         }
     }
-    if (mContainerType == WidgetContainerType::COLUMN) {
+    if (mContainerType == WidgetContainerType::COLUMN && sStackTableColumns) {
+        ImGui::PopItemWidth();
+    } else if (mContainerType == WidgetContainerType::COLUMN) {
         ImGui::EndChild();
     }
-    if (mContainerType == WidgetContainerType::TABLE) {
+    if (stackedTable) {
+        sStackTableColumns = false;
+    } else if (mContainerType == WidgetContainerType::TABLE) {
         ImGui::EndTable();
     }
     ImGui::EndDisabled();

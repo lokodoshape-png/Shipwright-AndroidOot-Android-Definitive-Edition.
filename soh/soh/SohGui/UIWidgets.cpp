@@ -181,6 +181,15 @@ std::string TranslateText(const std::string& source) {
     return source;
 }
 
+const char* Tr(const char* text) {
+    static std::unordered_map<const char*, std::string> cache;
+    auto it = cache.find(text);
+    if (it == cache.end()) {
+        it = cache.emplace(text, TranslateText(text)).first;
+    }
+    return it->second.c_str();
+}
+
 // Automatically adds newlines to break up text longer than a specified number of characters
 // Manually included newlines will still be respected and reset the line length
 // If line is midword when it hits the limit, text should break at the last encountered space
@@ -211,6 +220,19 @@ std::string WrappedText(const char* text, unsigned int charactersPerLine) {
 
 std::string WrappedText(const std::string& text, unsigned int charactersPerLine) {
     return WrappedText(text.c_str(), charactersPerLine);
+}
+
+// OOT D.E.: on a phone a label next to a slider leaves no room for the slider.
+// When the label takes more than half of the space, move it above the control.
+LabelPositions FitLabelPosition(LabelPositions position, const char* label) {
+    if (position != LabelPositions::Near && position != LabelPositions::Far) {
+        return position;
+    }
+    const float avail = ImGui::GetContentRegionAvail().x;
+    if (ImGui::CalcTextSize(label, NULL, true).x > avail * 0.5f) {
+        return LabelPositions::Above;
+    }
+    return position;
 }
 
 void PaddedSeparator(bool padTop, bool padBottom, float extraVerticalTopPadding, float extraVerticalBottomPadding) {
@@ -450,7 +472,7 @@ void RenderText(ImVec2 pos, const char* text, const char* text_end, bool hide_te
     }
 }
 
-bool Checkbox(const char* _label, bool* value, const CheckboxOptions& options) {
+bool Checkbox(const char* _labelId, bool* value, const CheckboxOptions& options) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return false;
@@ -462,16 +484,23 @@ bool Checkbox(const char* _label, bool* value, const CheckboxOptions& options) {
     bool right = options.alignment == ComponentAlignments::Right;
     bool none = options.labelPosition == LabelPositions::None;
 
+    // OOT D.E.: the ID keeps the original text, the drawn label is translated.
+    std::string idStr = (none ? "##" : "");
+    idStr.append(_labelId);
     std::string labelStr = (none ? "##" : "");
-    labelStr.append(_label);
+    labelStr.append(TranslateText(_labelId));
 
     const char* label = labelStr.c_str();
 
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
-    const ImGuiID id = window->GetID(label);
-    const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+    const ImGuiID id = window->GetID(idStr.c_str());
     const float square_sz = ImGui::GetFrameHeight();
+    // OOT D.E.: long labels wrap instead of running off a phone screen.
+    const float wrapWidth =
+        ImMax(ImGui::GetContentRegionAvail().x - (above ? 0.0f : (style.ItemInnerSpacing.x * 2.0f) + square_sz),
+              square_sz * 2.0f);
+    const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true, wrapWidth);
     ImVec2 pos = window->DC.CursorPos;
 
     if (right) {
@@ -531,7 +560,13 @@ bool Checkbox(const char* _label, bool* value, const CheckboxOptions& options) {
         const float pad = ImMax(1.0f, IM_TRUNC(square_sz / 6.0f));
         ImGui::RenderCheckMark(window->DrawList, check_bb.Min + ImVec2(pad, pad), check_col, square_sz - pad * 2.0f);
     }
-    RenderText(labelPos, label, ImGui::FindRenderedTextEnd(label), true);
+    {
+        const char* labelEnd = ImGui::FindRenderedTextEnd(label);
+        if (label != labelEnd) {
+            window->DrawList->AddText(g.Font, g.FontSize, labelPos, ImGui::GetColorU32(ImGuiCol_Text), label,
+                                      labelEnd, wrapWidth);
+        }
+    }
     PopStyleCheckbox();
     ImGui::EndDisabled();
     if (options.disabled && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) &&
@@ -615,7 +650,8 @@ float CalcComboWidth(const char* preview_value, ImGuiComboFlags flags) {
     const float arrow_size = (flags & ImGuiComboFlags_NoArrowButton) ? 0.0f : ImGui::GetFrameHeight();
     const float preview_width = ImGui::CalcTextSize(preview_value, NULL, true).x;
     float w = arrow_size + preview_width + (style.FramePadding.x * 2.0f);
-    return w;
+    // OOT D.E.: never wider than the space left, so it fits on a phone screen.
+    return ImMin(w, ImMax(ImGui::GetContentRegionAvail().x, arrow_size * 3.0f));
 }
 
 void PushStyleCombobox(const ImVec4& color) {
@@ -684,11 +720,16 @@ void PopStyleSlider() {
     ImGui::PopStyleColor(6);
 }
 
-bool SliderInt(const char* label, int32_t* value, const IntSliderOptions& options) {
+bool SliderInt(const char* _labelId, int32_t* value, const IntSliderOptions& _options) {
+    // OOT D.E.: translated label, unchanged ID, label above when the screen is narrow.
+    const std::string translatedLabelStr = TranslateText(_labelId);
+    const char* label = translatedLabelStr.c_str();
+    IntSliderOptions options = _options;
+    options.labelPosition = FitLabelPosition(options.labelPosition, label);
     bool dirty = false;
-    std::string invisibleLabelStr = "##" + std::string(label);
+    std::string invisibleLabelStr = "##" + std::string(_labelId);
     const char* invisibleLabel = invisibleLabelStr.c_str();
-    ImGui::PushID(label);
+    ImGui::PushID(_labelId);
     ImGui::BeginGroup();
     ImGui::BeginDisabled(options.disabled);
     PushStyleSlider(options.color);
@@ -709,7 +750,7 @@ bool SliderInt(const char* label, int32_t* value, const IntSliderOptions& option
         }
     } else if (options.alignment == ComponentAlignments::Left) {
         if (options.labelPosition == LabelPositions::Above) {
-            ImGui::Text(label, *value);
+            ImGui::TextWrapped(label, *value);
         }
     }
     if (options.showButtons) {
@@ -816,14 +857,19 @@ void ClampFloat(float* value, float min, float max, float step) {
     }
 }
 
-bool SliderFloat(const char* label, float* value, const FloatSliderOptions& options) {
+bool SliderFloat(const char* _labelId, float* value, const FloatSliderOptions& _options) {
+    // OOT D.E.: translated label, unchanged ID, label above when the screen is narrow.
+    const std::string translatedLabelStr = TranslateText(_labelId);
+    const char* label = translatedLabelStr.c_str();
+    FloatSliderOptions options = _options;
+    options.labelPosition = FitLabelPosition(options.labelPosition, label);
     bool dirty = false;
-    std::string invisibleLabelStr = "##" + std::string(label);
+    std::string invisibleLabelStr = "##" + std::string(_labelId);
     const char* invisibleLabel = invisibleLabelStr.c_str();
     float valueToDisplay = options.isPercentage ? *value * 100.0f : *value;
     float maxToDisplay = options.isPercentage ? options.max * 100.0f : options.max;
     float minToDisplay = options.isPercentage ? options.min * 100.0f : options.min;
-    ImGui::PushID(label);
+    ImGui::PushID(_labelId);
     ImGui::BeginGroup();
     ImGui::BeginDisabled(options.disabled);
     PushStyleSlider(options.color);
@@ -847,7 +893,7 @@ bool SliderFloat(const char* label, float* value, const FloatSliderOptions& opti
         }
     } else if (options.alignment == ComponentAlignments::Left) {
         if (options.labelPosition == LabelPositions::Above) {
-            ImGui::Text(label, *value);
+            ImGui::TextWrapped(label, *value);
         }
     }
     if (options.showButtons) {
@@ -926,22 +972,25 @@ int InputTextResizeCallback(ImGuiInputTextCallbackData* data) {
     return 0;
 }
 
-bool InputString(const char* label, std::string* value, const InputOptions& options) {
+bool InputString(const char* _labelId, std::string* value, const InputOptions& options) {
+    const std::string translatedLabelStr = TranslateText(_labelId);
+    const char* label = translatedLabelStr.c_str();
+    const std::string hiddenIdStr = "##" + std::string(_labelId);
     bool dirty = false;
-    ImGui::PushID(label);
+    ImGui::PushID(_labelId);
     ImGui::BeginGroup();
     ImGui::BeginDisabled(options.disabled);
     PushStyleInput(options.color);
     float width = (options.size == ImVec2(0, 0)) ? ImGui::GetContentRegionAvail().x : options.size.x;
     if (options.alignment == ComponentAlignments::Left) {
         if (options.labelPosition == LabelPositions::Above) {
-            ImGui::Text(label, *value->c_str());
+            ImGui::TextWrapped("%s", label);
         }
     } else if (options.alignment == ComponentAlignments::Right) {
         if (options.labelPosition == LabelPositions::Above) {
             ImGui::NewLine();
             ImGui::SameLine(width - ImGui::CalcTextSize(label).x);
-            ImGui::Text(label, *value->c_str());
+            ImGui::TextWrapped("%s", label);
         }
     }
     ImGui::SetNextItemWidth(width);
@@ -950,7 +999,7 @@ bool InputString(const char* label, std::string* value, const InputOptions& opti
         flags |= ImGuiInputTextFlags_Password;
     }
     flags |= options.addedFlags;
-    if (ImGui::InputText(label, (char*)value->c_str(), value->capacity() + 1, flags, InputTextResizeCallback, value)) {
+    if (ImGui::InputText(options.labelPosition == LabelPositions::Above ? hiddenIdStr.c_str() : label, (char*)value->c_str(), value->capacity() + 1, flags, InputTextResizeCallback, value)) {
         dirty = true;
     }
     if (value->empty() && !options.placeholder.empty()) {
@@ -982,9 +1031,12 @@ bool CVarInputString(const char* label, const char* cvarName, const InputOptions
     return dirty;
 }
 
-bool InputInt(const char* label, int32_t* value, const InputOptions& options) {
+bool InputInt(const char* _labelId, int32_t* value, const InputOptions& options) {
+    const std::string translatedLabelStr = TranslateText(_labelId);
+    const char* label = translatedLabelStr.c_str();
+    const std::string hiddenIdStr = "##" + std::string(_labelId);
     bool dirty = false;
-    ImGui::PushID(label);
+    ImGui::PushID(_labelId);
     ImGui::BeginGroup();
     ImGui::BeginDisabled(options.disabled);
     PushStyleInput(options.color);
@@ -1001,7 +1053,7 @@ bool InputInt(const char* label, int32_t* value, const InputOptions& options) {
         }
     }
     ImGui::SetNextItemWidth(width);
-    if (ImGui::InputScalar(label, ImGuiDataType_S32, value, nullptr, nullptr, nullptr, options.addedFlags)) {
+    if (ImGui::InputScalar(options.labelPosition == LabelPositions::Above ? hiddenIdStr.c_str() : label, ImGuiDataType_S32, value, nullptr, nullptr, nullptr, options.addedFlags)) {
         dirty = true;
     }
     if ((ImGui::GetItemStatusFlags() & ImGuiItemStatusFlags_Edited) && !options.placeholder.empty()) {
@@ -1050,13 +1102,22 @@ bool CVarColorPicker(const char* label, const char* cvarName, Color_RGBA8 defaul
     ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
     ImGui::BeginDisabled(locked);
     PushStyleCombobox(UIWidgets::Colors::DarkGray);
+    // OOT D.E.: swatch with a hidden ID, then the translated name.
+    const std::string colorId = "##" + std::string(label);
+    const std::string colorName = TranslateText(label);
+    const std::string colorNameVisible = colorName.substr(0, colorName.find("##"));
     if (hasAlpha) {
-        changed = ImGui::ColorEdit4(label, (float*)&colorVec,
+        changed = ImGui::ColorEdit4(colorId.c_str(), (float*)&colorVec,
                                     flags | ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreview);
     } else {
-        changed = ImGui::ColorEdit3(label, (float*)&colorVec, flags | ImGuiColorEditFlags_NoAlpha);
+        changed = ImGui::ColorEdit3(colorId.c_str(), (float*)&colorVec, flags | ImGuiColorEditFlags_NoAlpha);
     }
     PopStyleCombobox();
+    if (!colorNameVisible.empty()) {
+        ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(colorNameVisible.c_str());
+    }
     ImGui::AlignTextToFramePadding();
     if (showReset) {
         ImGui::SameLine();
@@ -1125,14 +1186,16 @@ bool CVarColorPicker(const char* label, const char* cvarName, Color_RGBA8 defaul
     return changed;
 }
 
-bool RadioButton(const char* label, bool active, const RadioButtonsOptions& options) {
+bool RadioButton(const char* _labelId, bool active, const RadioButtonsOptions& options) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
         return false;
 
+    const std::string translatedLabelStr = TranslateText(_labelId);
+    const char* label = translatedLabelStr.c_str();
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
-    const ImGuiID id = window->GetID(label);
+    const ImGuiID id = window->GetID(_labelId);
     const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
 
     const float square_sz = ImGui::GetFrameHeight();
@@ -1196,7 +1259,7 @@ bool CVarRadioButton(const char* text, const char* cvarName, int32_t id, const R
         ret = true;
     }
     ImGui::SameLine();
-    ImGui::Text("%s", text);
+    ImGui::TextWrapped("%s", TranslateText(text).c_str());
     PopStyleCheckbox();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && !Ship_IsCStringEmpty(options.tooltip)) {
         ImGui::SetTooltip("%s", WrappedText(TranslateText(options.tooltip)).c_str());

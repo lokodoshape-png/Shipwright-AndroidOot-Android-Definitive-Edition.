@@ -150,7 +150,7 @@ void DrawInfoTab() {
 
     ImGui::PushItemWidth(ImGui::GetFontSize() * 6);
 
-    ImGui::Text("Name: %s", name.c_str());
+    ImGui::Text(UIWidgets::Tr("Name: %s"), name.c_str());
     Tooltip("Player Name");
     std::string nameID;
     for (int i = 0; i < 8; i++) {
@@ -311,9 +311,9 @@ void DrawInfoTab() {
                                                      "Running Man Race",  "?",
                                                      "Dampe's Race" };
 
-    if (ImGui::TreeNode("Minigames")) {
+    if (ImGui::TreeNode(UIWidgets::Tr("Minigames"))) {
         for (int i = 0; i < 7; i++) {
-            if (i == 2 && ImGui::TreeNode("Fishing")) { // fishing has a few more flags to it
+            if (i == 2 && ImGui::TreeNode(UIWidgets::Tr("Fishing"))) { // fishing has a few more flags to it
                 u8 fishSize = gSaveContext.highScores[i] & 0x7F;
                 PushStyleInput(THEME_COLOR);
                 if (ImGui::InputScalar("Child Size Record", ImGuiDataType_U8, &fishSize)) {
@@ -506,7 +506,7 @@ void DrawInventoryTab() {
         }
     }
 
-    ImGui::Text("Ammo");
+    ImGui::Text("%s", UIWidgets::Tr("Ammo"));
     for (uint32_t ammoIndex = 0, drawnAmmoItems = 0; ammoIndex < 16; ammoIndex++) {
         uint8_t item = (restrictToValid) ? gAmmoItems[ammoIndex] : gAllAmmoItems[ammoIndex];
         if (item != ITEM_NONE) {
@@ -536,7 +536,7 @@ void DrawInventoryTab() {
     // Trade quest flags are only used when shuffling the trade sequence, so
     // don't show this if it isn't needed.
     if (IS_RANDO && OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_SHUFFLE_ADULT_TRADE) &&
-        ImGui::TreeNode("Adult trade quest items")) {
+        ImGui::TreeNode(UIWidgets::Tr("Adult trade quest items"))) {
         for (int i = ITEM_POCKET_EGG; i <= ITEM_CLAIM_CHECK; i++) {
             DrawBGSItemFlag(i);
         }
@@ -577,7 +577,7 @@ void DrawFlagTableArray16(const FlagTable& flagTable, uint16_t row, uint16_t& fl
 }
 
 void DrawFlagsTab() {
-    if (ImGui::TreeNode("Player State")) {
+    if (ImGui::TreeNode(UIWidgets::Tr("Player State"))) {
         if (gPlayState != nullptr) {
             Player* player = GET_PLAYER(gPlayState);
 
@@ -615,12 +615,12 @@ void DrawFlagsTab() {
         }
         ImGui::TreePop();
     }
-    if (ImGui::TreeNode("Current Scene")) {
+    if (ImGui::TreeNode(UIWidgets::Tr("Current Scene"))) {
         if (gPlayState != nullptr) {
             ActorContext* act = &gPlayState->actorCtx;
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Switch");
+                    ImGui::Text("%s", UIWidgets::Tr("Switch"));
                     InsertHelpHoverText("Permanently-saved switch flags");
                     if (Button("Set All##Switch", buttonOptionsBase.Tooltip(""))) {
                         act->flags.swch = UINT32_MAX;
@@ -637,7 +637,7 @@ void DrawFlagsTab() {
 
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Temp Switch");
+                    ImGui::Text("%s", UIWidgets::Tr("Temp Switch"));
                     InsertHelpHoverText("Temporary switch flags. Unset on scene transitions");
                     if (Button("Set All##Temp Switch", buttonOptionsBase.Tooltip(""))) {
                         act->flags.tempSwch = UINT32_MAX;
@@ -652,7 +652,7 @@ void DrawFlagsTab() {
 
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Clear");
+                    ImGui::Text("%s", UIWidgets::Tr("Clear"));
                     InsertHelpHoverText("Permanently-saved room-clear flags");
                     if (Button("Set All##Clear", buttonOptionsBase.Tooltip(""))) {
                         act->flags.clear = UINT32_MAX;
@@ -669,7 +669,7 @@ void DrawFlagsTab() {
 
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Temp Clear");
+                    ImGui::Text("%s", UIWidgets::Tr("Temp Clear"));
                     InsertHelpHoverText("Temporary room-clear flags. Unset on scene transitions");
                     if (Button("Set All##Temp Clear", buttonOptionsBase.Tooltip(""))) {
                         act->flags.tempClear = UINT32_MAX;
@@ -684,7 +684,7 @@ void DrawFlagsTab() {
 
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Collect");
+                    ImGui::Text("%s", UIWidgets::Tr("Collect"));
                     InsertHelpHoverText("Permanently-saved collect flags");
                     if (Button("Set All##Collect", buttonOptionsBase.Tooltip(""))) {
                         act->flags.collect = UINT32_MAX;
@@ -701,7 +701,7 @@ void DrawFlagsTab() {
 
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Temp Collect");
+                    ImGui::Text("%s", UIWidgets::Tr("Temp Collect"));
                     InsertHelpHoverText("Temporary collect flags. Unset on scene transitions");
                     if (Button("Set All##Temp Collect", buttonOptionsBase.Tooltip(""))) {
                         act->flags.tempCollect = UINT32_MAX;
@@ -716,7 +716,7 @@ void DrawFlagsTab() {
 
             DrawGroupWithBorder(
                 [&]() {
-                    ImGui::Text("Chest");
+                    ImGui::Text("%s", UIWidgets::Tr("Chest"));
                     InsertHelpHoverText("Permanently-saved chest flags");
                     if (Button("Set All##Chest", buttonOptionsBase.Tooltip(""))) {
                         act->flags.chest = UINT32_MAX;
@@ -759,16 +759,16 @@ void DrawFlagsTab() {
 
             ImGui::EndGroup();
         } else {
-            ImGui::Text("Current game state does not have an active scene");
+            ImGui::Text("%s", UIWidgets::Tr("Current game state does not have an active scene"));
         }
 
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNode("Saved Scene Flags")) {
+    if (ImGui::TreeNode(UIWidgets::Tr("Saved Scene Flags"))) {
         static uint32_t selectedSceneFlagMap = 0;
         ImGui::AlignTextToFramePadding();
-        ImGui::Text("Map");
+        ImGui::Text("%s", UIWidgets::Tr("Map"));
         ImGui::SameLine();
         PushStyleCombobox(THEME_COLOR);
         if (ImGui::BeginCombo("##Map", SohUtils::GetSceneName(selectedSceneFlagMap).c_str())) {
@@ -792,7 +792,7 @@ void DrawFlagsTab() {
 
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Switch");
+                ImGui::Text("%s", UIWidgets::Tr("Switch"));
                 InsertHelpHoverText("Switch flags");
                 DrawFlagArray32("Switch", gSaveContext.sceneFlags[selectedSceneFlagMap].swch, THEME_COLOR);
             },
@@ -802,7 +802,7 @@ void DrawFlagsTab() {
 
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Clear");
+                ImGui::Text("%s", UIWidgets::Tr("Clear"));
                 InsertHelpHoverText("Room-clear flags");
                 DrawFlagArray32("Clear", gSaveContext.sceneFlags[selectedSceneFlagMap].clear, THEME_COLOR);
             },
@@ -810,7 +810,7 @@ void DrawFlagsTab() {
 
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Collect");
+                ImGui::Text("%s", UIWidgets::Tr("Collect"));
                 InsertHelpHoverText("Collect flags");
                 DrawFlagArray32("Collect", gSaveContext.sceneFlags[selectedSceneFlagMap].collect, THEME_COLOR);
             },
@@ -820,7 +820,7 @@ void DrawFlagsTab() {
 
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Chest");
+                ImGui::Text("%s", UIWidgets::Tr("Chest"));
                 InsertHelpHoverText("Chest flags");
                 DrawFlagArray32("Chest", gSaveContext.sceneFlags[selectedSceneFlagMap].chest, THEME_COLOR);
             },
@@ -828,7 +828,7 @@ void DrawFlagsTab() {
 
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Rooms");
+                ImGui::Text("%s", UIWidgets::Tr("Rooms"));
                 InsertHelpHoverText("Flags for visted rooms");
                 DrawFlagArray32("Rooms", gSaveContext.sceneFlags[selectedSceneFlagMap].rooms, THEME_COLOR);
             },
@@ -838,7 +838,7 @@ void DrawFlagsTab() {
 
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Floors");
+                ImGui::Text("%s", UIWidgets::Tr("Floors"));
                 InsertHelpHoverText("Flags for visted floors");
                 DrawFlagArray32("Floors", gSaveContext.sceneFlags[selectedSceneFlagMap].floors, THEME_COLOR);
             },
@@ -851,7 +851,7 @@ void DrawFlagsTab() {
         [&]() {
             PushStyleCombobox(THEME_COLOR);
             static size_t selectedGsMap = 0;
-            ImGui::Text("Gold Skulltulas");
+            ImGui::Text("%s", UIWidgets::Tr("Gold Skulltulas"));
             if (ImGui::BeginCombo("##GSMap", gsMapping[selectedGsMap])) {
                 for (size_t index = 0; index < gsMapping.size(); index++) {
                     if (ImGui::Selectable(gsMapping[index])) {
@@ -865,7 +865,7 @@ void DrawFlagsTab() {
 
             // TODO We should write out descriptions for each one... ugh
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("Flags");
+            ImGui::Text("%s", UIWidgets::Tr("Flags"));
             uint32_t currentFlags = GET_GS_FLAGS(selectedGsMap);
             uint32_t allFlags = gAreaGsFlags[selectedGsMap];
             uint32_t setMask = 1;
@@ -952,25 +952,25 @@ void DrawFlagsTab() {
             uint8_t fsMode = OTRGlobals::Instance->gRandomizer->GetRandoSettingValue(RSK_FISHSANITY);
             if (flagTable.flagTableType == RANDOMIZER_INF && fsMode != RO_FISHSANITY_OFF &&
                 fsMode != RO_FISHSANITY_OVERWORLD) {
-                if (ImGui::Button("Catch All (Child)")) {
+                if (ImGui::Button(UIWidgets::Tr("Catch All (Child)"))) {
                     for (int k = RAND_INF_CHILD_FISH_1; k <= RAND_INF_CHILD_LOACH_2; k++) {
                         Flags_SetRandomizerInf((RandomizerInf)k);
                     }
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Uncatch All (Child)")) {
+                if (ImGui::Button(UIWidgets::Tr("Uncatch All (Child)"))) {
                     for (int k = RAND_INF_CHILD_FISH_1; k <= RAND_INF_CHILD_LOACH_2; k++) {
                         Flags_UnsetRandomizerInf((RandomizerInf)k);
                     }
                 }
 
-                if (ImGui::Button("Catch All (Adult)")) {
+                if (ImGui::Button(UIWidgets::Tr("Catch All (Adult)"))) {
                     for (int k = RAND_INF_ADULT_FISH_1; k <= RAND_INF_ADULT_LOACH; k++) {
                         Flags_SetRandomizerInf((RandomizerInf)k);
                     }
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Uncatch All (Adult)")) {
+                if (ImGui::Button(UIWidgets::Tr("Uncatch All (Adult)"))) {
                     for (int k = RAND_INF_ADULT_FISH_1; k <= RAND_INF_ADULT_LOACH; k++) {
                         Flags_UnsetRandomizerInf((RandomizerInf)k);
                     }
@@ -1284,7 +1284,7 @@ void DrawQuestStatusTab() {
 
     int32_t pohCount = (gSaveContext.inventory.questItems & 0xF0000000) >> 28;
     PushStyleCombobox(THEME_COLOR);
-    if (ImGui::BeginCombo("PoH count", std::to_string(pohCount).c_str())) {
+    if (ImGui::BeginCombo(UIWidgets::Tr("PoH count"), std::to_string(pohCount).c_str())) {
         for (int32_t i = 0; i < 4; i++) {
             if (ImGui::Selectable(std::to_string(i).c_str(), pohCount == i)) {
                 gSaveContext.inventory.questItems &= ~0xF0000000;
@@ -1298,7 +1298,7 @@ void DrawQuestStatusTab() {
 
     DrawGroupWithBorder(
         [&]() {
-            ImGui::Text("Dungeon Items");
+            ImGui::Text("%s", UIWidgets::Tr("Dungeon Items"));
 
             static int32_t dungeonItemsScene = SCENE_DEKU_TREE;
             PushStyleCombobox(THEME_COLOR);
@@ -1336,7 +1336,7 @@ void DrawQuestStatusTab() {
             } else {
                 // dungeonItems is size 20 but dungeonKeys is size 19, so there are no keys for the last scene
                 // (Barinade's Lair)
-                ImGui::Text("Barinade's Lair does not have small keys");
+                ImGui::Text("%s", UIWidgets::Tr("Barinade's Lair does not have small keys"));
             }
         },
         "Dungeon Items");
@@ -1420,7 +1420,7 @@ void DrawPlayerTab() {
         PushStyleInput(THEME_COLOR);
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Link's Position");
+                ImGui::Text("%s", UIWidgets::Tr("Link's Position"));
                 ImGui::PushItemWidth(ImGui::GetFontSize() * 12);
                 ImGui::InputScalar("X##Pos", ImGuiDataType_Float, &player->actor.world.pos.x);
                 ImGui::InputScalar("Y##Pos", ImGuiDataType_Float, &player->actor.world.pos.y);
@@ -1431,7 +1431,7 @@ void DrawPlayerTab() {
         ImGui::SameLine();
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Link's Rotation");
+                ImGui::Text("%s", UIWidgets::Tr("Link's Rotation"));
                 InsertHelpHoverText("For Link's rotation in relation to the world");
                 ImGui::PushItemWidth(ImGui::GetFontSize() * 12);
                 ImGui::InputScalar("X##Rot", ImGuiDataType_S16, &player->actor.world.rot.x);
@@ -1443,7 +1443,7 @@ void DrawPlayerTab() {
         ImGui::SameLine();
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Link's Model Rotation");
+                ImGui::Text("%s", UIWidgets::Tr("Link's Model Rotation"));
                 InsertHelpHoverText("For Link's actual model");
                 ImGui::PushItemWidth(ImGui::GetFontSize() * 12);
                 ImGui::InputScalar("X##ModRot", ImGuiDataType_S16, &player->actor.shape.rot.x);
@@ -1470,11 +1470,11 @@ void DrawPlayerTab() {
         PopStyleInput();
 
         PushStyleCombobox(THEME_COLOR);
-        if (ImGui::BeginCombo("Link Age on Load", gPlayState->linkAgeOnLoad == 0 ? "Adult" : "Child")) {
-            if (ImGui::Selectable("Adult")) {
+        if (ImGui::BeginCombo(UIWidgets::Tr("Link Age on Load"), gPlayState->linkAgeOnLoad == 0 ? "Adult" : "Child")) {
+            if (ImGui::Selectable(UIWidgets::Tr("Adult"))) {
                 gPlayState->linkAgeOnLoad = 0;
             }
-            if (ImGui::Selectable("Child")) {
+            if (ImGui::Selectable(UIWidgets::Tr("Child"))) {
                 gPlayState->linkAgeOnLoad = 1;
             }
             ImGui::EndCombo();
@@ -1486,25 +1486,25 @@ void DrawPlayerTab() {
         DrawGroupWithBorder(
             [&]() {
                 PushStyleCombobox(THEME_COLOR);
-                ImGui::Text("Link's Current Equipment");
+                ImGui::Text("%s", UIWidgets::Tr("Link's Current Equipment"));
                 ImGui::PushItemWidth(ImGui::GetFontSize() * 12);
-                if (ImGui::BeginCombo("Sword", curSword)) {
-                    if (ImGui::Selectable("None")) {
+                if (ImGui::BeginCombo(UIWidgets::Tr("Sword"), curSword)) {
+                    if (ImGui::Selectable(UIWidgets::Tr("None"))) {
                         player->currentSwordItemId = ITEM_NONE;
                         gSaveContext.equips.buttonItems[0] = ITEM_NONE;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_NONE);
                     }
-                    if (ImGui::Selectable("Kokiri Sword")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Kokiri Sword"))) {
                         player->currentSwordItemId = ITEM_SWORD_KOKIRI;
                         gSaveContext.equips.buttonItems[0] = ITEM_SWORD_KOKIRI;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_KOKIRI);
                     }
-                    if (ImGui::Selectable("Master Sword")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Master Sword"))) {
                         player->currentSwordItemId = ITEM_SWORD_MASTER;
                         gSaveContext.equips.buttonItems[0] = ITEM_SWORD_MASTER;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_MASTER);
                     }
-                    if (ImGui::Selectable("Biggoron's Sword")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Biggoron's Sword"))) {
                         if (gSaveContext.bgsFlag) {
                             if (gSaveContext.swordHealth < 8) {
                                 gSaveContext.swordHealth = 8;
@@ -1521,59 +1521,59 @@ void DrawPlayerTab() {
 
                         Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_BIGGORON);
                     }
-                    if (ImGui::Selectable("Fishing Pole")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Fishing Pole"))) {
                         player->currentSwordItemId = ITEM_FISHING_POLE;
                         gSaveContext.equips.buttonItems[0] = ITEM_FISHING_POLE;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SWORD, EQUIP_VALUE_SWORD_MASTER);
                     }
                     ImGui::EndCombo();
                 }
-                if (ImGui::BeginCombo("Shield", curShield)) {
-                    if (ImGui::Selectable("None")) {
+                if (ImGui::BeginCombo(UIWidgets::Tr("Shield"), curShield)) {
+                    if (ImGui::Selectable(UIWidgets::Tr("None"))) {
                         player->currentShield = PLAYER_SHIELD_NONE;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SHIELD, EQUIP_VALUE_SHIELD_NONE);
                     }
-                    if (ImGui::Selectable("Deku Shield")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Deku Shield"))) {
                         player->currentShield = PLAYER_SHIELD_DEKU;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SHIELD, EQUIP_VALUE_SHIELD_DEKU);
                     }
-                    if (ImGui::Selectable("Hylian Shield")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Hylian Shield"))) {
                         player->currentShield = PLAYER_SHIELD_HYLIAN;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SHIELD, EQUIP_VALUE_SHIELD_HYLIAN);
                     }
-                    if (ImGui::Selectable("Mirror Shield")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Mirror Shield"))) {
                         player->currentShield = PLAYER_SHIELD_MIRROR;
                         Inventory_ChangeEquipment(EQUIP_TYPE_SHIELD, EQUIP_VALUE_SHIELD_MIRROR);
                     }
                     ImGui::EndCombo();
                 }
 
-                if (ImGui::BeginCombo("Tunic", curTunic)) {
-                    if (ImGui::Selectable("Kokiri Tunic")) {
+                if (ImGui::BeginCombo(UIWidgets::Tr("Tunic"), curTunic)) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Kokiri Tunic"))) {
                         player->currentTunic = PLAYER_TUNIC_KOKIRI;
                         Inventory_ChangeEquipment(EQUIP_TYPE_TUNIC, EQUIP_VALUE_TUNIC_KOKIRI);
                     }
-                    if (ImGui::Selectable("Goron Tunic")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Goron Tunic"))) {
                         player->currentTunic = PLAYER_TUNIC_GORON;
                         Inventory_ChangeEquipment(EQUIP_TYPE_TUNIC, EQUIP_VALUE_TUNIC_GORON);
                     }
-                    if (ImGui::Selectable("Zora Tunic")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Zora Tunic"))) {
                         player->currentTunic = PLAYER_TUNIC_ZORA;
                         Inventory_ChangeEquipment(EQUIP_TYPE_TUNIC, EQUIP_VALUE_TUNIC_ZORA);
                     }
                     ImGui::EndCombo();
                 }
 
-                if (ImGui::BeginCombo("Boots", curBoots)) {
-                    if (ImGui::Selectable("Kokiri Boots")) {
+                if (ImGui::BeginCombo(UIWidgets::Tr("Boots"), curBoots)) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Kokiri Boots"))) {
                         player->currentBoots = PLAYER_BOOTS_KOKIRI;
                         Inventory_ChangeEquipment(EQUIP_TYPE_BOOTS, EQUIP_VALUE_BOOTS_KOKIRI);
                     }
-                    if (ImGui::Selectable("Iron Boots")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Iron Boots"))) {
                         player->currentBoots = PLAYER_BOOTS_IRON;
                         Inventory_ChangeEquipment(EQUIP_TYPE_BOOTS, EQUIP_VALUE_BOOTS_IRON);
                     }
-                    if (ImGui::Selectable("Hover Boots")) {
+                    if (ImGui::Selectable(UIWidgets::Tr("Hover Boots"))) {
                         player->currentBoots = PLAYER_BOOTS_HOVER;
                         Inventory_ChangeEquipment(EQUIP_TYPE_BOOTS, EQUIP_VALUE_BOOTS_HOVER);
                     }
@@ -1590,7 +1590,7 @@ void DrawPlayerTab() {
             [&]() {
                 ImGui::PushItemWidth(ImGui::GetFontSize() * 6);
                 PushStyleInput(THEME_COLOR);
-                ImGui::Text("Current Items");
+                ImGui::Text("%s", UIWidgets::Tr("Current Items"));
                 ImGui::InputScalar("B Button", ImGuiDataType_U8, &gSaveContext.equips.buttonItems[0], &one, NULL);
                 ImGui::InputScalar("C Left", ImGuiDataType_U8, &gSaveContext.equips.buttonItems[1], &one, NULL);
                 ImGui::InputScalar("C Down", ImGuiDataType_U8, &gSaveContext.equips.buttonItems[2], &one, NULL);
@@ -1606,7 +1606,7 @@ void DrawPlayerTab() {
                 [&]() {
                     ImGui::PushItemWidth(ImGui::GetFontSize() * 6);
                     PushStyleInput(THEME_COLOR);
-                    ImGui::Text("Current D-pad Items");
+                    ImGui::Text("%s", UIWidgets::Tr("Current D-pad Items"));
                     // Two spaces at the end for aligning, not elegant but it's working
                     ImGui::InputScalar("D-pad Up  ", ImGuiDataType_U8, &gSaveContext.equips.buttonItems[4], &one, NULL);
                     ImGui::InputScalar("D-pad Down", ImGuiDataType_U8, &gSaveContext.equips.buttonItems[5], &one, NULL);
@@ -1619,7 +1619,7 @@ void DrawPlayerTab() {
                 "Current D-pad Items");
         }
 
-        ImGui::Text("Player State");
+        ImGui::Text("%s", UIWidgets::Tr("Player State"));
         uint8_t bit[32] = {};
         uint32_t flags[3] = { player->stateFlags1, player->stateFlags2, player->stateFlags3 };
         std::vector<std::vector<std::string>> flag_strs = { state1, state2, state3 };
@@ -1642,13 +1642,13 @@ void DrawPlayerTab() {
         }
         DrawGroupWithBorder(
             [&]() {
-                ImGui::Text("Sword");
+                ImGui::Text("%s", UIWidgets::Tr("Sword"));
                 ImGui::Text("  %d", player->meleeWeaponState);
             },
             "Sword");
 
     } else {
-        ImGui::Text("Global Context needed for player info!");
+        ImGui::Text("%s", UIWidgets::Tr("Global Context needed for player info!"));
     }
 }
 
@@ -1669,37 +1669,37 @@ void SaveEditorWindow::DrawElement() {
 
     if (ImGui::BeginTabBar("SaveContextTabBar", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton)) {
         ResetBaseOptions();
-        if (ImGui::BeginTabItem("Info")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Info"))) {
             DrawInfoTab();
             ImGui::EndTabItem();
         }
 
         ResetBaseOptions();
-        if (ImGui::BeginTabItem("Inventory")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Inventory"))) {
             DrawInventoryTab();
             ImGui::EndTabItem();
         }
 
         ResetBaseOptions();
-        if (ImGui::BeginTabItem("Flags")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Flags"))) {
             DrawFlagsTab();
             ImGui::EndTabItem();
         }
 
         ResetBaseOptions();
-        if (ImGui::BeginTabItem("Equipment")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Equipment"))) {
             DrawEquipmentTab();
             ImGui::EndTabItem();
         }
 
         ResetBaseOptions();
-        if (ImGui::BeginTabItem("Quest Status")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Quest Status"))) {
             DrawQuestStatusTab();
             ImGui::EndTabItem();
         }
 
         ResetBaseOptions();
-        if (ImGui::BeginTabItem("Player")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Player"))) {
             DrawPlayerTab();
             ImGui::EndTabItem();
         }

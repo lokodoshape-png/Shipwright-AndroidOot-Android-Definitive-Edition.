@@ -1,4 +1,5 @@
 #include "randomizer_entrance_tracker.h"
+#include "soh/SohGui/UIWidgets.hpp"
 #include "soh/OTRGlobals.h"
 #include "soh/cvar_prefixes.h"
 #include "soh/SohGui/SohGui.hpp"
@@ -663,19 +664,19 @@ void InitEntranceTrackingData() {
 
 void EntranceTrackerSettingsWindow::DrawElement() {
 
-    ImGui::TextWrapped("The entrance tracker will only track shuffled entrances");
+    ImGui::TextWrapped("%s", UIWidgets::Tr("The entrance tracker will only track shuffled entrances"));
     UIWidgets::Spacer(0);
 
     ImGui::TableNextColumn();
 
     if (ImGui::BeginTable("entranceTrackerSubSettings", 2,
                           ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp)) {
-        ImGui::TableSetupColumn("column 1", ImGuiTableColumnFlags_WidthStretch, 150.0f);
-        ImGui::TableSetupColumn("column 2", ImGuiTableColumnFlags_WidthStretch, 150.0f);
+        ImGui::TableSetupColumn(UIWidgets::Tr("column 1"), ImGuiTableColumnFlags_WidthStretch, 150.0f);
+        ImGui::TableSetupColumn(UIWidgets::Tr("column 2"), ImGuiTableColumnFlags_WidthStretch, 150.0f);
 
         ImGui::TableNextColumn();
 
-        ImGui::Text("Sort By");
+        ImGui::Text("%s", UIWidgets::Tr("Sort By"));
         UIWidgets::CVarRadioButton("To", CVAR_TRACKER_ENTRANCE("SortBy"), 0,
                                    UIWidgets::RadioButtonsOptions()
                                        .Color(THEME_COLOR)
@@ -684,7 +685,7 @@ void EntranceTrackerSettingsWindow::DrawElement() {
             "From", CVAR_TRACKER_ENTRANCE("SortBy"), 1,
             UIWidgets::RadioButtonsOptions().Color(THEME_COLOR).Tooltip("Sort entrances by the overrided destination"));
 
-        ImGui::Text("List Items");
+        ImGui::Text("%s", UIWidgets::Tr("List Items"));
         UIWidgets::CVarCheckbox(
             "Auto scroll", CVAR_TRACKER_ENTRANCE("AutoScroll"),
             UIWidgets::CheckboxOptions()
@@ -717,7 +718,7 @@ void EntranceTrackerSettingsWindow::DrawElement() {
 
         ImGui::TableNextColumn();
 
-        ImGui::Text("Group By");
+        ImGui::Text("%s", UIWidgets::Tr("Group By"));
         UIWidgets::CVarRadioButton(
             "Area", CVAR_TRACKER_ENTRANCE("GroupBy"), 0,
             UIWidgets::RadioButtonsOptions().Color(THEME_COLOR).Tooltip("Group entrances by their area"));
@@ -725,7 +726,7 @@ void EntranceTrackerSettingsWindow::DrawElement() {
             "Type", CVAR_TRACKER_ENTRANCE("GroupBy"), 1,
             UIWidgets::RadioButtonsOptions().Color(THEME_COLOR).Tooltip("Group entrances by their entrance type"));
 
-        ImGui::Text("Spoiler Reveal");
+        ImGui::Text("%s", UIWidgets::Tr("Spoiler Reveal"));
         ImGui::BeginDisabled(CVarGetInteger(CVAR_SETTING("DisableChanges"), 0));
         UIWidgets::CVarCheckbox(
             "Show Source", CVAR_TRACKER_ENTRANCE("ShowFrom"),
@@ -739,10 +740,10 @@ void EntranceTrackerSettingsWindow::DrawElement() {
     }
 
     ImGui::SetNextItemOpen(false, ImGuiCond_Once);
-    if (ImGui::TreeNode("Legend")) {
-        ImGui::TextColored(ImColor(COLOR_ORANGE), "Last Entrance");
-        ImGui::TextColored(ImColor(COLOR_GREEN), "Available Entrances");
-        ImGui::TextColored(ImColor(COLOR_GRAY), "Undiscovered Entrances");
+    if (ImGui::TreeNode(UIWidgets::Tr("Legend"))) {
+        ImGui::TextColored(ImColor(COLOR_ORANGE), "%s", UIWidgets::Tr("Last Entrance"));
+        ImGui::TextColored(ImColor(COLOR_GREEN), "%s", UIWidgets::Tr("Available Entrances"));
+        ImGui::TextColored(ImColor(COLOR_GRAY), "%s", UIWidgets::Tr("Undiscovered Entrances"));
         ImGui::TreePop();
     }
 }
@@ -958,7 +959,7 @@ void EntranceTrackerWindow::DrawElement() {
                 if (!locationSearch.IsActive() && undiscovered > 0) {
                     UIWidgets::Spacer(0);
                     ImGui::PushStyleColor(ImGuiCol_Text, COLOR_GRAY);
-                    ImGui::TextWrapped("%d Undiscovered", undiscovered);
+                    ImGui::TextWrapped(UIWidgets::Tr("%d Undiscovered"), undiscovered);
                     ImGui::PopStyleColor();
                 }
 

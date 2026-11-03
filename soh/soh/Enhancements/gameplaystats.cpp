@@ -663,19 +663,19 @@ void GameplayStatsWindow::DrawElement() {
     UIWidgets::PushStyleTabs(THEME_COLOR);
 
     if (ImGui::BeginTabBar("Stats", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton)) {
-        if (ImGui::BeginTabItem("Timestamps")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Timestamps"))) {
             DrawGameplayStatsTimestampsTab();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Counts")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Counts"))) {
             DrawGameplayStatsCountsTab();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Breakdown")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Breakdown"))) {
             DrawGameplayStatsBreakdownTab();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Options")) {
+        if (ImGui::BeginTabItem(UIWidgets::Tr("Options"))) {
             DrawGameplayStatsOptionsTab();
             ImGui::EndTabItem();
         }
@@ -685,7 +685,7 @@ void GameplayStatsWindow::DrawElement() {
     UIWidgets::PopStyleTabs();
     ImGui::PopFont();
 
-    ImGui::Text("Note: Gameplay stats are saved to the current file and will be\nlost if you quit without saving.");
+    ImGui::Text("%s", UIWidgets::Tr("Note: Gameplay stats are saved to the current file and will be\nlost if you quit without saving."));
 }
 void InitStats(bool isDebug) {
     gSaveContext.ship.stats.heartPieces = isDebug ? 8 : 0;

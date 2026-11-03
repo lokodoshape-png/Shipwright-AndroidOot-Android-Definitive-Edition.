@@ -21,6 +21,15 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Abas e barra lateral sem cortes no celular.** As abas de cima usam nomes curtos (Ajustes, Melhorias,
   Randomizador, Dev) e cabem sem a barra de rolagem que cobria o texto. A barra lateral fica larga o bastante para o
   nome mais longo da aba aberta ("Editor de personalização" aparecia cortado dos dois lados).
+- **Menu sob medida para a tela do celular.** O número de colunas agora depende de quanto texto cabe, e não da
+  resolução: num celular as opções ficam em uma ou duas colunas largas em vez de três estreitas. Nomes longos de
+  caixas de seleção quebram em mais de uma linha, o nome de um controle deslizante sobe para cima dele quando não
+  sobra espaço, e as listas de escolha nunca passam da borda. As tabelas de ajustes do randomizador viram seções
+  empilhadas quando a tela é estreita.
+- **Janelas internas em português.** Editor de cosméticos (inclusive os nomes de cada cor), editor de áudio,
+  controles, visualizador de comandos, estatísticas, parciais de tempo, rastreadores, randomizador (nomes das opções,
+  valores e grupos), plandomizer, editor de resolução e ferramentas de desenvolvedor. As descrições longas das
+  opções do randomizador e os nomes dos locais nos rastreadores continuam em inglês por enquanto.
 - **Página de Mods** (Configurações > Modificações): lista os mods da pasta, liga e desliga cada um e instala novos
   pelo botão "Adicionar mod...", que abre o seletor de arquivos do Android. Aceita `.otr`, `.o2r` e `.zip`; os
   `.otr`/`.o2r` de dentro de um `.zip` são extraídos. Um mod desligado ganha o final `.desativado` e não é carregado.
