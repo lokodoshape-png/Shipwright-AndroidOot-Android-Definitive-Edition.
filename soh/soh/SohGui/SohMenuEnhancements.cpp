@@ -269,6 +269,27 @@ void SohMenu::AddMenuEnhancements() {
     path.column = SECTION_COLUMN_1;
 
     AddWidget(path, "Cutscenes", WIDGET_SEPARATOR_TEXT);
+    // OOT D.E.: hold B to fast-forward cutscenes (soh/Enhancements/HoldBFastForward.cpp). Labels are already pt-BR.
+    AddWidget(path, "Segurar B para acelerar cenas", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_ENHANCEMENT("HoldBToFastForward"))
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "Segure B durante uma cena para ela passar mais rápido. Nada é pulado: a cena roda inteira, só que "
+            "acelerada. Vale para as cenas do jogo depois da seleção de arquivo, não para a abertura da tela de "
+            "título."));
+    AddWidget(path, "Aviso \"Segure B\" no canto da tela", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_ENHANCEMENT("HoldBToFastForwardHint"))
+        .PreFunc([](WidgetInfo& info) {
+            info.options->disabled = !CVarGetInteger(CVAR_ENHANCEMENT("HoldBToFastForward"), 1);
+        })
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "Mostra \"Segure B para acelerar\" no canto inferior direito quando uma cena começa."));
+    AddWidget(path, "Velocidade ao acelerar", WIDGET_CVAR_SLIDER_INT)
+        .CVar(CVAR_ENHANCEMENT("HoldBToFastForwardSpeed"))
+        .PreFunc([](WidgetInfo& info) {
+            info.options->disabled = !CVarGetInteger(CVAR_ENHANCEMENT("HoldBToFastForward"), 1);
+        })
+        .Options(IntSliderOptions().Min(2).Max(10).DefaultValue(5).Format("%dx").Tooltip(
+            "Quantas vezes mais rápido a cena roda enquanto B está segurado."));
     AddWidget(path, "All##Skips", WIDGET_BUTTON)
         .Options(ButtonOptions().Size(Sizes::Inline))
         .Callback([](WidgetInfo& info) {

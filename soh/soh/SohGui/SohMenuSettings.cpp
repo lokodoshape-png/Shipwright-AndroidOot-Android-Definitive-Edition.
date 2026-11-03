@@ -3,6 +3,7 @@
 #include <soh/GameVersions.h>
 #include "soh/ResourceManagerHelpers.h"
 #include "UIWidgets.hpp"
+#include "ModsMenu.h"
 #include <spdlog/fmt/fmt.h>
 
 extern "C" {
@@ -446,6 +447,21 @@ void SohMenu::AddMenuSettings() {
             });
         })
         .Options(ButtonOptions().Tooltip("Displays a test notification."));
+
+    // Mods: list, turn on/off and install mod archives from the menu.
+    path.sidebarName = "Mods";
+    path.column = SECTION_COLUMN_1;
+    AddSidebarEntry("Settings", path.sidebarName, 1);
+    AddWidget(path, "Mods", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "ModsList", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        ModsMenu::Draw();
+    });
+    AddWidget(path, "Use Alternate Assets", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SETTING("AltAssets"))
+        .RaceDisable(false)
+        .Options(CheckboxOptions().Tooltip(
+            "Toggle between standard assets and alternate assets. Usually mods will indicate if "
+            "this setting has to be used or not."));
 }
 
 } // namespace SohGui
