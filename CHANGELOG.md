@@ -20,6 +20,8 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Randomizador traduzido.** As descrições longas das opções, os nomes e explicações dos truques de lógica e os
   nomes dos locais no rastreador de locais (e na lista de locais excluídos) agora aparecem em português. A busca do
   rastreador aceita tanto o nome em português quanto o original.
+- **Ícone novo.** O app agora usa a arte OOT D.E. — Definitive Edition como ícone, tanto na instalação quanto na tela
+  inicial.
 
 ## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
 
