@@ -17,6 +17,9 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Aviso "Segure B para acelerar" em todas as cenas.** Antes ele só aparecia nas cenas roteirizadas. A maioria das
   cenas do jogo é conduzida pelos próprios personagens e objetos com o Link parado (apresentação dos chefes, abrir
   portas, pegar itens, Navi...), e agora essas também mostram o aviso e podem ser aceleradas segurando B.
+- **Randomizador traduzido.** As descrições longas das opções, os nomes e explicações dos truques de lógica e os
+  nomes dos locais no rastreador de locais (e na lista de locais excluídos) agora aparecem em português. A busca do
+  rastreador aceita tanto o nome em português quanto o original.
 
 ## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
 

@@ -3833,7 +3833,7 @@ void RandomizerSettingsWindow::DrawElement() {
 
                     if (hasItems) {
                         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-                        if (ImGui::TreeNode(RandomizerCheckObjects::GetRCAreaName(rcArea).c_str())) {
+                        if (ImGui::TreeNode(UIWidgets::TranslateText(RandomizerCheckObjects::GetRCAreaName(rcArea)).c_str())) {
                             for (auto& location : locations) {
                                 if (ctx->GetItemLocation(location)->IsVisible() && !excludedLocations.count(location) &&
                                     locationSearch.PassFilter(
@@ -3856,7 +3856,7 @@ void RandomizerSettingsWindow::DrawElement() {
                                     }
                                     UIWidgets::PopStyleButton();
                                     ImGui::SameLine();
-                                    ImGui::Text("%s", Rando::StaticData::GetLocation(location)->GetShortName().c_str());
+                                    ImGui::Text("%s", UIWidgets::TranslateText(Rando::StaticData::GetLocation(location)->GetShortName()).c_str());
                                 }
                             }
                             ImGui::TreePop();
@@ -3881,7 +3881,7 @@ void RandomizerSettingsWindow::DrawElement() {
 
                     if (hasItems) {
                         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-                        if (ImGui::TreeNode(RandomizerCheckObjects::GetRCAreaName(rcArea).c_str())) {
+                        if (ImGui::TreeNode(UIWidgets::TranslateText(RandomizerCheckObjects::GetRCAreaName(rcArea)).c_str())) {
                             for (auto& location : locations) {
                                 auto elfound = excludedLocations.find(location);
                                 if (ctx->GetItemLocation(location)->IsVisible() && elfound != excludedLocations.end()) {
@@ -3907,7 +3907,7 @@ void RandomizerSettingsWindow::DrawElement() {
                                     }
                                     UIWidgets::PopStyleButton();
                                     ImGui::SameLine();
-                                    ImGui::Text("%s", Rando::StaticData::GetLocation(location)->GetShortName().c_str());
+                                    ImGui::Text("%s", UIWidgets::TranslateText(Rando::StaticData::GetLocation(location)->GetShortName()).c_str());
                                 }
                             }
                             ImGui::TreePop();
@@ -4103,7 +4103,7 @@ void RandomizerSettingsWindow::DrawElement() {
                         ImGui::PushStyleColor(ImGuiCol_Text, { 1.0f, 1.0f, 1.0f, 1.0f });
                     }
                     ImGui::PushStyleColor(ImGuiCol_Header, Rando::Tricks::GetTagColor(rtTag));
-                    ImGui::Selectable(Rando::Tricks::GetTagName(rtTag).c_str(), &showTag[rtTag]);
+                    ImGui::Selectable(UIWidgets::TranslateText(Rando::Tricks::GetTagName(rtTag)).c_str(), &showTag[rtTag]);
                     ImGui::PopStyleColor(2);
                 }
                 ImGui::EndTable();
@@ -4174,7 +4174,7 @@ void RandomizerSettingsWindow::DrawElement() {
                                 ImGui::GetID((Rando::Tricks::GetAreaName(area) + "##disabled").c_str()),
                                 areaTreeDisabled[area]);
                             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-                            if (ImGui::TreeNode((Rando::Tricks::GetAreaName(area) + "##disabled").c_str())) {
+                            if (ImGui::TreeNode((UIWidgets::TranslateText(Rando::Tricks::GetAreaName(area)) + "##disabled").c_str())) {
                                 for (auto rt : trickIds) {
                                     auto option = mSettings->GetTrickOption(rt);
                                     if (!option.IsHidden() && trickSearch.PassFilter(option.GetName().c_str()) &&
@@ -4203,7 +4203,7 @@ void RandomizerSettingsWindow::DrawElement() {
                                         UIWidgets::PopStyleButton();
                                         Rando::Tricks::DrawTagChips(option.GetTags(), option.GetName());
                                         ImGui::SameLine();
-                                        ImGui::Text("%s", option.GetName().c_str());
+                                        ImGui::Text("%s", UIWidgets::TranslateText(option.GetName()).c_str());
                                         UIWidgets::Tooltip(option.GetDescription().c_str());
                                     }
                                 }
@@ -4274,7 +4274,7 @@ void RandomizerSettingsWindow::DrawElement() {
                                 ImGui::GetID((Rando::Tricks::GetAreaName(area) + "##enabled").c_str()),
                                 areaTreeEnabled[area]);
                             ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-                            if (ImGui::TreeNode((Rando::Tricks::GetAreaName(area) + "##enabled").c_str())) {
+                            if (ImGui::TreeNode((UIWidgets::TranslateText(Rando::Tricks::GetAreaName(area)) + "##enabled").c_str())) {
                                 for (auto rt : trickIds) {
                                     auto option = mSettings->GetTrickOption(rt);
                                     if (!option.IsHidden() && trickSearch.PassFilter(option.GetName().c_str()) &&
@@ -4307,7 +4307,7 @@ void RandomizerSettingsWindow::DrawElement() {
                                         UIWidgets::PopStyleButton();
                                         Rando::Tricks::DrawTagChips(option.GetTags(), option.GetName());
                                         ImGui::SameLine();
-                                        ImGui::Text("%s", option.GetName().c_str());
+                                        ImGui::Text("%s", UIWidgets::TranslateText(option.GetName()).c_str());
                                         UIWidgets::Tooltip(option.GetDescription().c_str());
                                     }
                                 }
