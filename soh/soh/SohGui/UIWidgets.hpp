@@ -33,6 +33,7 @@ struct TextFilters {
     }
 };
 
+std::string TranslateText(const std::string& text);
 std::string WrappedText(const char* text, unsigned int charactersPerLine = 80);
 std::string WrappedText(const std::string& text, unsigned int charactersPerLine = 80);
 void PaddedSeparator(bool padTop = true, bool padBottom = true, float extraVerticalTopPadding = 0.0f,
