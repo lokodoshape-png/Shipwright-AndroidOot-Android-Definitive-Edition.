@@ -245,7 +245,7 @@ extern "C" void RandoKaleido_DrawMiscCollectibles(PlayState* play) {
 
 extern "C" void RandoKaleido_UpdateMiscCollectibles(int16_t inDungeonScene) {
     PauseContext* pauseCtx = &gPlayState->pauseCtx;
-    if (pauseCtx->randoQuestMode && pauseCtx->pageIndex == PAUSE_QUEST) {
+    if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_RANDO && pauseCtx->pageIndex == PAUSE_QUEST) {
         OTRGlobals::Instance->gRandoContext->GetKaleido()->Update(gPlayState);
     }
 }

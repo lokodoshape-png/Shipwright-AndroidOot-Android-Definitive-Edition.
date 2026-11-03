@@ -1298,6 +1298,11 @@ void KaleidoScope_HandlePageToggles(PauseContext* pauseCtx, Input* input) {
         PageLeft_BTN = BTN_L;
     }
 
+    // OOT D.E.: on the quest journal, L/R/Z change its list instead of the page.
+    if ((pauseCtx->pageIndex == PAUSE_QUEST) && (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG)) {
+        return;
+    }
+
     if (CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0) && (pauseCtx->debugState == 0) &&
         CHECK_BTN_ALL(input->press.button, Debug_BTN)) {
         pauseCtx->debugState = 1;
@@ -1629,10 +1634,14 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
             Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
             Matrix_RotateX(pauseCtx->unk_200 / 100.0f, MTXMODE_APPLY);
             Matrix_RotateY(3.14f, MTXMODE_APPLY);
+            KaleidoScope_ApplyQuestPageFlip(play);
 
             gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-            if (pauseCtx->randoQuestMode) {
+            if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
+                POLY_OPA_DISP = KaleidoScope_DrawQuestLogPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
+                                                                      sSaveTexs[gSaveContext.language]);
+            } else if (pauseCtx->randoQuestMode) {
                 POLY_OPA_DISP =
                     KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx, sSaveTexs[gSaveContext.language]);
                 RandoKaleido_DrawMiscCollectibles(play);
@@ -1640,6 +1649,7 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                 POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
                                                               sQuestStatusTexs[gSaveContext.language]);
                 KaleidoScope_DrawQuestStatus(play, gfxCtx);
+                KaleidoScope_DrawQuestLogHint(play, gfxCtx);
             }
         }
 
@@ -1725,10 +1735,14 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                 Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
                 Matrix_RotateX(pauseCtx->unk_200 / 100.0f, MTXMODE_APPLY);
                 Matrix_RotateY(3.14f, MTXMODE_APPLY);
+                KaleidoScope_ApplyQuestPageFlip(play);
 
                 gSPMatrix(POLY_OPA_DISP++, MATRIX_NEWMTX(gfxCtx), G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
 
-                if (pauseCtx->randoQuestMode) {
+                if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
+                    POLY_OPA_DISP = KaleidoScope_DrawQuestLogPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
+                                                                          sSaveTexs[gSaveContext.language]);
+                } else if (pauseCtx->randoQuestMode) {
                     POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
                                                                   sSaveTexs[gSaveContext.language]);
                     RandoKaleido_DrawMiscCollectibles(play);
@@ -1736,9 +1750,10 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                     POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx,
                                                                   sQuestStatusTexs[gSaveContext.language]);
                     KaleidoScope_DrawQuestStatus(play, gfxCtx);
+                    KaleidoScope_DrawQuestLogHint(play, gfxCtx);
                 }
 
-                if (pauseCtx->cursorSpecialPos == 0) {
+                if ((pauseCtx->cursorSpecialPos == 0) && (pauseCtx->randoQuestMode != PAUSE_QUEST_MODE_LOG)) {
                     KaleidoScope_DrawCursor(play, PAUSE_QUEST);
                 }
                 break;
@@ -3527,6 +3542,9 @@ void KaleidoScope_Draw(PlayState* play) {
         if (!((pauseCtx->state >= 8) && (pauseCtx->state <= 0x11))) {
             KaleidoScope_DrawInfoPanel(play);
         }
+
+        // OOT D.E.: the quest journal covers the pause menu while it is open.
+        KaleidoScope_DrawQuestJournal(play);
     }
 
     if ((pauseCtx->state >= 0xB) && (pauseCtx->state <= 0x11)) {
@@ -4262,6 +4280,10 @@ void KaleidoScope_Update(PlayState* play) {
                         pauseCtx->state = 0x12;
                         WREG(2) = -6240;
                         func_800F64E0(0);
+                    } else if (CHECK_BTN_ALL(input->press.button, BTN_B) && (pauseCtx->pageIndex == PAUSE_QUEST) &&
+                               (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG)) {
+                        // OOT D.E.: B closes the quest log page instead of asking to save.
+                        KaleidoScope_CloseQuestLog(play);
                     } else if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
                         pauseCtx->mode = 0;
                         pauseCtx->promptChoice = 0;
@@ -4279,7 +4301,7 @@ void KaleidoScope_Update(PlayState* play) {
                     } else if (CHECK_BTN_ALL(input->press.button, BTN_CUP) && pauseCtx->pageIndex == PAUSE_QUEST) {
                         Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                                &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-                        pauseCtx->randoQuestMode ^= 1;
+                        KaleidoScope_CycleQuestMode(play);
                     }
                     break;
 

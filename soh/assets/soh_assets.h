@@ -383,6 +383,46 @@ static const ALIGN_ASSET(2) char gSunIconTex[] = dgSunIcon;
 #define dgNaviIcon "__OTR__textures/parameter_static/gNavi"
 static const ALIGN_ASSET(2) char gNaviIconTex[] = dgNaviIcon;
 
+// OOT D.E.: textures of the QuestMenu (Diário de Quests) of the pause menu, in assets/custom/overlays/questmenu.
+#define dgQMStoneTex "__OTR__overlays/questmenu/gQMStone"
+static const ALIGN_ASSET(2) char gQMStoneTex[] = dgQMStoneTex;
+
+#define dgQMParchmentTex "__OTR__overlays/questmenu/gQMParchment"
+static const ALIGN_ASSET(2) char gQMParchmentTex[] = dgQMParchmentTex;
+
+#define dgQMCheckTex "__OTR__overlays/questmenu/gQMCheck"
+static const ALIGN_ASSET(2) char gQMCheckTex[] = dgQMCheckTex;
+
+#define dgQMWingLTex "__OTR__overlays/questmenu/gQMWingL"
+static const ALIGN_ASSET(2) char gQMWingLTex[] = dgQMWingLTex;
+
+#define dgQMWingRTex "__OTR__overlays/questmenu/gQMWingR"
+static const ALIGN_ASSET(2) char gQMWingRTex[] = dgQMWingRTex;
+
+#define dgQMIconSideTex "__OTR__overlays/questmenu/gQMIconSide"
+static const ALIGN_ASSET(2) char gQMIconSideTex[] = dgQMIconSideTex;
+
+#define dgQMIconPeopleTex "__OTR__overlays/questmenu/gQMIconPeople"
+static const ALIGN_ASSET(2) char gQMIconPeopleTex[] = dgQMIconPeopleTex;
+
+#define dgQMIconPlacesTex "__OTR__overlays/questmenu/gQMIconPlaces"
+static const ALIGN_ASSET(2) char gQMIconPlacesTex[] = dgQMIconPlacesTex;
+
+#define dgQMIconItemsTex "__OTR__overlays/questmenu/gQMIconItems"
+static const ALIGN_ASSET(2) char gQMIconItemsTex[] = dgQMIconItemsTex;
+
+#define dgQMIconRecordsTex "__OTR__overlays/questmenu/gQMIconRecords"
+static const ALIGN_ASSET(2) char gQMIconRecordsTex[] = dgQMIconRecordsTex;
+
+#define dgQMIconSongTex "__OTR__overlays/questmenu/gQMIconSong"
+static const ALIGN_ASSET(2) char gQMIconSongTex[] = dgQMIconSongTex;
+
+#define dgQMLockTex "__OTR__overlays/questmenu/gQMLock"
+static const ALIGN_ASSET(2) char gQMLockTex[] = dgQMLockTex;
+
+#define dgQMProgressTex "__OTR__overlays/questmenu/gQMProgress"
+static const ALIGN_ASSET(2) char gQMProgressTex[] = dgQMProgressTex;
+
 #define dgFileSelMQButtonTex "__OTR__textures/title_static/gFileSelMQButtonTex"
 static const ALIGN_ASSET(2) char gFileSelMQButtonTex[] = dgFileSelMQButtonTex;
 
