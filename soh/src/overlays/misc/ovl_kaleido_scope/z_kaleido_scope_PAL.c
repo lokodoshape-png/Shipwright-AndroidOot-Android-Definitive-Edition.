@@ -1298,6 +1298,11 @@ void KaleidoScope_HandlePageToggles(PauseContext* pauseCtx, Input* input) {
         PageLeft_BTN = BTN_L;
     }
 
+    // OOT D.E.: on the quest journal, L/R/Z change its list instead of the page.
+    if ((pauseCtx->pageIndex == PAUSE_QUEST) && (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG)) {
+        return;
+    }
+
     if (CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0) && (pauseCtx->debugState == 0) &&
         CHECK_BTN_ALL(input->press.button, Debug_BTN)) {
         pauseCtx->debugState = 1;
@@ -1636,7 +1641,6 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
             if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
                 POLY_OPA_DISP = KaleidoScope_DrawQuestLogPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
                                                                       sSaveTexs[gSaveContext.language]);
-                KaleidoScope_DrawQuestLog(play, gfxCtx, false);
             } else if (pauseCtx->randoQuestMode) {
                 POLY_OPA_DISP =
                     KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx, sSaveTexs[gSaveContext.language]);
@@ -1738,7 +1742,6 @@ void KaleidoScope_DrawPages(PlayState* play, GraphicsContext* gfxCtx) {
                 if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
                     POLY_OPA_DISP = KaleidoScope_DrawQuestLogPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
                                                                           sSaveTexs[gSaveContext.language]);
-                    KaleidoScope_DrawQuestLog(play, gfxCtx, true);
                 } else if (pauseCtx->randoQuestMode) {
                     POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->saveVtx,
                                                                   sSaveTexs[gSaveContext.language]);
@@ -3539,6 +3542,9 @@ void KaleidoScope_Draw(PlayState* play) {
         if (!((pauseCtx->state >= 8) && (pauseCtx->state <= 0x11))) {
             KaleidoScope_DrawInfoPanel(play);
         }
+
+        // OOT D.E.: the quest journal covers the pause menu while it is open.
+        KaleidoScope_DrawQuestJournal(play);
     }
 
     if ((pauseCtx->state >= 0xB) && (pauseCtx->state <= 0x11)) {

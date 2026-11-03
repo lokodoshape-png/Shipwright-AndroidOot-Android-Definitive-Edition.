@@ -12,30 +12,35 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
-## [0.7] — Menu de Missões no pause
+## [0.7] — Diário de Quests no pause
 
-- **Página "Missões" no menu de pausa.** Na tela Status de Missão, aperte **C-Cima** e a página vira como uma
-  carta, mostrando as Missões do outro lado. **B** (ou C-Cima) vira de volta. Ela usa o fundo de página, a fonte, os
-  ícones e a caixa de texto do próprio jogo e gira junto com o menu como as outras páginas, sem janelas flutuantes.
-  **Esquerda / direita** (direcional, analógico ou C-Esquerda / C-Direita) trocam a lista, **cima / baixo** escolhem
-  a linha, com a Navi apontando para ela, e a caixa de texto de baixo explica a linha escolhida. As listas, cada uma
-  com seu ícone no topo da página, são:
-  - **Pedaços de Coração:** os 36, com onde fica cada um, como pegar e o que precisa;
+- **Diário de Quests no menu de pausa.** Na tela Status de Missão, aperte **C-Cima**: a página vira e o Diário abre
+  na tela toda, por cima do menu, com moldura de pedra, a placa com a Triforce alada e o fundo escurecido. **B** (ou
+  C-Cima) fecha e volta para o Status. Tudo é desenhado dentro do jogo, com a fonte, os ícones e o mapa de Hyrule do
+  próprio jogo, sem janelas flutuantes.
+  - **À esquerda**, os botões de pedra das listas (o escolhido brilha em dourado). **L / R** trocam a lista (também
+    Z, esquerda / direita e C-Esquerda / C-Direita).
+  - **No meio**, a lista com caixinhas de marcar, separada em grupos com título. **Cima / baixo** escolhem a linha
+    (segurando, ela anda sozinha).
+  - **À direita**, o pergaminho da linha escolhida: o que fazer, o progresso, o próximo objetivo (ou do que a linha
+    precisa: idade, itens e hora, coloridos quando o Link já tem) e o pedaço do mapa de Hyrule onde fica, com a
+    cabeça do Link piscando no lugar. Nas masmorras aparece a Pedra Espiritual ou o Medalhão.
+  - **Embaixo**, uma placa com uma dica da lista.
+- As listas:
+  - **Missões:** a história principal (Pedras Espirituais, Carta da Zelda, Ocarina do Tempo, Espada Mestra, Sábios,
+    Flechas de Luz e Ganondorf), com os seis medalhões no pergaminho, e um resumo das outras listas;
+  - **Corações:** os 36 Pedaços de Coração por região, com onde fica cada um, como pegar e o que precisa;
   - **Garrafas:** as 4 (cucos do Talon, cucos da Anju, Carta de Ruto e Coletor de Poes);
   - **Máscaras:** a história da Loja da Máscara Feliz, do Ovo Estranho até a Máscara da Verdade, com quem compra cada
     máscara, e os prêmios do Teatro Deku;
-  - **Troca de Adulto:** do Ovo de Bolso até a Espada do Biggoron, com quem recebe cada item;
-  - **Skulltulas de Ouro:** quantas faltam em cada região e masmorra (com a Pedra Espiritual ou o Medalhão de cada
-    masmorra) e os prêmios da Casa das Skulltulas.
-  O que já foi feito aparece em dourado, com o ícone colorido e a cabeça do Link na caixa de texto. À direita de cada
-  linha ficam os ícones do que ela precisa (Feijão Mágico, Gancho, Bombas, Botas de Ferro, ocarina...), da idade
-  (Espada Kokiri = criança, Espada Mestra = adulto) e da hora (Sol = de dia, Lua = à noite): coloridos quando o Link
-  já tem o item ou está na idade e na hora certas, cinza quando não. Tudo é lido do save na hora.
+  - **Trocas:** do Ovo de Bolso até a Espada do Biggoron, com quem recebe cada item;
+  - **Skulltulas:** quantas faltam em cada região e masmorra e os prêmios da Casa das Skulltulas.
+  Tudo é lido do save na hora.
 - Um aviso pequeno "C-Cima Missões" no canto de baixo da tela Status de Missão mostra o atalho.
 - Os acentos usam as mesmas letras do mod de tradução (SolidOne / Letras). Sem o mod, Ã, Õ, Í, Ó e Ú aparecem
   com outros acentos.
-- No randomizador, o C-Cima passa por Status → Missões → colecionáveis do randomizador → Status. Com o teleporte pelas
-  canções da pausa ligado, apertar A nas Missões não teleporta mais por engano.
+- No randomizador, o C-Cima passa por Status → Diário → colecionáveis do randomizador → Status. Com o teleporte pelas
+  canções da pausa ligado, apertar A no Diário não teleporta mais por engano.
 
 ## [0.6.1] — Correção do travamento no menu de pausa
 

@@ -383,6 +383,22 @@ static const ALIGN_ASSET(2) char gSunIconTex[] = dgSunIcon;
 #define dgNaviIcon "__OTR__textures/parameter_static/gNavi"
 static const ALIGN_ASSET(2) char gNaviIconTex[] = dgNaviIcon;
 
+// OOT D.E.: textures of the quest journal (Diário de Quests) in the pause menu.
+#define dgQJStoneTex "__OTR__textures/parameter_static/gQJStone"
+static const ALIGN_ASSET(2) char gQJStoneTex[] = dgQJStoneTex;
+
+#define dgQJParchmentTex "__OTR__textures/parameter_static/gQJParchment"
+static const ALIGN_ASSET(2) char gQJParchmentTex[] = dgQJParchmentTex;
+
+#define dgQJCheckTex "__OTR__textures/parameter_static/gQJCheck"
+static const ALIGN_ASSET(2) char gQJCheckTex[] = dgQJCheckTex;
+
+#define dgQJWingLTex "__OTR__textures/parameter_static/gQJWingL"
+static const ALIGN_ASSET(2) char gQJWingLTex[] = dgQJWingLTex;
+
+#define dgQJWingRTex "__OTR__textures/parameter_static/gQJWingR"
+static const ALIGN_ASSET(2) char gQJWingRTex[] = dgQJWingRTex;
+
 #define dgFileSelMQButtonTex "__OTR__textures/title_static/gFileSelMQButtonTex"
 static const ALIGN_ASSET(2) char gFileSelMQButtonTex[] = dgFileSelMQButtonTex;
 
