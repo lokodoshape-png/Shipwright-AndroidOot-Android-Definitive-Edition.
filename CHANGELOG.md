@@ -12,6 +12,19 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.6] — Randomizador em português e aviso do B em todas as cenas
+
+- **Aviso "Segure B para acelerar" em todas as cenas.** Antes ele só aparecia nas cenas roteirizadas. A maioria das
+  cenas do jogo é conduzida pelos próprios personagens e objetos com o Link parado (apresentação dos chefes, abrir
+  portas, pegar itens, Navi...), e agora essas também mostram o aviso e podem ser aceleradas segurando B.
+- **Randomizador traduzido.** As descrições longas das opções, os nomes e explicações dos truques de lógica e os
+  nomes dos locais no rastreador de locais (e na lista de locais excluídos) agora aparecem em português. A busca do
+  rastreador aceita tanto o nome em português quanto o original.
+- **Ícone novo.** O app agora usa a arte OOT D.E. — Definitive Edition como ícone, tanto na instalação quanto na tela
+  inicial.
+- **Correção: travamento ao abrir o menu de pausa depois de ligar ou desligar um mod pelo menu.** As texturas
+  trocadas eram apagadas enquanto o minimapa e o menu de pausa ainda apontavam para elas.
+
 ## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
 
 ### Menu do Ship

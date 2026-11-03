@@ -40,7 +40,10 @@ static bool InFastForwardableCutscene(PlayState* play) {
     if (gSaveContext.gameMode != GAMEMODE_NORMAL || gSaveContext.fileNum < 0 || gSaveContext.fileNum > 2) {
         return false;
     }
-    if (play->csCtx.state == CS_STATE_IDLE) {
+    // OOT D.E.: besides scripted cutscenes (csCtx), most of the game's cutscenes are run by actors that freeze
+    // Link in a cutscene mode (boss intros, getting items, doors opening, Navi, etc.). Those count too, so the
+    // hint and the fast-forward show up in them as well.
+    if (play->csCtx.state == CS_STATE_IDLE && !Player_InCsMode(play)) {
         return false;
     }
     // Never rush through a question: the extra frames would repeat the held B on the choice.
@@ -77,7 +80,7 @@ extern "C" bool HoldBFastForward_SkipTextActive(PlayState* play) {
     if (gSaveContext.gameMode != GAMEMODE_NORMAL || gSaveContext.fileNum < 0 || gSaveContext.fileNum > 2) {
         return false;
     }
-    return play->csCtx.state != CS_STATE_IDLE;
+    return play->csCtx.state != CS_STATE_IDLE || Player_InCsMode(play);
 }
 
 // Extra logic frames stop as soon as the cutscene ends or a scene change begins.

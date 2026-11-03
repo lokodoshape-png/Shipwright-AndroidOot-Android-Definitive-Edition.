@@ -98,6 +98,9 @@ static std::string NormalPath(const std::string& path) {
     return (ec ? std::filesystem::path(path) : absolute).lexically_normal().generic_string();
 }
 
+// Resources replaced by a mod change while the game runs. They are never freed (see DirtyModFiles).
+static std::vector<std::shared_ptr<Ship::IResource>> sReplacedResources;
+
 // Marks the cached resources of a mod's files as dirty, so the next use loads them from the archives as they are
 // now. Only textures and text are refreshed at once: the game draws textures by name every frame and the text tables
 // are rebuilt below, while models, animations and sounds are held by pointer and could be in use right now.
@@ -126,6 +129,9 @@ static void DirtyModFiles(const std::shared_ptr<std::unordered_map<uint64_t, std
             }
             auto initData = resource->GetInitData();
             if (isText || (initData != nullptr && initData->Type == static_cast<uint32_t>(Fast::ResourceType::Texture))) {
+                // The game keeps raw pointers to some texture data (minimap, pause map, item icons copied into
+                // segments...). Keep the old resource alive so those pointers stay valid until they are reloaded.
+                sReplacedResources.push_back(resource);
                 resource->Dirty();
             } else {
                 othersChanged = true;

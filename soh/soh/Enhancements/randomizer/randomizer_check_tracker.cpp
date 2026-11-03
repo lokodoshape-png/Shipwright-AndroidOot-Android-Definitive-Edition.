@@ -1130,7 +1130,7 @@ void CheckTrackerWindow::DrawElement() {
                     collapseLogic = false;
                 }
             }
-            stemp = RandomizerCheckObjects::GetRCAreaName(rcArea) + "##TreeNode";
+            stemp = UIWidgets::TranslateText(RandomizerCheckObjects::GetRCAreaName(rcArea)) + "##TreeNode";
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(mainColor.r / 255.0f, mainColor.g / 255.0f,
                                                         mainColor.b / 255.0f, mainColor.a / 255.0f));
             if (doingCollapseOrExpand) {
@@ -1225,6 +1225,10 @@ bool ShouldShowCheck(RandomizerCheck check) {
     std::string search = (Rando::StaticData::GetLocation(check)->GetShortName() + " " +
                           Rando::StaticData::GetLocation(check)->GetName() + " " +
                           RandomizerCheckObjects::GetRCAreaName(Rando::StaticData::GetLocation(check)->GetArea()));
+    // OOT D.E.: the pt-BR names can be searched too.
+    search += " " + UIWidgets::TranslateText(Rando::StaticData::GetLocation(check)->GetShortName()) + " " +
+              UIWidgets::TranslateText(
+                  RandomizerCheckObjects::GetRCAreaName(Rando::StaticData::GetLocation(check)->GetArea()));
     if (itemLoc->HasObtained() || itemLoc->GetCheckStatus() == RCSHOW_SCUMMED ||
         (!mystery && (itemLoc->GetCheckStatus() == RCSHOW_IDENTIFIED || itemLoc->GetCheckStatus() == RCSHOW_SEEN) &&
          itemLoc->GetPlacedRandomizerGet() != RG_ICE_TRAP)) {
@@ -1740,6 +1744,7 @@ void DrawLocation(RandomizerCheck rc) {
         txt = loc->GetShortName();
     }
 
+    txt = UIWidgets::TranslateText(txt); // OOT D.E.: location names in pt-BR
     if (lastLocationChecked == loc->GetRandomizerCheck()) {
         txt = "* " + txt;
     }
