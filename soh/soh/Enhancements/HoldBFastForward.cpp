@@ -23,6 +23,7 @@ extern PlayState* gPlayState;
 #define CVAR_NAME CVAR_ENHANCEMENT("HoldBToFastForward")
 #define CVAR_SPEED CVAR_ENHANCEMENT("HoldBToFastForwardSpeed")
 #define CVAR_HINT CVAR_ENHANCEMENT("HoldBToFastForwardHint")
+#define CVAR_DIALOGS CVAR_ENHANCEMENT("HoldBToFastForwardDialogs")
 
 // B has to be held this many frames before fast-forwarding starts, so a tap on B (to advance text) does nothing.
 #define HOLD_FRAMES 10
@@ -63,6 +64,18 @@ extern "C" s32 HoldBFastForward_GetExtraFrames(PlayState* play) {
     }
     sFastForwarding = true;
     return CVarGetInteger(CVAR_SPEED, 5) - 1;
+}
+
+// Optional: while B is held in a cutscene, text boxes pass by themselves, the same way "Skip Text" does
+// (z_message_PAL.c, SKIP_TEXT_ACTIVE). Off by default.
+extern "C" bool HoldBFastForward_SkipTextActive(PlayState* play) {
+    if (play == NULL || !CVarGetInteger(CVAR_NAME, 1) || !CVarGetInteger(CVAR_DIALOGS, 0)) {
+        return false;
+    }
+    if (gSaveContext.gameMode != GAMEMODE_NORMAL || gSaveContext.fileNum < 0 || gSaveContext.fileNum > 2) {
+        return false;
+    }
+    return play->csCtx.state != CS_STATE_IDLE;
 }
 
 // Extra logic frames stop as soon as the cutscene ends or a scene change begins.

@@ -30,6 +30,9 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
   segurar B por um instante a cena roda 5 vezes mais rápido (ajustável de 2x a 10x), sem pular nada. Vale para as
   cenas do jogo depois da seleção de arquivo, não para a abertura da tela de título, e para quando há uma pergunta
   na tela.
+- **Opcional: passar diálogos ao segurar B** (desligado por padrão). Com ele ligado, as caixas de diálogo das cenas
+  passam sozinhas enquanto B está segurado. Se "Pular texto" também estiver ligado, as duas telas mostram um aviso
+  de incompatibilidade, porque "Pular texto" já faz isso em todos os diálogos.
 - **Aviso "Segure B para acelerar"** no canto inferior direito quando a cena começa; enquanto acelera, mostra
   "Acelerando >>". Pode ser desligado na mesma tela.
 

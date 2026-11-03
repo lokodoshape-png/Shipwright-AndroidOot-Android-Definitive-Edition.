@@ -15,6 +15,12 @@
 #include "soh/SaveManager.h"
 #include "soh/ResourceManagerHelpers.h"
 
+// "Skip Text" (hold B to pass text boxes) is also on while B fast-forwards a cutscene with the
+// "pass dialogs" option of soh/Enhancements/HoldBFastForward.cpp turned on.
+bool HoldBFastForward_SkipTextActive(PlayState* play);
+#define SKIP_TEXT_ACTIVE(play) \
+    (CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0 || HoldBFastForward_SkipTextActive(play))
+
 // #region SOH [NTSC] - Allows custom messages to work on japanese
 static bool sDisplayNextMessageAsEnglish = false;
 static u8 sLastLanguage = LANGUAGE_ENG;
@@ -160,7 +166,7 @@ void Message_UpdateOcarinaGame(PlayState* play) {
 u8 Message_ShouldAdvance(PlayState* play) {
     Input* input = &play->state.input[0];
 
-    bool isB_Held = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0 ? CHECK_BTN_ALL(input->cur.button, BTN_B)
+    bool isB_Held = SKIP_TEXT_ACTIVE(play) ? CHECK_BTN_ALL(input->cur.button, BTN_B)
                                                                          : CHECK_BTN_ALL(input->press.button, BTN_B);
 
     if (CHECK_BTN_ALL(input->press.button, BTN_A) || isB_Held || CHECK_BTN_ALL(input->press.button, BTN_CUP)) {
@@ -173,7 +179,7 @@ u8 Message_ShouldAdvance(PlayState* play) {
 u8 Message_ShouldAdvanceSilent(PlayState* play) {
     Input* input = &play->state.input[0];
 
-    bool isB_Held = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0 ? CHECK_BTN_ALL(input->cur.button, BTN_B)
+    bool isB_Held = SKIP_TEXT_ACTIVE(play) ? CHECK_BTN_ALL(input->cur.button, BTN_B)
                                                                          : CHECK_BTN_ALL(input->press.button, BTN_B);
 
     return CHECK_BTN_ALL(input->press.button, BTN_A) || isB_Held || CHECK_BTN_ALL(input->press.button, BTN_CUP);
@@ -1138,7 +1144,7 @@ void Message_DrawTextJPN(PlayState* play, Gfx** gfxP) {
                 msgCtx->textDelay = msgCtx->msgBufDecodedWide[++i];
                 break;
             case MESSAGE_UNSKIPPABLE_JPN:
-                msgCtx->textUnskippable = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 1;
+                msgCtx->textUnskippable = !SKIP_TEXT_ACTIVE(play);
                 break;
             case MESSAGE_TWO_CHOICE_JPN:
                 msgCtx->textboxEndType = TEXTBOX_ENDTYPE_2_CHOICE;
@@ -1511,7 +1517,7 @@ void Message_DrawText(PlayState* play, Gfx** gfxP) {
                 msgCtx->textDelay = msgCtx->msgBufDecoded[++i];
                 break;
             case MESSAGE_UNSKIPPABLE:
-                msgCtx->textUnskippable = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 1;
+                msgCtx->textUnskippable = !SKIP_TEXT_ACTIVE(play);
                 break;
             case MESSAGE_TWO_CHOICE:
                 msgCtx->textboxEndType = TEXTBOX_ENDTYPE_2_CHOICE;
@@ -3342,7 +3348,7 @@ void Message_DrawMain(PlayState* play, Gfx** p) {
         gDPSetCombineLERP(gfx++, 0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0, 0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE,
                           0);
 
-        bool isB_Held = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0
+        bool isB_Held = SKIP_TEXT_ACTIVE(play)
                             ? CHECK_BTN_ALL(play->state.input[0].cur.button, BTN_B)
                             : CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B);
 
@@ -4463,7 +4469,7 @@ void Message_Update(PlayState* play) {
 
     GameInteractor_ExecuteOnDialogMessage();
 
-    bool isB_Held = CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) != 0
+    bool isB_Held = SKIP_TEXT_ACTIVE(play)
                         ? CHECK_BTN_ALL(input->cur.button, BTN_B) && !sTextboxSkipped
                         : CHECK_BTN_ALL(input->press.button, BTN_B);
 

@@ -276,6 +276,24 @@ void SohMenu::AddMenuEnhancements() {
             "Segure B durante uma cena para ela passar mais rápido. Nada é pulado: a cena roda inteira, só que "
             "acelerada. Vale para as cenas do jogo depois da seleção de arquivo, não para a abertura da tela de "
             "título."));
+    AddWidget(path, "Passar diálogos ao segurar B", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_ENHANCEMENT("HoldBToFastForwardDialogs"))
+        .PreFunc([](WidgetInfo& info) {
+            info.options->disabled = !CVarGetInteger(CVAR_ENHANCEMENT("HoldBToFastForward"), 1);
+        })
+        .Options(CheckboxOptions().DefaultValue(false).Tooltip(
+            "Opcional. Enquanto você segura B numa cena, as caixas de diálogo passam sozinhas, sem precisar apertar "
+            "nada. Fora das cenas os diálogos continuam normais."));
+    AddWidget(path, "HoldBDialogsWarning", WIDGET_CUSTOM).CustomFunction([](WidgetInfo& info) {
+        // "Skip Text" already passes every text box while B is held, in and out of cutscenes.
+        if (CVarGetInteger(CVAR_ENHANCEMENT("HoldBToFastForwardDialogs"), 0) &&
+            CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0)) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.75f, 0.2f, 1.0f));
+            ImGui::TextWrapped("%s", "Incompatível com \"Pular texto\" (Pulos e acelerações > Texto), que está "
+                                     "ligado e já passa todos os diálogos ao segurar B. Deixe só uma das duas ligada.");
+            ImGui::PopStyleColor();
+        }
+    });
     AddWidget(path, "Aviso \"Segure B\" no canto da tela", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("HoldBToFastForwardHint"))
         .PreFunc([](WidgetInfo& info) {
@@ -373,6 +391,15 @@ void SohMenu::AddMenuEnhancements() {
     AddWidget(path, "Skip Text", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENHANCEMENT("SkipText"))
         .Options(CheckboxOptions().Tooltip("Holding down B skips text."));
+    AddWidget(path, "SkipTextWarning", WIDGET_CUSTOM).CustomFunction([](WidgetInfo& info) {
+        if (CVarGetInteger(CVAR_ENHANCEMENT("SkipText"), 0) &&
+            CVarGetInteger(CVAR_ENHANCEMENT("HoldBToFastForwardDialogs"), 0)) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.75f, 0.2f, 1.0f));
+            ImGui::TextWrapped("%s", "Incompatível com \"Passar diálogos ao segurar B\" (Pulos e acelerações > "
+                                     "Cenas), que também está ligado. Deixe só uma das duas ligada.");
+            ImGui::PopStyleColor();
+        }
+    });
     AddWidget(path, "Text Speed: %dx", WIDGET_CVAR_SLIDER_INT)
         .CVar(CVAR_ENHANCEMENT("TextSpeed"))
         .Options(IntSliderOptions().Min(1).Max(5).DefaultValue(1).Format("%dx"));
