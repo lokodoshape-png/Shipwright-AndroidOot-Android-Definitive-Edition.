@@ -287,8 +287,8 @@ uint32_t Menu::DrawSearchResults(std::string& menuSearchText) {
                     if (widgetStr.find(menuSearchText) != std::string::npos) {
                         MenuDrawItem(info, 90 / sidebar.columnCount, menuThemeIndex);
                         ImGui::PushStyleColor(ImGuiCol_Text, UIWidgets::ColorValues.at(UIWidgets::Colors::Gray));
-                        std::string origin = fmt::format("  ({} -> {}, Col {})", TranslateMenuNavigationLabel(menuEntry.label),
-                                                        TranslateMenuNavigationLabel(sidebarLabel), i + 1);
+                        std::string origin = fmt::format("  ({} -> {}, Col {})", UIWidgets::TranslateText(menuEntry.label),
+                                                        UIWidgets::TranslateText(sidebarLabel), i + 1);
                         ImGui::Text("%s", origin.c_str());
                         ImGui::PopStyleColor();
                         searchCount++;
@@ -334,7 +334,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
         widget.options->disabledTooltip = disabledTempTooltip.c_str();
     }
 
-    const std::string translatedWidgetName = TranslateMenuNavigationLabel(widget.name);
+    const std::string translatedWidgetName = UIWidgets::TranslateText(widget.name);
 
     if (widget.sameLine) {
         ImGui::SameLine();
