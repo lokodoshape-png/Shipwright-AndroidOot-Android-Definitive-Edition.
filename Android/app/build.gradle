@@ -16,12 +16,12 @@ android {
     }
     defaultConfig {
         if (buildAsApplication) {
-            applicationId "com.dishii.soh"
+            applicationId "com.ootde.soh"
         }
         minSdkVersion 24
         targetSdkVersion 33
-        versionCode 8
-        versionName "9.0.2"
+        versionCode 9
+        versionName "0.1"
     }
     buildTypes {
         debug {
@@ -56,7 +56,7 @@ android {
             def versionName = variant.versionName
             def versionCode = variant.versionCode
 
-            def newApkName = "soh_${buildType}_v${versionName}.apk"
+            def newApkName = "ootde_${buildType}_v${versionName}.apk"
             outputFileName = newApkName
         }
     }
