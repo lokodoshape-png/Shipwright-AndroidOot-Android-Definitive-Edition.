@@ -41,7 +41,7 @@ public class AssetCopyUtil {
                         in = assetManager.open(assetPath);
                         out = new FileOutputStream(externalPath);
 
-                        byte[] buffer = new byte[1024];
+                        byte[] buffer = new byte[256 * 1024];
                         int read;
                         while ((read = in.read(buffer)) != -1) {
                             out.write(buffer, 0, read);
