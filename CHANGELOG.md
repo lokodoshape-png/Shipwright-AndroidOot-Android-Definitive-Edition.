@@ -1,5 +1,22 @@
 # OOT D.E. — Histórico de versões
 
+## [0.4] — Identidade visual e progresso de importação
+
+### Android
+- Aplicado ícone adaptativo próprio com Triforce e espada, em fundo verde inspirado em Hyrule.
+- Alinhados os metadados de versão do Manifest com Gradle.
+- Importação da ROM movida para execução em segundo plano, com percentual calculado pelos bytes copiados quando o provedor informa o tamanho; caso contrário, exibe volume importado em MB.
+- Progresso da cópia dos assets calculado pelo volume efetivamente processado, preservando arquivos já existentes.
+- Progresso da cópia de `soh.otr` calculado durante a leitura e escrita.
+- Mantido o identificador `com.ootde.soh` para não alterar o destino dos dados do aplicativo.
+- Incrementado para `versionCode 12` e `versionName 0.4`.
+
+### Pendências
+- A tradução integral dos menus e de todo o conteúdo do jogo ainda exige auditoria e implementação; esta versão não será descrita como totalmente traduzida.
+- A extração interna da ROM pelo mecanismo nativo ainda precisa de instrumentação própria; o progresso implementado cobre a importação do arquivo selecionado e a preparação dos assets/OTR.
+- Preservação de saves e arquivos deve ser validada em atualização real sobre uma instalação anterior.
+
+
 Este arquivo registra as alterações da edição OOT D.E. As versões seguem a sequência 0.x até 1.0 e, depois, 1.1, 1.2 e assim por diante. Cada publicação deve incrementar também o `versionCode` Android.
 
 ## [0.3] — Melhorias no processo de configuração
