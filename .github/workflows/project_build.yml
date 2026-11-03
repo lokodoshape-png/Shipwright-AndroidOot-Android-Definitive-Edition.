@@ -42,8 +42,9 @@ jobs:
             echo "::error::Configure the four persistent Android signing secrets before building a release APK."
             exit 1
           fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/ootde-release.keystore"
-          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/ootde-release.keystore" >> "$GITHUB_ENV"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/ootde-release.keystore"
+          chmod 600 "$GITHUB_WORKSPACE/ootde-release.keystore"
+          echo "ANDROID_KEYSTORE_FILE=/workspace/ootde-release.keystore" >> "$GITHUB_ENV"
           echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
