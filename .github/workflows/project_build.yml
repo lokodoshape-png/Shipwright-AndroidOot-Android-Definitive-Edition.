@@ -10,7 +10,7 @@ name: Project Build
 # - A new release is created or a release is edited
 on:
   push:
-    branches: [pt-br-menu-navigation]
+    branches: [pt-br-menu-navigation, release/0.2.0-android-ui-ptbr]
   pull_request:
     types: [opened, synchronize]
   release:
