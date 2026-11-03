@@ -60,7 +60,7 @@ jobs:
 
       - name: Determine Android release tag
         id: version
-        if: github.event_name == 'push' && github.ref == 'refs/heads/pt-br-menu-navigation'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/pt-br-menu-navigation' && contains(github.event.head_commit.message, '[release]')
         run: |
           VERSION_NAME=$(sed -n 's/.*versionName "\\([^"]*\\)".*/\\1/p' Android/app/build.gradle | head -n 1)
           if [ -z "$VERSION_NAME" ]; then
