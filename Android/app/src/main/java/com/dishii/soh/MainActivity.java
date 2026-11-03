@@ -251,7 +251,7 @@ public class MainActivity extends SDLActivity{
 
 
 
-    private native void nativeHandleSelectedFile(String filePath);
+    private void updateSetupProgress(int progress, String message) { runOnUiThread(() -> { if (setupProgressDialog != null && setupProgressDialog.isShowing()) { setupProgressDialog.setMessage(message); setupProgressDialog.setProgress(progress); } }); }\n\n    private native void nativeHandleSelectedFile(String filePath);
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
