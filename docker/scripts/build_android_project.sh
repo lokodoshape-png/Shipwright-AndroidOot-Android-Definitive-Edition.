@@ -52,6 +52,15 @@ else
     echo "libultraship patch applied"
 fi
 
+# ZAPD (the ROM extractor, also a submodule) uses more CPU cores on the phone; same once-only logic.
+ZAPD_PATCH="${PROJECT_PATH}/patches/zapdtr-ootde.patch"
+if git -C "${PROJECT_PATH}/ZAPDTR" apply --reverse --check "${ZAPD_PATCH}" >/dev/null 2>&1; then
+    echo "ZAPDTR patch already applied"
+else
+    git -C "${PROJECT_PATH}/ZAPDTR" apply "${ZAPD_PATCH}" || { echo "Error: could not apply ${ZAPD_PATCH}"; exit 1; }
+    echo "ZAPDTR patch applied"
+fi
+
 # Run Container to build
 docker run --network="host" --rm \
     --name $CONTAINER_NAME \

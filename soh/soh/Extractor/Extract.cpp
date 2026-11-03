@@ -756,7 +756,33 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
 #ifdef __ANDROID__
     ShowExtractionProgress(0, "Preparando a extração...");
 #endif
-#if defined(_WIN32) || defined(__ANDROID__)
+#if defined(__ANDROID__)
+    // OOT D.E.: copy only what this ROM needs. The assets folder has the XML files of all 14 ROM versions (about 7700
+    // small files); copying all of them to the temporary folder took most of the preparation time on a phone.
+    {
+        const std::filesystem::path source = installPath + "/assets";
+        const std::filesystem::path xmlsFolder = source / "extractor" / "xmls";
+        const std::filesystem::path wantedXmls = xmlsFolder / version;
+        std::error_code ec;
+        for (auto it = std::filesystem::recursive_directory_iterator(source, ec);
+             !ec && it != std::filesystem::recursive_directory_iterator(); it.increment(ec)) {
+            const std::filesystem::path& entry = it->path();
+            // Skip the XML folders of the other ROM versions.
+            if (it->is_directory(ec) && entry.parent_path() == xmlsFolder && entry != wantedXmls) {
+                it.disable_recursion_pending();
+                continue;
+            }
+            const std::filesystem::path target = std::filesystem::path(tempdir) / "assets" / entry.lexically_relative(source);
+            if (it->is_directory(ec)) {
+                std::filesystem::create_directories(target, ec);
+            } else {
+                std::filesystem::create_directories(target.parent_path(), ec);
+                std::filesystem::copy_file(entry, target, std::filesystem::copy_options::overwrite_existing, ec);
+            }
+            ec.clear();
+        }
+    }
+#elif defined(_WIN32)
     std::filesystem::copy(installPath + "/assets", tempdir + "/assets",
                           std::filesystem::copy_options::recursive | std::filesystem::copy_options::update_existing);
 #else

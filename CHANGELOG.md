@@ -52,6 +52,10 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
   aparecia só uma mensagem em inglês e a tela ficava parada; agora mostra quantos grupos de arquivos já foram
   extraídos e avisa quando está gravando o `oot.otr`. A importação da ROM e a preparação dos arquivos já tinham barra
   desde a 0.4.
+- **Preparação e criação dos arquivos mais rápidas.** A criação do `oot.otr` copiava os arquivos de extração das 14
+  versões da ROM (cerca de 7700 arquivos pequenos) para uma pasta temporária; agora copia só os da sua ROM (cerca de
+  550) e usa todos os núcleos do celular menos um (antes, metade). A preparação na primeira abertura e depois de
+  atualizar copia os recursos em várias tarefas ao mesmo tempo, sem abrir cada arquivo duas vezes.
 - **Pasta própria `OOT-DE`** na raiz do armazenamento, no lugar da `SOH` que era dividida com o Ship of Harkinian
   original. Na primeira abertura da 0.5, o app copia saves, mods, o `oot.otr` e as configurações da pasta `SOH`
   para a `OOT-DE`. A pasta `SOH` não é apagada.
