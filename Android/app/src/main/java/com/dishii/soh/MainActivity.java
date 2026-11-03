@@ -36,12 +36,17 @@ import android.widget.ImageView;
 
 import java.util.concurrent.Executors;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 
 //This class is the main SDLActivity and just sets up a bunch of default files
 public class MainActivity extends SDLActivity{
 
     SharedPreferences preferences;
     private static final CountDownLatch setupLatch = new CountDownLatch(1);
+    private ProgressDialog setupProgressDialog;
+    // True when this install is newer than the one that created the SOH folder: the files the app ships
+    // (soh.otr and the extractor's assets/) are then replaced, while saves, mods and oot.otr are kept.
+    private boolean refreshPortFiles = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +57,6 @@ public class MainActivity extends SDLActivity{
 
         // Check if storage permissions are granted
         if (hasStoragePermission()) {
-            doVersionCheck();
             checkAndSetupFiles();
         } else {
             requestStoragePermission();
@@ -72,61 +76,23 @@ public class MainActivity extends SDLActivity{
         }
     }
 
+    /**
+     * Detects an app update without deleting user data.
+     *
+     * The SOH folder holds saves, mods, custom assets and the oot.otr made from the user's ROM, which are
+     * never deleted. Only the files that come inside the APK (soh.otr and assets/, used by the ROM
+     * extractor) are replaced on update, because files left by an older version can break the new one.
+     * The new version is recorded only after those files were copied successfully.
+     */
     private void doVersionCheck(){
         int currentVersion = BuildConfig.VERSION_CODE;
         int storedVersion = preferences.getInt("appVersion", 1);
 
-        if (currentVersion > storedVersion) {
-            deleteOutdatedAssets();
-            preferences.edit().putInt("appVersion", currentVersion).apply();
+        refreshPortFiles = currentVersion > storedVersion;
+        if (refreshPortFiles) {
+            Log.i("OOTDE_UPDATE", "Updating app version " + storedVersion + " -> " + currentVersion
+                    + "; replacing soh.otr and assets/, keeping saves, mods and oot.otr.");
         }
-    }
-
-    private void deleteOutdatedAssets() {
-        File targetRootFolder = new File(Environment.getExternalStorageDirectory(), "SOH");
-
-        File sohFile = new File(targetRootFolder, "soh.otr");
-        File ootFile = new File(targetRootFolder, "oot.otr");
-        File ootMqFile = new File(targetRootFolder, "oot-mq.otr");
-        File assetsFolder = new File(targetRootFolder, "assets");
-
-        deleteIfExists(sohFile);
-        deleteIfExists(ootFile);
-        deleteIfExists(ootMqFile);
-        deleteRecursiveIfExists(assetsFolder);
-    }
-
-    private void deleteIfExists(File file) {
-        if (file.exists()) {
-            if (file.delete()) {
-                Log.i("deleteAssets", "Deleted file: " + file.getAbsolutePath());
-            } else {
-                Log.w("deleteAssets", "Failed to delete file: " + file.getAbsolutePath());
-            }
-        } else {
-            Log.i("deleteAssets", "File not found (skipped): " + file.getAbsolutePath());
-        }
-    }
-
-    private void deleteRecursiveIfExists(File dir) {
-        if (dir.exists()) {
-            deleteRecursive(dir);
-            Log.i("deleteAssets", "Deleted directory: " + dir.getAbsolutePath());
-        } else {
-            Log.i("deleteAssets", "Directory not found (skipped): " + dir.getAbsolutePath());
-        }
-    }
-
-    private void deleteRecursive(File fileOrDirectory) {
-        if (fileOrDirectory.isDirectory()) {
-            File[] children = fileOrDirectory.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    deleteRecursive(child);
-                }
-            }
-        }
-        fileOrDirectory.delete();
     }
 
 
@@ -174,6 +140,7 @@ public class MainActivity extends SDLActivity{
     }
 
     public void checkAndSetupFiles() {
+        doVersionCheck();
         File targetRootFolder = new File(Environment.getExternalStorageDirectory(), "SOH");
         File assetsFolder = new File(targetRootFolder, "assets");
         File sohOtrFile = new File(targetRootFolder, "soh.otr");
@@ -181,14 +148,17 @@ public class MainActivity extends SDLActivity{
         boolean isMissingAssets = !assetsFolder.exists() || assetsFolder.listFiles() == null || assetsFolder.listFiles().length == 0;
         boolean isMissingSohOtr = !sohOtrFile.exists();
 
-        if (!targetRootFolder.exists() || isMissingAssets || isMissingSohOtr) {
+        if (!targetRootFolder.exists() || isMissingAssets || isMissingSohOtr || refreshPortFiles) {
+            String message = refreshPortFiles && targetRootFolder.exists()
+                    ? "O aplicativo foi atualizado. Os arquivos do jogo serão atualizados (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar."
+                    : "Alguns arquivos necessários estão faltando. O aplicativo vai criá-los (cerca de 1 minuto). Toque em OK para começar.";
             new AlertDialog.Builder(this)
-                    .setTitle("Setup Required")
-                    .setMessage("Some required files are missing. The app will create them (~1 minute). Press OK to begin.")
+                    .setTitle("Preparação necessária")
+                    .setMessage(message)
                     .setCancelable(false)
                     .setPositiveButton("OK", (dialog, which) -> {
                         Executors.newSingleThreadExecutor().execute(() -> {
-                            runOnUiThread(() -> Toast.makeText(this, "Setting up files...", Toast.LENGTH_SHORT).show());
+                            runOnUiThread(() -> { setupProgressDialog = new ProgressDialog(this); setupProgressDialog.setTitle("Preparando Ocarina of Time"); setupProgressDialog.setMessage("Criando arquivos necessários..."); setupProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL); setupProgressDialog.setMax(100); setupProgressDialog.setProgress(0); setupProgressDialog.setCancelable(false); setupProgressDialog.show(); });
                             setupFilesInBackground(targetRootFolder);
                         });
                     })
@@ -201,12 +171,15 @@ public class MainActivity extends SDLActivity{
 
 
     private void setupFilesInBackground(File targetRootFolder) {
+        boolean setupOk = true;
 
         File sourceOldRoot = getExternalFilesDir(null);
         File sourceSavesDir = new File(sourceOldRoot, "Save"); // how to tell if there's anything to migrate
 
         // === Migration from old Android/data/.../files/ directory ===
-        if (sourceOldRoot != null && sourceSavesDir.isDirectory()) {
+        // Skipped once SOH/Save exists, so an update never puts old saves over newer ones.
+        boolean hasCurrentSaves = new File(targetRootFolder, "Save").isDirectory();
+        if (sourceOldRoot != null && sourceSavesDir.isDirectory() && !hasCurrentSaves) {
             Log.i("setupFiles", "Migrating old data from: " + sourceOldRoot.getAbsolutePath());
 
             File[] sourceFiles = sourceOldRoot.listFiles();
@@ -231,61 +204,104 @@ public class MainActivity extends SDLActivity{
                 }
             }
 
-            runOnUiThread(() -> Toast.makeText(this, "Save data migrated", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, "Saves antigos migrados", Toast.LENGTH_SHORT).show());
         }
 
+        updateSetupProgress(5, "Criando pasta principal...");
         // Ensure root folder exists
         if (!targetRootFolder.exists()) {
             if (!targetRootFolder.mkdirs()) {
                 Log.e("setupFiles", "Failed to create root folder");
-                runOnUiThread(() -> Toast.makeText(this, "Failed to create folder", Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Não foi possível criar a pasta SOH", Toast.LENGTH_LONG).show();
+                    if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
+                });
                 setupLatch.countDown();
                 return;
             }
         }
 
+        updateSetupProgress(15, "Preparando pastas do jogo...");
         // Always ensure mods folder exists
         File targetModsDir = new File(targetRootFolder, "mods");
         if (!targetModsDir.exists()) {
             targetModsDir.mkdirs();
         }
 
+        updateSetupProgress(25, "Copiando recursos do jogo...");
         // Copy assets/ from internal
         File targetAssetsDir = new File(targetRootFolder, "assets");
         try {
             if (!targetAssetsDir.exists()) {
                 targetAssetsDir.mkdirs();
             }
-            AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath());
-            runOnUiThread(() -> Toast.makeText(this, "Assets copied", Toast.LENGTH_SHORT).show());
+            AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath(), refreshPortFiles,
+                    (copied, total, currentFile) -> {
+                        if (total > 0) {
+                            int percent = 25 + (int) Math.min(55, (copied * 55L) / total);
+                            updateSetupProgress(percent, "Copiando recursos: " + percent + "%");
+                        }
+                    });
+            updateSetupProgress(80, "Recursos copiados. Preparando dados principais...");
         } catch (IOException e) {
-            e.printStackTrace();
-            runOnUiThread(() -> Toast.makeText(this, "Error copying assets", Toast.LENGTH_LONG).show());
+            setupOk = false;
+            Log.e("setupFiles", "Failed to copy assets", e);
+            runOnUiThread(() -> Toast.makeText(this, "Erro ao copiar os recursos do jogo", Toast.LENGTH_LONG).show());
         }
 
-        // Copy soh.otr from internal assets
+        // Copy soh.otr from internal assets. It is written to a temporary file first, so an interrupted
+        // copy never leaves a truncated soh.otr behind.
         File targetOtrFile = new File(targetRootFolder, "soh.otr");
-        try (InputStream in = getAssets().open("soh.otr");
-             OutputStream out = new FileOutputStream(targetOtrFile)) {
+        File tempOtrFile = new File(targetRootFolder, "soh.otr.tmp");
+        try {
+            try (InputStream in = getAssets().open("soh.otr");
+                 OutputStream out = new FileOutputStream(tempOtrFile)) {
 
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
+                byte[] buffer = new byte[256 * 1024];
+                int read;
+                long totalOtrBytes = in.available();
+                long copiedOtrBytes = 0;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                    copiedOtrBytes += read;
+                    if (totalOtrBytes > 0) {
+                        int percent = 80 + (int) Math.min(15, (copiedOtrBytes * 15L) / totalOtrBytes);
+                        updateSetupProgress(percent, "Preparando dados principais: " + percent + "%");
+                    }
+                }
             }
-
-            runOnUiThread(() -> Toast.makeText(this, "soh.otr copied", Toast.LENGTH_SHORT).show());
-
+            if (targetOtrFile.exists() && !targetOtrFile.delete()) {
+                throw new IOException("Não foi possível substituir " + targetOtrFile.getAbsolutePath());
+            }
+            if (!tempOtrFile.renameTo(targetOtrFile)) {
+                throw new IOException("Não foi possível gravar " + targetOtrFile.getAbsolutePath());
+            }
+            updateSetupProgress(95, "Finalizando preparação...");
         } catch (IOException e) {
-            e.printStackTrace();
-            runOnUiThread(() -> Toast.makeText(this, "Error copying soh.otr", Toast.LENGTH_LONG).show());
+            setupOk = false;
+            tempOtrFile.delete();
+            Log.e("setupFiles", "Failed to copy soh.otr", e);
+            runOnUiThread(() -> Toast.makeText(this, "Erro ao copiar o soh.otr", Toast.LENGTH_LONG).show());
         }
 
+        if (setupOk) {
+            // Only now is this version's set of files complete; a failed copy is retried on the next start.
+            preferences.edit().putInt("appVersion", BuildConfig.VERSION_CODE).apply();
+            refreshPortFiles = false;
+        }
+        updateSetupProgress(100, "Configuração concluída.");
+        runOnUiThread(() -> {
+            if (setupProgressDialog != null && setupProgressDialog.isShowing()) {
+                setupProgressDialog.dismiss();
+            }
+        });
         setupLatch.countDown();
     }
 
 
 
+
+    private void updateSetupProgress(int progress, String message) { runOnUiThread(() -> { if (setupProgressDialog != null && setupProgressDialog.isShowing()) { setupProgressDialog.setMessage(message); setupProgressDialog.setProgress(progress); } }); }
 
     private native void nativeHandleSelectedFile(String filePath);
 
@@ -293,34 +309,15 @@ public class MainActivity extends SDLActivity{
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            // Handle file selection
-            Uri selectedFileUri = data.getData();
-            String fileName = "OOT.z64";
-
-            File destinationDirectory = new File(Environment.getExternalStorageDirectory(), "SOH");
-            File destinationFile = new File(destinationDirectory, fileName);
-
-            if (destinationDirectory != null && selectedFileUri != null) {
-                try {
-                    InputStream in = getContentResolver().openInputStream(selectedFileUri);
-                    OutputStream out = new FileOutputStream(destinationFile);
-
-                    byte[] buffer = new byte[4096];
-                    int bytesRead;
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, bytesRead);
-                    }
-
-                    in.close();
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        if (requestCode == FILE_PICKER_REQUEST_CODE) {
+            // Importa a ROM em segundo plano e exibe progresso real em bytes.
+            Uri selectedFileUri = (resultCode == RESULT_OK && data != null) ? data.getData() : null;
+            if (selectedFileUri != null) {
+                importRomWithProgress(selectedFileUri);
+            } else {
+                // The native extractor waits for an answer; an empty path tells it nothing was chosen.
+                nativeHandleSelectedFile("");
             }
-
-            // Now pass the path of the file in the new folder
-            nativeHandleSelectedFile(destinationFile.getPath());
 
         } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
             // Handle MANAGE_EXTERNAL_STORAGE result
@@ -328,10 +325,76 @@ public class MainActivity extends SDLActivity{
                 if (Environment.isExternalStorageManager()) {
                     checkAndSetupFiles();
                 } else {
-                    Toast.makeText(this, "Storage permission is required to access files.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "A permissão de acesso aos arquivos é necessária para jogar.", Toast.LENGTH_LONG).show();
                 }
             }
         }
+    }
+
+    private void importRomWithProgress(Uri sourceUri) {
+        ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setTitle("Importando ROM");
+        dialog.setMessage("Preparando importação...");
+        dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        dialog.setIndeterminate(false);
+        dialog.setMax(100);
+        dialog.setProgress(0);
+        dialog.setCancelable(false);
+        dialog.show();
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            File destinationDirectory = new File(Environment.getExternalStorageDirectory(), "SOH");
+            File destinationFile = new File(destinationDirectory, "OOT.z64");
+            try {
+                if (!destinationDirectory.exists() && !destinationDirectory.mkdirs()) {
+                    throw new IOException("Não foi possível criar a pasta SOH.");
+                }
+
+                long totalBytes = -1;
+                try (android.content.res.AssetFileDescriptor afd =
+                             getContentResolver().openAssetFileDescriptor(sourceUri, "r")) {
+                    if (afd != null) totalBytes = afd.getLength();
+                } catch (Exception ignored) { }
+
+                long copied = 0;
+                try (InputStream in = getContentResolver().openInputStream(sourceUri);
+                     OutputStream out = new FileOutputStream(destinationFile)) {
+                    if (in == null) throw new IOException("Não foi possível abrir a ROM selecionada.");
+                    byte[] buffer = new byte[256 * 1024];
+                    int count;
+                    while ((count = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, count);
+                        copied += count;
+                        if (totalBytes > 0) {
+                            final int percent = (int) Math.min(100, (copied * 100L) / totalBytes);
+                            runOnUiThread(() -> {
+                                dialog.setProgress(percent);
+                                dialog.setMessage("Importando ROM... " + percent + "%");
+                            });
+                        } else {
+                            final long current = copied / (1024 * 1024);
+                            runOnUiThread(() -> dialog.setMessage("Importando ROM... " + current + " MB"));
+                        }
+                    }
+                    out.flush();
+                }
+
+                runOnUiThread(() -> {
+                    dialog.setProgress(100);
+                    dialog.dismiss();
+                    Toast.makeText(this, "ROM importada com sucesso.", Toast.LENGTH_LONG).show();
+                    nativeHandleSelectedFile(destinationFile.getAbsolutePath());
+                });
+            } catch (IOException e) {
+                Log.e("OOTDE_IMPORT", "Falha ao importar ROM", e);
+                destinationFile.delete();
+                runOnUiThread(() -> {
+                    dialog.dismiss();
+                    Toast.makeText(this, "Falha ao importar ROM: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    nativeHandleSelectedFile("");
+                });
+            }
+        });
     }
 
     public void openFilePicker() {
@@ -340,7 +403,7 @@ public class MainActivity extends SDLActivity{
         intent.setType("*/*");
 
         // Start the file picker dialog
-        startActivityForResult(intent, 0);
+        startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
     }
 
     // Check if external storage is available and writable
@@ -446,7 +509,8 @@ public class MainActivity extends SDLActivity{
         //    detachController();
         //}
         button.setOnClickListener(new View.OnClickListener() {
-            boolean isHidden = false;
+            // Starts from the saved state, so the first tap after a restart does not repeat it.
+            boolean isHidden = uiGroup.getVisibility() != View.VISIBLE;
             @Override
             public void onClick(View v) {
                 if (isHidden) {
@@ -456,8 +520,8 @@ public class MainActivity extends SDLActivity{
                     uiGroup.setVisibility(View.INVISIBLE); // Hide UI elements
                     //detachController();
                 }
-                preferences.edit().putBoolean("controlsVisible", !isHidden).apply();
                 isHidden = !isHidden; // Toggle state
+                preferences.edit().putBoolean("controlsVisible", isHidden).apply();
             }
         });
     }

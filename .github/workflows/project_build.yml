@@ -1,65 +1,130 @@
+###############################################################################
+
+name: Build Android APK (OOT D.E.)
 
 ###############################################################################
 
-name: Project Build
-
-###############################################################################
-
-# Trigger the jobs on:
-# - A pull request is opened or a new commit is added to the pull request
-# - A new release is created or a release is edited
+# Every push to main (the OOT D.E. line) builds the APK and publishes it on the Releases page as
+# android-<versionName>-build-<run>, the same scheme as the 2Ship MM3D fork. Pull requests only build
+# the APK and keep it as a workflow artifact, so a change can be tested before it is merged.
 on:
+  push:
+    branches: [main]
   pull_request:
-    types: [opened, synchronize]
-  release:
-    types: [published, edited]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
-###############################################################################
+permissions:
+  contents: write
 
-# Jobs to run
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-
-  # Build the project and upload Release APK to Github artifacts
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      # Every version is signed with the same key, so a new APK installs over the previous one.
+      - name: Prepare persistent Android signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "::error::Configure the four persistent Android signing secrets before building a release APK."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/ootde-release.keystore"
+          chmod 600 "$GITHUB_WORKSPACE/ootde-release.keystore"
+          echo "ANDROID_KEYSTORE_FILE=$GITHUB_WORKSPACE/ootde-release.keystore" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Check that Gradle and the Manifest carry the same version
+        id: version
+        run: |
+          gradle_name=$(grep -oP 'versionName\s+"\K[^"]+' Android/app/build.gradle | head -n1)
+          gradle_code=$(grep -oP 'versionCode\s+\K[0-9]+' Android/app/build.gradle | head -n1)
+          manifest_name=$(grep -oP 'android:versionName="\K[^"]+' Android/app/src/main/AndroidManifest.xml | head -n1)
+          manifest_code=$(grep -oP 'android:versionCode="\K[0-9]+' Android/app/src/main/AndroidManifest.xml | head -n1)
+          echo "Gradle: $gradle_name ($gradle_code)  Manifest: $manifest_name ($manifest_code)"
+          if [ -z "$gradle_name" ] || [ "$gradle_name" != "$manifest_name" ] || [ "$gradle_code" != "$manifest_code" ]; then
+            echo "::error::versionName/versionCode differ between Android/app/build.gradle and AndroidManifest.xml."
+            exit 1
+          fi
+          echo "name=$gradle_name" >> "$GITHUB_OUTPUT"
+          echo "code=$gradle_code" >> "$GITHUB_OUTPUT"
 
       - name: Setup and build the project
         run: |
           cd docker
           make setup
           make build_release
+          ls -la ../Android/app/build/outputs/apk/release/
 
-      - name: Upload build artifacts
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
-          path: |
-            Android/app/build/outputs/apk/release/*.apk
+          name: ootde-${{ steps.version.outputs.name }}-build-${{ github.run_number }}
+          path: Android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
 
-  # Upload Built APK to Github Release
-  #  upload-release-artifacts:
-  #    needs: build
-  #    runs-on: ubuntu-latest
-  #    if: github.event_name == 'release'
-  #    steps:
-  #      - name: Download build artifacts
-  #        uses: actions/download-artifact@v4
-  #        with:
-  #          name: build-artifacts
-  #          path: /tmp/artifacts
-  #
-  #      - name: Upload release artifacts
-  #        uses: softprops/action-gh-release@v1
-  #        with:
-  #          files: |
-  #            /tmp/artifacts/*.apk
-  #        env:
-  #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The release holds only the app; the game data (oot.otr) is generated on the phone from the user's own ROM.
+      - name: Publish release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -e
+          short_sha="${GITHUB_SHA::7}"
+          tag="android-${VERSION_NAME}-build-${GITHUB_RUN_NUMBER}"
+          apk="ootde-${VERSION_NAME}-android-build-${GITHUB_RUN_NUMBER}.apk"
+          cp Android/app/build/outputs/apk/release/*.apk "$apk"
 
+          # Release notes: the CHANGELOG.md section of this version, plus the install steps.
+          awk -v v="$VERSION_NAME" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > changes.md
+          {
+            echo "APK do **Ocarina of Time – Definitive Edition** para Android (arm64), versão ${VERSION_NAME} (versionCode ${VERSION_CODE})."
+            echo
+            echo "**Como instalar**"
+            echo "1. Baixe o arquivo \`$apk\` abaixo, em Assets, e instale no celular. Ele atualiza o OOT D.E. que você já tem."
+            echo "2. Na primeira vez, permita o acesso a todos os arquivos. O app atualiza os arquivos dele na pasta \`SOH\` e mantém saves, mods e o \`oot.otr\`."
+            echo "3. Se ainda não tiver o \`oot.otr\`, escolha a sua ROM do Ocarina of Time quando o app pedir."
+            echo
+            echo "A ROM e os arquivos do jogo não fazem parte deste download."
+            echo
+            echo "## Mudanças desta versão"
+            cat changes.md
+            echo
+            echo "Commit: ${GITHUB_SHA} (branch ${GITHUB_REF_NAME})"
+          } > notes.md
 
-###############################################################################
+          latest="--latest"
+          if [ "$GITHUB_REF_NAME" != "main" ]; then latest="--prerelease"; fi
+          # Release creation sometimes gets a transient HTTP 403 from the API, so it is retried a few times.
+          for attempt in 1 2 3 4 5; do
+            if gh release create "$tag" "$apk" --target "$GITHUB_SHA" \
+              --title "OOT D.E. ${VERSION_NAME} Android - build ${GITHUB_RUN_NUMBER} (${short_sha})" \
+              --notes-file notes.md $latest; then
+              exit 0
+            fi
+            echo "Release creation failed (attempt $attempt), retrying in 60s"
+            sleep 60
+          done
+          exit 1
