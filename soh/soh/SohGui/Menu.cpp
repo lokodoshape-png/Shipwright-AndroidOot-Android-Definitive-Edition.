@@ -15,6 +15,38 @@ extern "C" {
 #include "functions.h"
 extern PlayState* gPlayState;
 }
+
+static std::string TranslateMenuNavigationLabel(const std::string& source) {
+    static const std::unordered_map<std::string, std::string> translations = {
+        {"Settings", "Configurações"}, {"Enhancements", "Aprimoramentos"},
+        {"Randomizer", "Aleatorizador"}, {"Network", "Rede"},
+        {"Dev Tools", "Ferramentas de desenvolvedor"}, {"General", "Geral"},
+        {"Audio", "Áudio"}, {"Graphics", "Gráficos"}, {"Controls", "Controles"},
+        {"Input Viewer", "Visualizador de comandos"}, {"Notifications", "Notificações"},
+        {"Quality of Life", "Qualidade de vida"}, {"Skips & Speed-ups", "Pulos e acelerações"},
+        {"Items", "Itens"}, {"Fixes", "Correções"}, {"Difficulty", "Dificuldade"},
+        {"Minigames", "Minijogos"}, {"Extra Modes", "Modos extras"}, {"Cheats", "Trapaças"},
+        {"Cosmetics Editor", "Editor de personalização"}, {"Audio Editor", "Editor de áudio"},
+        {"Gameplay Stats", "Estatísticas de jogo"}, {"Time Splits", "Tempos parciais"},
+        {"Timers", "Cronômetros"}, {"Plandomizer", "Planejador de itens"},
+        {"Item Tracker", "Rastreador de itens"}, {"Entrance Tracker", "Rastreador de entradas"},
+        {"Check Tracker", "Rastreador de verificações"}, {"Stats", "Estatísticas"},
+        {"Console", "Console"}, {"Save Editor", "Editor de salvamento"},
+        {"Hook Debugger", "Depurador de ganchos"}, {"Collision Viewer", "Visualizador de colisões"},
+        {"Actor Viewer", "Visualizador de atores"}, {"DList Viewer", "Visualizador de listas de desenho"},
+        {"Value Viewer", "Visualizador de valores"}, {"Message Viewer", "Visualizador de mensagens"},
+        {"Gfx Debugger", "Depurador gráfico"}, {"Search", "Pesquisar"},
+        {"Crowd Control", "Controle da comunidade"}
+    };
+
+    const auto idPosition = source.find("##");
+    const std::string visibleText = source.substr(0, idPosition);
+    const auto it = translations.find(visibleText);
+    if (it == translations.end()) {
+        return source;
+    }
+    return it->second + (idPosition == std::string::npos ? "" : source.substr(idPosition));
+}
 std::vector<ImVec2> windowTypeSizes = { {} };
 
 extern std::unordered_map<s16, const char*> warpPointSceneList;
@@ -142,7 +174,8 @@ bool ModernMenuSidebarEntry(std::string label) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec2 pos = window->DC.CursorPos;
     const ImGuiID sidebarId = window->GetID(std::string(label + "##Sidebar").c_str());
-    ImVec2 labelSize = ImGui::CalcTextSize(label.c_str(), ImGui::FindRenderedTextEnd(label.c_str()), true);
+    const std::string displayLabel = TranslateMenuNavigationLabel(label);
+    ImVec2 labelSize = ImGui::CalcTextSize(displayLabel.c_str(), ImGui::FindRenderedTextEnd(displayLabel.c_str()), true);
     pos.y += style.FramePadding.y;
     pos.x = window->WorkRect.GetCenter().x - labelSize.x / 2;
     ImRect bb = { pos - style.FramePadding, pos + labelSize + style.FramePadding };
@@ -158,7 +191,7 @@ bool ModernMenuSidebarEntry(std::string label) {
                                                        : hovered         ? ImGuiCol_ButtonHovered
                                                                          : ImGuiCol_Button),
                                     3.0f);
-    UIWidgets::RenderText(pos, label.c_str(), ImGui::FindRenderedTextEnd(label.c_str()), true);
+    UIWidgets::RenderText(pos, displayLabel.c_str(), ImGui::FindRenderedTextEnd(displayLabel.c_str()), true);
     return pressed;
 }
 
@@ -168,7 +201,8 @@ bool ModernMenuHeaderEntry(std::string label) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec2 pos = window->DC.CursorPos;
     const ImGuiID headerId = window->GetID(std::string(label + "##Header").c_str());
-    ImVec2 labelSize = ImGui::CalcTextSize(label.c_str(), ImGui::FindRenderedTextEnd(label.c_str()), true);
+    const std::string displayLabel = TranslateMenuNavigationLabel(label);
+    ImVec2 labelSize = ImGui::CalcTextSize(displayLabel.c_str(), ImGui::FindRenderedTextEnd(displayLabel.c_str()), true);
     ImRect bb = { pos, pos + labelSize + style.FramePadding * 2 };
     ImGui::ItemSize(bb, style.FramePadding.y);
     ImGui::ItemAdd(bb, headerId);
@@ -180,7 +214,7 @@ bool ModernMenuHeaderEntry(std::string label) {
                                                                          : ImGuiCol_Button),
                                     3.0f);
     pos += style.FramePadding;
-    UIWidgets::RenderText(pos, label.c_str(), ImGui::FindRenderedTextEnd(label.c_str()), true);
+    UIWidgets::RenderText(pos, displayLabel.c_str(), ImGui::FindRenderedTextEnd(displayLabel.c_str()), true);
     return pressed;
 }
 
@@ -208,7 +242,8 @@ uint32_t Menu::DrawSearchResults(std::string& menuSearchText) {
                     if (widgetStr.find(menuSearchText) != std::string::npos) {
                         MenuDrawItem(info, 90 / sidebar.columnCount, menuThemeIndex);
                         ImGui::PushStyleColor(ImGuiCol_Text, UIWidgets::ColorValues.at(UIWidgets::Colors::Gray));
-                        std::string origin = fmt::format("  ({} -> {}, Col {})", menuEntry.label, sidebarLabel, i + 1);
+                        std::string origin = fmt::format("  ({} -> {}, Col {})", TranslateMenuNavigationLabel(menuEntry.label),
+                                                        TranslateMenuNavigationLabel(sidebarLabel), i + 1);
                         ImGui::Text("%s", origin.c_str());
                         ImGui::PopStyleColor();
                         searchCount++;
@@ -467,7 +502,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 std::string menuSearchText(menuSearch.InputBuf);
 
                 if (menuSearchText == "") {
-                    ImGui::Text("Start typing to see results.");
+                    ImGui::Text("Comece a digitar para ver os resultados.");
                     return;
                 }
                 DrawSearchResults(menuSearchText);
@@ -664,7 +699,7 @@ void Menu::DrawElement() {
         menuSearchText.erase(std::remove(menuSearchText.begin(), menuSearchText.end(), ' '), menuSearchText.end());
         if (menuSearchText.length() < 1) {
             ImGui::SameLine(headerWidth - 200.0f + style.ItemSpacing.x);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Search...");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Pesquisar...");
         }
         ImGui::PopStyleColor();
     }
@@ -673,10 +708,10 @@ void Menu::DrawElement() {
     UIWidgets::ButtonOptions options3 = {};
     options3.color = UIWidgets::Colors::Red;
     options3.size = UIWidgets::Sizes::Inline;
-    options3.tooltip = "Quit SoH";
+    options3.tooltip = "Sair do SoH";
     if (UIWidgets::Button(ICON_FA_POWER_OFF, options3)) {
         SohGui::mModalWindow->RegisterPopup(
-            "Quit SoH", "Are you sure you want to quit SoH?", "Quit", "Cancel",
+            "Sair do SoH", "Tem certeza de que deseja sair do SoH?", "Sair", "Cancelar",
             []() {
                 std::shared_ptr<Menu> menu =
                     static_pointer_cast<Menu>(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetMenu());
@@ -692,7 +727,7 @@ void Menu::DrawElement() {
     UIWidgets::ButtonOptions options2 = {};
     options2.color = UIWidgets::Colors::Red;
     options2.size = UIWidgets::Sizes::Inline;
-    options2.tooltip = "Reset"
+    options2.tooltip = "Reiniciar"
 #ifdef __APPLE__
                        " (Command-R)"
 #elif !defined(__SWITCH__) && !defined(__WIIU__)
@@ -709,7 +744,7 @@ void Menu::DrawElement() {
     ImGui::SameLine();
     UIWidgets::ButtonOptions options = {};
     options.size = UIWidgets::Sizes::Inline;
-    options.tooltip = "Close Menu (Esc)";
+    options.tooltip = "Fechar menu (Esc)";
     if (UIWidgets::Button(ICON_FA_TIMES_CIRCLE, options)) {
         ToggleVisibility();
 
@@ -797,15 +832,15 @@ void Menu::DrawElement() {
     if (headerSearch && menuSearchText.length() > 0) {
         uint32_t searchCount = DrawSearchResults(menuSearchText);
         if (searchCount == 0) {
-            ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("No results found").x) / 2);
+            ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("Nenhum resultado encontrado").x) / 2);
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10.0f);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "No results found");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Nenhum resultado encontrado");
         }
-        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("Clear Search").x) / 2 - 10.0f);
+        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize("Limpar pesquisa").x) / 2 - 10.0f);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10.0f);
         UIWidgets::ButtonOptions clearBtnOpts = {};
         clearBtnOpts.size = UIWidgets::Sizes::Inline;
-        if (UIWidgets::Button("Clear Search", clearBtnOpts)) {
+        if (UIWidgets::Button("Limpar pesquisa", clearBtnOpts)) {
             menuSearch.Clear();
         }
 
