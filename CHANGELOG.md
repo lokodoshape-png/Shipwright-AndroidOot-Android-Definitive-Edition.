@@ -15,6 +15,7 @@ Este arquivo registra as alterações da edição OOT D.E. As versões seguem a 
 - Criada uma camada central de localização pt-BR para rótulos de widgets, botões e dicas de contexto.
 - Ampliada a tradução de categorias e opções de aprimoramentos, correções, dificuldade, minijogos, modos extras, trapaças e ferramentas de desenvolvedor.
 - Pesquisa do menu passou a considerar os rótulos e descrições localizados.
+- Valores e opções de listas de seleção também passam pela camada de localização, sem alterar os valores internos usados pela lógica do jogo.
 - Mantidos os identificadores internos e sufixos de identificação do ImGui em inglês para preservar compatibilidade.
 - Traduzidos textos de pesquisa e ações básicas do menu.
 
