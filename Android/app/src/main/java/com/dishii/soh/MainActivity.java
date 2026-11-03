@@ -72,61 +72,22 @@ public class MainActivity extends SDLActivity{
         }
     }
 
+    /**
+     * Records the installed application version without deleting user data.
+     *
+     * The public SOH directory may contain save files, mods, custom assets and
+     * user-provided OTR files. An application update must never recursively
+     * erase that directory or remove OTR files automatically.
+     */
     private void doVersionCheck(){
         int currentVersion = BuildConfig.VERSION_CODE;
         int storedVersion = preferences.getInt("appVersion", 1);
 
         if (currentVersion > storedVersion) {
-            deleteOutdatedAssets();
+            Log.i("OOTDE_UPDATE", "Updating app version " + storedVersion + " -> " + currentVersion
+                    + "; preserving SOH user files, saves, mods and OTR data.");
             preferences.edit().putInt("appVersion", currentVersion).apply();
         }
-    }
-
-    private void deleteOutdatedAssets() {
-        File targetRootFolder = new File(Environment.getExternalStorageDirectory(), "SOH");
-
-        File sohFile = new File(targetRootFolder, "soh.otr");
-        File ootFile = new File(targetRootFolder, "oot.otr");
-        File ootMqFile = new File(targetRootFolder, "oot-mq.otr");
-        File assetsFolder = new File(targetRootFolder, "assets");
-
-        deleteIfExists(sohFile);
-        deleteIfExists(ootFile);
-        deleteIfExists(ootMqFile);
-        deleteRecursiveIfExists(assetsFolder);
-    }
-
-    private void deleteIfExists(File file) {
-        if (file.exists()) {
-            if (file.delete()) {
-                Log.i("deleteAssets", "Deleted file: " + file.getAbsolutePath());
-            } else {
-                Log.w("deleteAssets", "Failed to delete file: " + file.getAbsolutePath());
-            }
-        } else {
-            Log.i("deleteAssets", "File not found (skipped): " + file.getAbsolutePath());
-        }
-    }
-
-    private void deleteRecursiveIfExists(File dir) {
-        if (dir.exists()) {
-            deleteRecursive(dir);
-            Log.i("deleteAssets", "Deleted directory: " + dir.getAbsolutePath());
-        } else {
-            Log.i("deleteAssets", "Directory not found (skipped): " + dir.getAbsolutePath());
-        }
-    }
-
-    private void deleteRecursive(File fileOrDirectory) {
-        if (fileOrDirectory.isDirectory()) {
-            File[] children = fileOrDirectory.listFiles();
-            if (children != null) {
-                for (File child : children) {
-                    deleteRecursive(child);
-                }
-            }
-        }
-        fileOrDirectory.delete();
     }
 
 
