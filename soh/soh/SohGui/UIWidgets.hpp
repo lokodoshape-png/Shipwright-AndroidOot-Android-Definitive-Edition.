@@ -527,7 +527,8 @@ bool Combobox(const char* label, T* value, const std::unordered_map<T, const cha
     const char* longest;
     size_t length = 0;
     for (auto& [index, string] : comboMap) {
-        size_t len = strlen(string);
+        const std::string translated = TranslateText(string);
+        size_t len = translated.size();
         if (len > length) {
             longest = string;
             length = len;
@@ -555,11 +556,13 @@ bool Combobox(const char* label, T* value, const std::unordered_map<T, const cha
     }
 
     ImGui::SetNextItemWidth(comboWidth);
-    if (ImGui::BeginCombo(invisibleLabel, comboMap.at(*value), options.flags)) {
+    const std::string previewValue = TranslateText(comboMap.at(*value));
+    if (ImGui::BeginCombo(invisibleLabel, previewValue.c_str(), options.flags)) {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 10.0f));
         for (const auto& pair : comboMap) {
             if (strlen(pair.second) > 1) {
-                if (ImGui::Selectable(pair.second, pair.first == *value)) {
+                const std::string translatedOption = TranslateText(pair.second);
+                if (ImGui::Selectable(translatedOption.c_str(), pair.first == *value)) {
                     *value = pair.first;
                     dirty = true;
                 }
@@ -575,7 +578,7 @@ bool Combobox(const char* label, T* value, const std::unordered_map<T, const cha
                 ImGui::SameLine();
                 ImGui::Text("%s", label);
             } else if (options.labelPosition == LabelPositions::Far) {
-                float width = ImGui::CalcTextSize(comboMap.at(*value)).x + ImGui::GetStyle().FramePadding.x * 2;
+                float width = ImGui::CalcTextSize(previewValue.c_str()).x + ImGui::GetStyle().FramePadding.x * 2;
                 ImGui::SameLine(ImGui::GetContentRegionAvail().x - width);
                 ImGui::Text("%s", label);
             }
@@ -609,7 +612,8 @@ bool Combobox(const char* label, T* value, const std::vector<const char*>& combo
     const char* longest;
     int length = 0;
     for (auto& string : comboVector) {
-        int len = strlen(string);
+        const std::string translated = TranslateText(string);
+        int len = static_cast<int>(translated.size());
         if (len > length) {
             longest = string;
             length = len;
