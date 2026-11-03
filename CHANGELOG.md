@@ -2,6 +2,19 @@
 
 Este arquivo registra as alterações da edição OOT D.E. As versões seguem a sequência 0.x até 1.0 e, depois, 1.1, 1.2 e assim por diante. Cada publicação deve incrementar também o `versionCode` Android.
 
+## [0.3] — Melhorias no processo de configuração
+
+### Android e desempenho de arquivos
+- Ampliado o buffer de cópia de arquivos para 256 KB, reduzindo operações de leitura e escrita durante a preparação dos dados.
+- Adicionada uma estrutura inicial de acompanhamento das etapas da configuração do aplicativo.
+- Corrigidas quebras de linha e ajustes no código Java relacionado ao acompanhamento da configuração.
+- Incrementado o Android para `versionCode 11` e `versionName 0.3`, mantendo o identificador `com.ootde.soh`.
+
+### Limitações conhecidas
+- O indicador atual representa etapas da configuração, não o percentual real de bytes copiados.
+- O acompanhamento detalhado da importação e extração da ROM ainda precisa ser implementado e validado.
+- Esta versão não deve ser anunciada como tradução integral do jogo.
+
 ## [0.2] — Atualização segura de arquivos do usuário
 
 ### Android e preservação de dados
