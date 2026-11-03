@@ -1,28 +1,24 @@
-
 ###############################################################################
 
 name: Project Build
 
 ###############################################################################
 
-# Trigger the jobs on:
-# - A pull request is opened or a new commit is added to the pull request
-# - A new release is created or a release is edited
+# Builds the Android APK and publishes it on GitHub Releases.
 on:
   push:
-    branches: [pt-br-menu-navigation, release/0.2.0-android-ui-ptbr]
+    branches: [pt-br-menu-navigation]
+    tags: ['v*']
   pull_request:
     types: [opened, synchronize]
   release:
     types: [published, edited]
   workflow_dispatch:
 
-###############################################################################
+permissions:
+  contents: write
 
-# Jobs to run
 jobs:
-
-  # Build the project and upload Release APK to Github artifacts
   build:
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +40,7 @@ jobs:
           fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/ootde-release.keystore"
           chmod 600 "$GITHUB_WORKSPACE/ootde-release.keystore"
-          echo "ANDROID_KEYSTORE_FILE=/workspace/ootde-release.keystore" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_FILE=$GITHUB_WORKSPACE/ootde-release.keystore" >> "$GITHUB_ENV"
           echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
@@ -55,41 +51,19 @@ jobs:
           make setup
           make build_release
 
-      - name: Upload build artifacts
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: oot-de-${{ github.ref_name }}-${{ github.run_number }}
-          path: |
-            Android/app/build/outputs/apk/release/*.apk
+          path: Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
-      - name: Attach APK to GitHub Release
-        if: github.event_name == 'release'
+      - name: Publish APK in GitHub Releases
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
           files: Android/app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Upload Built APK to Github Release
-  #  upload-release-artifacts:
-  #    needs: build
-  #    runs-on: ubuntu-latest
-  #    if: github.event_name == 'release'
-  #    steps:
-  #      - name: Download build artifacts
-  #        uses: actions/download-artifact@v4
-  #        with:
-  #          name: build-artifacts
-  #          path: /tmp/artifacts
-  #
-  #      - name: Upload release artifacts
-  #        uses: softprops/action-gh-release@v1
-  #        with:
-  #          files: |
-  #            /tmp/artifacts/*.apk
-  #        env:
-  #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-###############################################################################
