@@ -9,6 +9,7 @@
 #include <spdlog/fmt/fmt.h>
 #include "variables.h"
 #include <tuple>
+#include <unordered_map>
 
 extern "C" {
 #include "z64.h"
@@ -611,7 +612,8 @@ void Menu::DrawElement() {
         headerWidth += 200.0f + style.ItemSpacing.x + style.FramePadding.x;
     }
     for (auto& label : menuOrder) {
-        ImVec2 size = ImGui::CalcTextSize(label.c_str());
+        const std::string displayLabel = TranslateMenuNavigationLabel(label);
+        ImVec2 size = ImGui::CalcTextSize(displayLabel.c_str());
         headerSizes.push_back(size);
         headerWidth += size.x + style.FramePadding.x * 2;
         if (label == headerIndex) {
