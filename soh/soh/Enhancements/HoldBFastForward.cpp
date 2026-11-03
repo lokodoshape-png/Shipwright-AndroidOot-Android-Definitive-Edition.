@@ -4,7 +4,7 @@
 // plays through quickly with all of its script commands, actor cues and flags intact (nothing is skipped).
 // A hint in the bottom right corner tells the player about it. It only works in a game started from file select:
 // the title screen intro (gameMode GAMEMODE_TITLE_SCREEN) is left alone.
-#include <libultraship/bridge/consolevariablebridge.h>
+#include <libultraship/bridge.h>
 #include <cstring>
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
