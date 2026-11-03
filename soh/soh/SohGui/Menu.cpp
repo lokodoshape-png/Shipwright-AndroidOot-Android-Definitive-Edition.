@@ -310,7 +310,6 @@ std::unordered_map<uint32_t, disabledInfo>& Menu::GetDisabledMap() {
 }
 
 void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors menuThemeIndex) {
-    const std::string translatedWidgetName = TranslateMenuNavigationLabel(widget.name);
     disabledTempTooltip = "This setting is disabled because: \n";
     disabledValue = false;
     disabledTooltip = " ";
@@ -334,6 +333,8 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
         disabledTempTooltip += std::string("\n- Race Lockout Active");
         widget.options->disabledTooltip = disabledTempTooltip.c_str();
     }
+
+    const std::string translatedWidgetName = TranslateMenuNavigationLabel(widget.name);
 
     if (widget.sameLine) {
         ImGui::SameLine();
@@ -530,7 +531,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             } break;
             case WIDGET_SEARCH: {
                 UIWidgets::PushStyleButton(menuThemeIndex);
-                if (ImGui::Button("Clear")) {
+                if (ImGui::Button("Limpar")) {
                     menuSearch.Clear();
                 }
                 ImGui::SameLine();
