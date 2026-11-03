@@ -71,6 +71,9 @@ public class AssetCopyUtil {
                 }
             } else {
                 // Existing user files are intentionally preserved and count as completed.
+                try (InputStream in = manager.open(childPath)) {
+                    copiedBytes[0] += in.available();
+                }
                 if (listener != null) listener.onProgress(copiedBytes[0], totalBytes, child);
             }
         }
