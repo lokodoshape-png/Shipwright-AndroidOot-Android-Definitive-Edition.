@@ -379,19 +379,21 @@ bool Extractor::GetRomPathFromBox() {
         //Do nothing until a file is chosen
         SDL_Delay(250);
     }
-    SDL_Log("%s",javaRomPath);
-    selection.push_back(javaRomPath);
-
-    if (selection.empty()) {
+    // The Java side sends an empty path when the picker is cancelled or the ROM import fails.
+    if (javaRomPath == NULL || javaRomPath[0] == '\0') {
+        if (javaRomPath) {
+            free((void*)javaRomPath);
+            javaRomPath = NULL;
+        }
         return false;
     }
+    SDL_Log("%s", javaRomPath);
+    selection.push_back(javaRomPath);
 
     mCurrentRomPath = selection[0];
 
-    if (javaRomPath) {
-        free((void*)javaRomPath);
-        javaRomPath = NULL;
-    }
+    free((void*)javaRomPath);
+    javaRomPath = NULL;
 
 #else
     auto selection = pfd::open_file("Select a file", mSearchPath, { "N64 Roms", "*.z64 *.n64 *.v64" }).result();

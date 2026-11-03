@@ -16,15 +16,21 @@ public class AssetCopyUtil {
     }
 
     public static void copyAssetsToExternal(Context context, String assetsFolderPath, String externalFolderPath) throws IOException {
-        copyAssetsToExternal(context, assetsFolderPath, externalFolderPath, null);
+        copyAssetsToExternal(context, assetsFolderPath, externalFolderPath, false, null);
     }
 
+    /**
+     * Copies the APK's assets folder to external storage.
+     *
+     * @param overwrite true after an app update: files that exist are replaced by the new version's copy.
+     *                  false: existing files are kept and only missing ones are copied.
+     */
     public static void copyAssetsToExternal(Context context, String assetsFolderPath, String externalFolderPath,
-                                            ProgressListener listener) throws IOException {
+                                            boolean overwrite, ProgressListener listener) throws IOException {
         AssetManager manager = context.getAssets();
         long totalBytes = calculateAssetBytes(manager, assetsFolderPath);
         long[] copiedBytes = new long[]{0};
-        copyAssetTree(manager, assetsFolderPath, new File(externalFolderPath), totalBytes, copiedBytes, listener);
+        copyAssetTree(manager, assetsFolderPath, new File(externalFolderPath), overwrite, totalBytes, copiedBytes, listener);
     }
 
     private static long calculateAssetBytes(AssetManager manager, String path) throws IOException {
@@ -45,7 +51,7 @@ public class AssetCopyUtil {
         return total;
     }
 
-    private static void copyAssetTree(AssetManager manager, String assetPath, File targetDir,
+    private static void copyAssetTree(AssetManager manager, String assetPath, File targetDir, boolean overwrite,
                                       long totalBytes, long[] copiedBytes, ProgressListener listener) throws IOException {
         if (!targetDir.exists() && !targetDir.mkdirs()) {
             throw new IOException("Não foi possível criar " + targetDir.getAbsolutePath());
@@ -57,8 +63,8 @@ public class AssetCopyUtil {
             String[] nested = manager.list(childPath);
             File target = new File(targetDir, child);
             if (nested != null && nested.length > 0) {
-                copyAssetTree(manager, childPath, target, totalBytes, copiedBytes, listener);
-            } else if (!target.exists()) {
+                copyAssetTree(manager, childPath, target, overwrite, totalBytes, copiedBytes, listener);
+            } else if (overwrite || !target.exists()) {
                 try (InputStream in = manager.open(childPath);
                      OutputStream out = new FileOutputStream(target)) {
                     byte[] buffer = new byte[256 * 1024];
@@ -70,7 +76,7 @@ public class AssetCopyUtil {
                     }
                 }
             } else {
-                // Existing user files are intentionally preserved and count as completed.
+                // Existing files are kept (no update pending) and count as completed.
                 try (InputStream in = manager.open(childPath)) {
                     copiedBytes[0] += in.available();
                 }
@@ -83,7 +89,9 @@ public class AssetCopyUtil {
         if (!targetDir.exists()) {
             targetDir.mkdirs();
         }
-        for (File file : sourceDir.listFiles()) {
+        File[] files = sourceDir.listFiles();
+        if (files == null) return;
+        for (File file : files) {
             File dest = new File(targetDir, file.getName());
             if (file.isDirectory()) {
                 copyDirectory(file, dest);
