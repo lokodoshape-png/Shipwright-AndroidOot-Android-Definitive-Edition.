@@ -44,6 +44,8 @@ Gfx* KaleidoScope_DrawQuestLogPageSections(Gfx* gfx, Vtx* pageVtx, void** pageTe
 void KaleidoScope_DrawQuestLog(PlayState* play, GraphicsContext* gfxCtx, bool active);
 void KaleidoScope_DrawQuestLogHint(PlayState* play, GraphicsContext* gfxCtx);
 void KaleidoScope_CycleQuestMode(PlayState* play);
+void KaleidoScope_ApplyQuestPageFlip(PlayState* play);
+void KaleidoScope_CloseQuestLog(PlayState* play);
 Gfx* KaleidoScope_QuadTextureIA4(Gfx* gfx, void* texture, s16 width, s16 height, u16 point);
 Gfx* KaleidoScope_QuadTextureIA8(Gfx* gfx, void* texture, s16 width, s16 height, u16 point);
 void KaleidoScope_MoveCursorToSpecialPos(PlayState* play, u16 specialPos);

@@ -1,6 +1,6 @@
 // OOT D.E.: "Missões", a quest log page inside the pause menu.
 //
-// On the Quest Status page, C-Up turns the page over to the quest log (and back). The page uses the game's own
+// On the Quest Status page, C-Up flips the page over to the quest log (C-Up or B flips it back). The page uses the game's own
 // page background, font and item icons, and turns with the pause cube like the other pages. It lists, with the
 // progress read from the save every frame:
 //   - the 36 Pieces of Heart, with where they are and what they need (Magic Bean, Hookshot, ...);
@@ -8,15 +8,19 @@
 //   - the mask quest (Weird Egg to Mask of Truth) and the Deku Theater;
 //   - the adult trading sequence (Pocket Egg to Biggoron's Sword);
 //   - the Gold Skulltulas per region and dungeon, and the rewards of the House of Skulltula.
-// C-Left / C-Right change the list, the stick (or the D-pad) moves the cursor and the box at the bottom explains the
-// selected line. The icons on the right of a line are what it needs: in color when Link already has it.
+// Left/right (stick, D-pad or C-Left/C-Right) change the list, up/down move the cursor, B goes back, and the box at
+// the bottom explains the selected line. The icons on the right of a line are what it needs: in color when Link already has it.
 //
 // The texts are in Portuguese and use the font codes of the PT-BR translation mods (SolidOne / Letras), which redraw
 // unused accented letters of the game font as Á Ã Í Õ Ó Ú ã í õ ó ú.
 #include "z_kaleido_scope.h"
 #include "textures/icon_item_static/icon_item_static.h"
 #include "textures/icon_item_24_static/icon_item_24_static.h"
+#include "textures/icon_item_dungeon_static/icon_item_dungeon_static.h"
+#include "textures/message_static/message_static.h"
+#include "soh_assets.h"
 #include "soh/ShipUtils.h"
+#include <math.h>
 #include <stdio.h>
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -58,7 +62,9 @@ typedef enum {
 #define QL_NEED_ZORA_TUNIC (1 << 12)
 #define QL_NEED_BLUE_FIRE (1 << 13)
 #define QL_NEED_DEKU_STICK (1 << 14)
-#define QL_NEED_COUNT 15
+#define QL_NEED_NIGHT (1 << 15) // moon: only at night
+#define QL_NEED_DAY (1 << 16)   // sun: only by day
+#define QL_NEED_COUNT 17
 
 typedef struct {
     const char* name;   // UTF-8
@@ -66,7 +72,7 @@ typedef struct {
     const char* icon;   // 32x32 RGBA32 item icon, or 24x24 when iconIs24
     u8 iconIs24;
     u8 age;
-    u16 needs;
+    u32 needs;
     u8 check;
     s16 scene;
     u16 flag;
@@ -84,8 +90,8 @@ static const QuestLogEntry sQuestLogHearts[] = {
     { "Lago Hylia: topo do laboratório", "Plante um Feijão Mágico no canteiro ao lado do laboratório (criança). Volte adulto e suba na folha até o telhado.", gQuestIconHeartPieceTex, 1, QL_AGE_ADULT, QL_NEED_BEAN, QL_CHK_HEART_PIECE, 0, 7 },
     { "Rancho Lon Lon: silo", "Dentro do silo do Rancho Lon Lon, empurre as caixas e entre pela passagem estreita. Só a criança cabe.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, 0, QL_CHK_HEART_PIECE, 0, 8 },
     { "Mercado: boliche Bombchu", "Boliche Bombchu do Mercado (precisa da Bolsa de Bombas). O prêmio muda a cada partida: jogue até sair o Pedaço de Coração.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_BOMB, QL_CHK_HEART_PIECE, 0, 9 },
-    { "Mercado: cachorro perdido", "No Mercado, à noite: ache o cachorro Richard (o que segue você) e leve-o à moça da casa no beco.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, 0, QL_CHK_HEART_PIECE, 0, 10 },
-    { "Mercado: jogo dos baús", "No Mercado, à noite: vença o jogo dos baús. Com a Lente da Verdade você enxerga o baú certo.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_LENS, QL_CHK_HEART_PIECE, 0, 11 },
+    { "Mercado: cachorro perdido", "No Mercado, à noite: ache o cachorro Richard (o que segue você) e leve-o à moça da casa no beco.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_NIGHT, QL_CHK_HEART_PIECE, 0, 10 },
+    { "Mercado: jogo dos baús", "No Mercado, à noite: vença o jogo dos baús. Com a Lente da Verdade você enxerga o baú certo.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_NIGHT | QL_NEED_LENS, QL_CHK_HEART_PIECE, 0, 11 },
     { "Campo: gruta das Tektites", "Gruta escondida do Campo de Hyrule, aberta com bomba. O pedaço está no fundo da água: mergulhe com a Escama de Ouro ou desça com as Botas de Ferro.", gQuestIconHeartPieceTex, 1, QL_AGE_ANY, QL_NEED_BOMB | QL_NEED_GOLD_SCALE | QL_NEED_IRON_BOOTS, QL_CHK_HEART_PIECE, 0, 12 },
     { "Campo: Deku da gruta", "Gruta dentro do cercado de árvores perto da entrada do Lago Hylia (abra com bomba). Compre o pedaço do Deku por 10 rupias.", gQuestIconHeartPieceTex, 1, QL_AGE_ANY, QL_NEED_BOMB, QL_CHK_HEART_PIECE, 0, 13 },
     { "Trilha da Montanha da Morte", "Na Trilha da Montanha da Morte, no alto da parede acima da entrada da Caverna Dodongo.", gQuestIconHeartPieceTex, 1, QL_AGE_ANY, 0, QL_CHK_HEART_PIECE, 0, 14 },
@@ -99,7 +105,7 @@ static const QuestLogEntry sQuestLogHearts[] = {
     { "Cemitério: túmulo dos ReDeads", "Puxe a lápide do túmulo dos ReDeads e desça. Lá dentro, toque a Canção do Sol diante da parede para o baú aparecer.", gQuestIconHeartPieceTex, 1, QL_AGE_ANY, QL_NEED_OCARINA, QL_CHK_HEART_PIECE, 0, 22 },
     { "Cemitério: no muro", "Numa reentrância alta no muro do cemitério. Plante um Feijão Mágico no canteiro abaixo dela (criança) e volte adulto, ou use o Gancho Longo.", gQuestIconHeartPieceTex, 1, QL_AGE_ADULT, QL_NEED_BEAN | QL_NEED_LONGSHOT, QL_CHK_HEART_PIECE, 0, 23 },
     { "Cemitério: corrida do Dampé", "No túmulo do Dampé (adulto), chegue ao fim da corrida contra o fantasma dele em menos de 1 minuto.", gQuestIconHeartPieceTex, 1, QL_AGE_ADULT, 0, QL_CHK_HEART_PIECE, 0, 24 },
-    { "Cemitério: escavação do Dampé", "No cemitério, à noite (criança), pague o Dampé para cavar. O pedaço sai ao acaso: tente várias vezes.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, 0, QL_CHK_HEART_PIECE, 0, 25 },
+    { "Cemitério: escavação do Dampé", "No cemitério, à noite (criança), pague o Dampé para cavar. O pedaço sai ao acaso: tente várias vezes.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_NIGHT, QL_CHK_HEART_PIECE, 0, 25 },
     { "Floresta Perdida: Skull Kid", "Perto da entrada da Floresta Perdida, toque a Canção de Saria para o Skull Kid em cima do toco.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_OCARINA, QL_CHK_HEART_PIECE, 0, 26 },
     { "Floresta Perdida: jogo musical", "Na clareira dos Skull Kids músicos, repita as melodias que eles tocam até o fim do jogo.", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_OCARINA, QL_CHK_HEART_PIECE, 0, 27 },
     { "Rio Zora: rãs (Tempestades)", "No Rio Zora, no tronco das rãs, toque a Canção das Tempestades para elas (criança).", gQuestIconHeartPieceTex, 1, QL_AGE_CHILD, QL_NEED_OCARINA, QL_CHK_HEART_PIECE, 0, 28 },
@@ -126,7 +132,7 @@ static const QuestLogEntry sQuestLogMasks[] = {
     { "Abrir a Loja de Máscaras", "Mostre a Carta de Zelda ao guarda do portão da Montanha da Morte, em Kakariko. Aí a Loja da Máscara Feliz, no Mercado, abre.", gItemIconZeldasLetterTex, 0, QL_AGE_CHILD, 0, QL_CHK_INFTABLE, 0, INFTABLE_SHOWED_ZELDAS_LETTER_TO_GATE_GUARD },
     { "Máscara Keaton", "Pegue a Máscara Keaton emprestada na loja e venda ao guarda do portão da Montanha da Morte. Depois pague a loja.", gItemIconMaskKeatonTex, 0, QL_AGE_CHILD, 0, QL_CHK_ITEMGETINF, 0, ITEMGETINF_38 },
     { "Máscara de Caveira", "Venda ao Skull Kid do toco perto da entrada da Floresta Perdida. Depois pague a loja.", gItemIconMaskSkullTex, 0, QL_AGE_CHILD, 0, QL_CHK_ITEMGETINF, 0, ITEMGETINF_39 },
-    { "Máscara Assustadora", "Venda ao menino do Cemitério de Kakariko, de dia. Ele quer ser igual ao Dampé. Depois pague a loja.", gItemIconMaskSpookyTex, 0, QL_AGE_CHILD, 0, QL_CHK_ITEMGETINF, 0, ITEMGETINF_3A },
+    { "Máscara Assustadora", "Venda ao menino do Cemitério de Kakariko, de dia. Ele quer ser igual ao Dampé. Depois pague a loja.", gItemIconMaskSpookyTex, 0, QL_AGE_CHILD, QL_NEED_DAY, QL_CHK_ITEMGETINF, 0, ITEMGETINF_3A },
     { "Capuz de Coelho", "Venda ao Corredor, o homem que vive correndo pelo Campo de Hyrule. Ele paga com a carteira inteira. Depois pague a loja.", gItemIconMaskBunnyHoodTex, 0, QL_AGE_CHILD, 0, QL_CHK_ITEMGETINF, 0, ITEMGETINF_3B },
     { "Máscara da Verdade", "Depois de vender as quatro, a loja empresta a Máscara da Verdade. Com ela as Pedras Fofoqueiras falam. As máscaras Goron, Zora e Gerudo também ficam disponíveis.", gItemIconMaskTruthTex, 0, QL_AGE_CHILD, 0, QL_CHK_ITEMGETINF, 0, ITEMGETINF_3F },
     { "Teatro Deku: Caveira", "No Teatro Deku (gruta da Floresta Perdida, perto do Prado Sagrado), use a Máscara de Caveira. Prêmio: carregar mais Bastões Deku.", gItemIconMaskSkullTex, 0, QL_AGE_CHILD, 0, QL_CHK_ITEMGETINF, 0, ITEMGETINF_OBTAINED_STICK_UPGRADE_FROM_STAGE },
@@ -150,34 +156,36 @@ static const QuestLogEntry sQuestLogTrade[] = {
 
 typedef struct {
     const char* name;
+    const char* icon; // 24x24 quest icon or 32x32 item icon (see iconIs24)
+    u8 iconIs24;
     s8 point;    // world map point, or -1 for a dungeon
     s8 dungeon;  // index into the Gold Skulltula flags of the dungeons
     s8 total;
 } QuestLogSkullArea;
 
 static const QuestLogSkullArea sQuestLogSkullAreas[] = {
-    { "Floresta Kokiri", 10, 0, 0 },
-    { "Floresta Perdida e Prado", 9, 0, 0 },
-    { "Campo de Hyrule", 6, 0, 0 },
-    { "Mercado e Castelo", 5, 0, 0 },
-    { "Rancho Lon Lon", 4, 0, 0 },
-    { "Kakariko e Cemitério", 8, 0, 0 },
-    { "Montanha da Morte", 7, 0, 0 },
-    { "Rio, Domínio e Fonte Zora", 11, 0, 0 },
-    { "Lago Hylia", 3, 0, 0 },
-    { "Vale Gerudo", 2, 0, 0 },
-    { "Fortaleza Gerudo", 1, 0, 0 },
-    { "Deserto e Colosso", 0, 0, 0 },
-    { "Árvore Deku", -1, 0, 4 },
-    { "Caverna Dodongo", -1, 1, 4 },
-    { "Barriga do Jabu-Jabu", -1, 2, 4 },
-    { "Templo da Floresta", -1, 3, 5 },
-    { "Templo do Fogo", -1, 4, 5 },
-    { "Templo da Água", -1, 5, 5 },
-    { "Templo do Espírito", -1, 6, 5 },
-    { "Templo das Sombras", -1, 7, 5 },
-    { "Fundo do Poço", -1, 8, 3 },
-    { "Caverna de Gelo", -1, 9, 3 },
+    { "Floresta Kokiri", gQuestIconGoldSkulltulaTex, 1, 10, 0, 0 },
+    { "Floresta Perdida e Prado", gQuestIconGoldSkulltulaTex, 1, 9, 0, 0 },
+    { "Campo de Hyrule", gQuestIconGoldSkulltulaTex, 1, 6, 0, 0 },
+    { "Mercado e Castelo", gQuestIconGoldSkulltulaTex, 1, 5, 0, 0 },
+    { "Rancho Lon Lon", gQuestIconGoldSkulltulaTex, 1, 4, 0, 0 },
+    { "Kakariko e Cemitério", gQuestIconGoldSkulltulaTex, 1, 8, 0, 0 },
+    { "Montanha da Morte", gQuestIconGoldSkulltulaTex, 1, 7, 0, 0 },
+    { "Rio, Domínio e Fonte Zora", gQuestIconGoldSkulltulaTex, 1, 11, 0, 0 },
+    { "Lago Hylia", gQuestIconGoldSkulltulaTex, 1, 3, 0, 0 },
+    { "Vale Gerudo", gQuestIconGoldSkulltulaTex, 1, 2, 0, 0 },
+    { "Fortaleza Gerudo", gQuestIconGoldSkulltulaTex, 1, 1, 0, 0 },
+    { "Deserto e Colosso", gQuestIconGoldSkulltulaTex, 1, 0, 0, 0 },
+    { "Árvore Deku", gQuestIconKokiriEmeraldTex, 1, -1, 0, 4 },
+    { "Caverna Dodongo", gQuestIconGoronRubyTex, 1, -1, 1, 4 },
+    { "Barriga do Jabu-Jabu", gQuestIconZoraSapphireTex, 1, -1, 2, 4 },
+    { "Templo da Floresta", gQuestIconMedallionForestTex, 1, -1, 3, 5 },
+    { "Templo do Fogo", gQuestIconMedallionFireTex, 1, -1, 4, 5 },
+    { "Templo da Água", gQuestIconMedallionWaterTex, 1, -1, 5, 5 },
+    { "Templo do Espírito", gQuestIconMedallionSpiritTex, 1, -1, 6, 5 },
+    { "Templo das Sombras", gQuestIconMedallionShadowTex, 1, -1, 7, 5 },
+    { "Fundo do Poço", gItemIconLensOfTruthTex, 0, -1, 8, 3 },
+    { "Caverna de Gelo", gItemIconBootsIronTex, 0, -1, 9, 3 },
 };
 
 static const QuestLogEntry sQuestLogSkullRewards[] = {
@@ -212,7 +220,7 @@ typedef struct {
     const char* icon;
     u8 iconIs24;
     u8 age;
-    u16 needs;
+    u32 needs;
     u8 done;
     u8 hasCount;
     s16 got;
@@ -227,6 +235,11 @@ static s32 sQuestLogCursor[QL_CAT_COUNT];
 static s32 sQuestLogTop[QL_CAT_COUNT];
 static s32 sQuestLogFrames = 0;
 static s16 sQuestLogSavedCursorItem = PAUSE_ITEM_NONE;
+
+// Page flip when C-Up changes the mode: the page narrows to its edge, the mode changes, and it opens again.
+#define QL_FLIP_FRAMES 12
+static s16 sQuestLogFlipTimer = 0;
+static u8 sQuestLogFlipTarget = PAUSE_QUEST_MODE_STATUS;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Save checks
@@ -298,6 +311,8 @@ static const char* QuestLog_NeedIcon(s32 need) {
         case QL_NEED_ZORA_TUNIC: return gItemIconTunicZoraTex;
         case QL_NEED_BLUE_FIRE: return gItemIconBottleBlueFireTex;
         case QL_NEED_DEKU_STICK: return gItemIconDekuStickTex;
+        case QL_NEED_NIGHT: return gMoonIconTex;
+        case QL_NEED_DAY: return gSunIconTex;
     }
     return NULL;
 }
@@ -319,6 +334,9 @@ static bool QuestLog_HasNeed(s32 need) {
         case QL_NEED_ZORA_TUNIC: return CHECK_OWNED_EQUIP(EQUIP_TYPE_TUNIC, EQUIP_INV_TUNIC_ZORA) != 0;
         case QL_NEED_BLUE_FIRE: return QuestLog_HasBottleOf(ITEM_BLUE_FIRE);
         case QL_NEED_DEKU_STICK: return INV_CONTENT(ITEM_STICK) == ITEM_STICK;
+        // Lit when it is the right time now.
+        case QL_NEED_NIGHT: return IS_NIGHT;
+        case QL_NEED_DAY: return IS_DAY;
     }
     return false;
 }
@@ -375,8 +393,8 @@ static s32 QuestLog_BuildRows(PlayState* play, s32 category, s16* got, s16* tota
                 QuestLogRow* row = &sQuestLogRows[n];
 
                 row->name = area->name;
-                row->icon = gQuestIconGoldSkulltulaTex;
-                row->iconIs24 = true;
+                row->icon = area->icon;
+                row->iconIs24 = area->iconIs24;
                 row->age = QL_AGE_ANY;
                 row->needs = 0;
                 row->hasCount = true;
@@ -541,10 +559,9 @@ static void QuestLog_Rect(QuestLogDraw* d, s16 x, s16 y, s16 w, s16 h, u8 r, u8 
     QuestLog_Quad(d, x, y, w, h, 0, 0);
 }
 
-// Draws an item icon (RGBA32, 32x32 or 24x24). Gray when not "lit".
-static void QuestLog_Icon(QuestLogDraw* d, const char* tex, bool is24, s16 x, s16 y, s16 size, bool lit) {
-    s16 texSize = is24 ? 24 : 32;
-
+// Draws a texture on a quad. Gray (and dimmer) when not "lit".
+static void QuestLog_Tex(QuestLogDraw* d, const char* tex, u8 fmt, u8 siz, s16 texW, s16 texH, s16 x, s16 y, s16 w,
+                         s16 h, bool lit, u8 alpha) {
     if ((tex == NULL) || !QuestLog_HasRoom(d)) {
         return;
     }
@@ -552,16 +569,79 @@ static void QuestLog_Icon(QuestLogDraw* d, const char* tex, bool is24, s16 x, s1
     if (!lit) {
         gDPSetGrayscaleColor(d->gfx++, 109, 109, 109, 255);
         gSPGrayscale(d->gfx++, true);
-        QuestLog_SetColor(d, 255, 255, 255, 150);
+        QuestLog_SetColor(d, 255, 255, 255, alpha * 150 / 255);
     } else {
-        QuestLog_SetColor(d, 255, 255, 255, 255);
+        QuestLog_SetColor(d, 255, 255, 255, alpha);
     }
-    gDPLoadTextureBlock(d->gfx++, tex, G_IM_FMT_RGBA, G_IM_SIZ_32b, texSize, texSize, 0, G_TX_NOMIRROR | G_TX_CLAMP,
-                        G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    QuestLog_Quad(d, x, y, size, size, texSize, texSize);
+    if (siz == G_IM_SIZ_32b) {
+        gDPLoadTextureBlock(d->gfx++, tex, fmt, G_IM_SIZ_32b, texW, texH, 0, G_TX_NOMIRROR | G_TX_CLAMP,
+                            G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    } else {
+        gDPLoadTextureBlock(d->gfx++, tex, fmt, G_IM_SIZ_16b, texW, texH, 0, G_TX_NOMIRROR | G_TX_CLAMP,
+                            G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    }
+    QuestLog_Quad(d, x, y, w, h, texW, texH);
     if (!lit) {
         gSPGrayscale(d->gfx++, false);
     }
+}
+
+// Item icons are 32x32 RGBA32, quest icons 24x24; the Sun and Moon of the time display are 16x16.
+static void QuestLog_Icon(QuestLogDraw* d, const char* tex, bool is24, s16 x, s16 y, s16 size, bool lit) {
+    s16 texSize = is24 ? 24 : 32;
+
+    if ((tex == gSunIconTex) || (tex == gMoonIconTex)) {
+        texSize = 16;
+    }
+    QuestLog_Tex(d, tex, G_IM_FMT_RGBA, G_IM_SIZ_32b, texSize, texSize, x, y, size, size, lit, 255);
+}
+
+// A flat golden Triforce, `size` units wide, with its top at (x, y).
+static void QuestLog_Triforce(QuestLogDraw* d, s16 x, s16 y, s16 size, u8 alpha) {
+    s16 half = size / 2;
+    s16 h = size * 7 / 8;
+    s16 hh = h / 2;
+    Vtx* v = d->vtx;
+    s32 i;
+    // Three triangles: top, bottom left, bottom right.
+    s16 pts[9][2] = {
+        { x + half, y }, { x + half / 2, y + hh }, { x + half + half / 2, y + hh },
+        { x + half / 2, y + hh }, { x, y + h }, { x + half, y + h },
+        { x + half + half / 2, y + hh }, { x + half, y + h }, { x + size, y + h },
+    };
+
+    if ((d->vtx + 9 > &sQuestLogVtx[QL_VTX_MAX]) || (d->gfx + 24 >= &sQuestLogGfx[QL_GFX_MAX])) {
+        return;
+    }
+    for (i = 0; i < 9; i++) {
+        v[i].v.ob[0] = pts[i][0];
+        v[i].v.ob[1] = pts[i][1];
+        v[i].v.ob[2] = 0;
+        v[i].v.flag = 0;
+        v[i].v.tc[0] = v[i].v.tc[1] = 0;
+        v[i].v.cn[0] = v[i].v.cn[1] = v[i].v.cn[2] = v[i].v.cn[3] = 255;
+    }
+    QuestLog_Combine(d, 2);
+    QuestLog_SetColor(d, 255, 200, 40, alpha);
+    gSPVertex(d->gfx++, v, 9, 0);
+    gSP1Triangle(d->gfx++, 0, 1, 2, 0);
+    gSP1Triangle(d->gfx++, 3, 4, 5, 0);
+    gSP1Triangle(d->gfx++, 6, 7, 8, 0);
+    d->vtx += 9;
+}
+
+// The game's text box (the black box of the dialogs), stretched over the rectangle.
+static void QuestLog_TextBox(QuestLogDraw* d, s16 x, s16 y, s16 w, s16 h) {
+    if (!QuestLog_HasRoom(d)) {
+        return;
+    }
+    QuestLog_Combine(d, 1);
+    QuestLog_SetColor(d, 0, 0, 0, 190);
+    // 128x64 IA4, mirrored horizontally to make the whole box, like the dialogs do.
+    gDPLoadTextureBlock_4b(d->gfx++, gDefaultMessageBackgroundTex, G_IM_FMT_IA, 128, 64, 0,
+                           G_TX_MIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_CLAMP, 7, G_TX_NOMASK, G_TX_NOLOD,
+                           G_TX_NOLOD);
+    QuestLog_Quad(d, x, y, w, h, 256, 64);
 }
 
 static f32 QuestLog_CharAdvance(u8 c, s16 size) {
@@ -699,55 +779,48 @@ Gfx* KaleidoScope_DrawQuestLogPageSections(Gfx* gfx, Vtx* pageVtx, void** pageTe
     return gfx;
 }
 
+static void QuestLog_ChangeCategory(s32 step) {
+    sQuestLogCategory = (sQuestLogCategory + step + QL_CAT_COUNT) % QL_CAT_COUNT;
+    Audio_PlaySoundGeneral(NA_SE_SY_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+}
+
+// Up/down (stick or D-pad) choose the line, left/right (or C-Left/C-Right) the list. B goes back (see Update).
+// Z and R still turn the pause pages.
 static void QuestLog_HandleInput(PlayState* play, s32 rowCount) {
     PauseContext* pauseCtx = &play->pauseCtx;
     Input* input = &play->state.input[0];
-    bool dpad = CVarGetInteger(CVAR_SETTING("DPadOnPause"), 0);
     s32* cursor = &sQuestLogCursor[sQuestLogCategory];
 
+    if (sQuestLogFlipTimer > 0) {
+        return;
+    }
     if ((pauseCtx->state != 6) || !((pauseCtx->unk_1E4 == 0) || (pauseCtx->unk_1E4 == 5) || (pauseCtx->unk_1E4 == 8))) {
         return;
     }
+    // The page arrows are not used here: left/right change the list.
+    pauseCtx->cursorSpecialPos = 0;
 
-    if (CHECK_BTN_ALL(input->press.button, BTN_CLEFT) || CHECK_BTN_ALL(input->press.button, BTN_CRIGHT)) {
-        s32 step = CHECK_BTN_ALL(input->press.button, BTN_CRIGHT) ? 1 : (QL_CAT_COUNT - 1);
-
-        sQuestLogCategory = (sQuestLogCategory + step) % QL_CAT_COUNT;
-        Audio_PlaySoundGeneral(NA_SE_SY_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+    if (CHECK_BTN_ALL(input->press.button, BTN_CLEFT) || CHECK_BTN_ALL(input->press.button, BTN_DLEFT) ||
+        (pauseCtx->stickRelX < -30)) {
+        QuestLog_ChangeCategory(-1);
+        return;
+    }
+    if (CHECK_BTN_ALL(input->press.button, BTN_CRIGHT) || CHECK_BTN_ALL(input->press.button, BTN_DRIGHT) ||
+        (pauseCtx->stickRelX > 30)) {
+        QuestLog_ChangeCategory(1);
         return;
     }
 
-    if (pauseCtx->cursorSpecialPos == 0) {
-        if ((pauseCtx->stickRelY > 30) || (dpad && CHECK_BTN_ALL(input->press.button, BTN_DUP))) {
-            if (*cursor > 0) {
-                (*cursor)--;
-                Audio_PlaySoundGeneral(NA_SE_SY_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-            }
-        } else if ((pauseCtx->stickRelY < -30) || (dpad && CHECK_BTN_ALL(input->press.button, BTN_DDOWN))) {
-            if (*cursor < rowCount - 1) {
-                (*cursor)++;
-                Audio_PlaySoundGeneral(NA_SE_SY_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-            }
-        }
-        if ((pauseCtx->stickRelX < -30) || (dpad && CHECK_BTN_ALL(input->press.button, BTN_DLEFT))) {
-            KaleidoScope_MoveCursorToSpecialPos(play, PAUSE_CURSOR_PAGE_LEFT);
-            pauseCtx->unk_1E4 = 0;
-        } else if ((pauseCtx->stickRelX > 30) || (dpad && CHECK_BTN_ALL(input->press.button, BTN_DRIGHT))) {
-            KaleidoScope_MoveCursorToSpecialPos(play, PAUSE_CURSOR_PAGE_RIGHT);
-            pauseCtx->unk_1E4 = 0;
-        }
-    } else if (pauseCtx->cursorSpecialPos == PAUSE_CURSOR_PAGE_LEFT) {
-        if ((pauseCtx->stickRelX > 30) || (dpad && CHECK_BTN_ALL(input->press.button, BTN_DRIGHT))) {
-            pauseCtx->cursorSpecialPos = 0;
+    if ((pauseCtx->stickRelY > 30) || CHECK_BTN_ALL(input->press.button, BTN_DUP)) {
+        if (*cursor > 0) {
+            (*cursor)--;
             Audio_PlaySoundGeneral(NA_SE_SY_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
         }
-    } else if (pauseCtx->cursorSpecialPos == PAUSE_CURSOR_PAGE_RIGHT) {
-        if ((pauseCtx->stickRelX < -30) || (dpad && CHECK_BTN_ALL(input->press.button, BTN_DLEFT))) {
-            pauseCtx->cursorSpecialPos = 0;
+    } else if ((pauseCtx->stickRelY < -30) || CHECK_BTN_ALL(input->press.button, BTN_DDOWN)) {
+        if (*cursor < rowCount - 1) {
+            (*cursor)++;
             Audio_PlaySoundGeneral(NA_SE_SY_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
         }
@@ -755,16 +828,27 @@ static void QuestLog_HandleInput(PlayState* play, s32 rowCount) {
 }
 
 // Layout of the content area (local units).
-#define QL_HEADER_Y 4
-#define QL_HEADER_SIZE 22
-#define QL_LIST_Y 34
+#define QL_TABS_Y 0
+#define QL_TAB 22
+#define QL_TAB_SEL 28
+#define QL_TAB_STEP 40
+#define QL_NAME_Y 32
+#define QL_NAME_SIZE 20
+#define QL_LIST_Y 56
 #define QL_ROW_H 22
-#define QL_ROWS 6
+#define QL_ROWS 5
 #define QL_ROW_SIZE 19
 #define QL_ICON 18
+#define QL_TEXT_X 46
 #define QL_DETAIL_Y 172
 #define QL_DETAIL_SIZE 18
 #define QL_DETAIL_LINE 22
+
+static const char* sQuestLogTabIcons[QL_CAT_COUNT] = {
+    gQuestIconHeartPieceTex, gItemIconBottleEmptyTex, gItemIconMaskKeatonTex, gItemIconSwordBiggoronTex,
+    gQuestIconGoldSkulltulaTex,
+};
+static const u8 sQuestLogTabIconIs24[QL_CAT_COUNT] = { 1, 0, 0, 0, 1 };
 
 static void QuestLog_BeginDraw(PlayState* play, GraphicsContext* gfxCtx, QuestLogDraw* d) {
     PauseContext* pauseCtx = &play->pauseCtx;
@@ -808,8 +892,12 @@ void KaleidoScope_DrawQuestLog(PlayState* play, GraphicsContext* gfxCtx, bool ac
     s16 total;
     s32 rowCount;
     s32 i;
+    s32 phase;
+    s32 pulse;
 
     sQuestLogFrames++;
+    phase = sQuestLogFrames % 40;
+    pulse = (phase < 20) ? phase : (40 - phase); // 0..20..0
 
     rowCount = QuestLog_BuildRows(play, sQuestLogCategory, &got, &total);
     if (active) {
@@ -832,7 +920,7 @@ void KaleidoScope_DrawQuestLog(PlayState* play, GraphicsContext* gfxCtx, bool ac
 
     QuestLog_BeginDraw(play, gfxCtx, d);
 
-    // Title, in the band at the top of the page.
+    // Title in the band at the top of the page, between two Triforces.
     {
         u8 codes[32];
         s32 len = QuestLog_Encode("MISSÕES", codes, ARRAY_COUNT(codes));
@@ -840,45 +928,58 @@ void KaleidoScope_DrawQuestLog(PlayState* play, GraphicsContext* gfxCtx, bool ac
         f32 w = QuestLog_TextWidth(codes, len, size);
         f32 x = (QL_W - w) / 2.0f;
 
+        QuestLog_Triforce(d, (s16)x - 32, -37, 24, 255);
+        QuestLog_Triforce(d, (s16)(x + w) + 8, -37, 24, 255);
         QuestLog_DrawCodes(d, x + 2, -36 + 2, codes, len, size, 0, 0, 0, 160, QL_W);
         QuestLog_DrawCodes(d, x, -36, codes, len, size, 255, 255, 255, 255, QL_W);
 
         // How to go back, at the right of the title band.
-        len = QuestLog_Encode(QL_GLYPH_CUP "Status", codes, ARRAY_COUNT(codes));
+        len = QuestLog_Encode("B: voltar", codes, ARRAY_COUNT(codes));
         w = QuestLog_TextWidth(codes, len, 16);
         QuestLog_DrawCodes(d, QL_W + 6 - w, -30, codes, len, 16, 200, 200, 200, 220, QL_W + 12);
     }
 
-    // Header: <C  category  got/total  C>
+    // Tabs: one icon per list, the current one bigger and lit, between the C-Left and C-Right buttons.
     {
         u8 codes[64];
-        s32 len = QuestLog_Encode(sQuestLogCategoryNames[sQuestLogCategory], codes, ARRAY_COUNT(codes));
-        char countText[16];
-        u8 countCodes[16];
-        s32 countLen;
-        bool full = got >= total;
-        f32 w;
-        f32 x;
+        s32 len;
+        s16 rowW = (QL_CAT_COUNT - 1) * QL_TAB_STEP;
+        s16 cx0 = (QL_W - rowW) / 2;
 
-        snprintf(countText, sizeof(countText), "  %d/%d", got, total);
-        countLen = QuestLog_Encode(countText, countCodes, ARRAY_COUNT(countCodes));
-        w = QuestLog_TextWidth(codes, len, QL_HEADER_SIZE) + QuestLog_TextWidth(countCodes, countLen, QL_HEADER_SIZE);
-        x = (QL_W - w) / 2.0f;
-        x = QuestLog_DrawCodes(d, x, QL_HEADER_Y, codes, len, QL_HEADER_SIZE, 255, 255, 255, 255, QL_W);
-        QuestLog_DrawCodes(d, x, QL_HEADER_Y, countCodes, countLen, QL_HEADER_SIZE, 255, full ? 210 : 255,
-                           full ? 60 : 255, 255, QL_W);
-
-        len = QuestLog_Encode(QL_GLYPH_CLEFT, codes, ARRAY_COUNT(codes));
-        QuestLog_DrawCodes(d, 4, QL_HEADER_Y, codes, len, QL_HEADER_SIZE, 255, 255, 255, 255, QL_W);
-        len = QuestLog_Encode(QL_GLYPH_CRIGHT, codes, ARRAY_COUNT(codes));
-        QuestLog_DrawCodes(d, QL_W - 4 - QuestLog_TextWidth(codes, len, QL_HEADER_SIZE), QL_HEADER_Y, codes, len,
-                           QL_HEADER_SIZE, 255, 255, 255, 255, QL_W);
-
-        // Category dots under the header.
         for (i = 0; i < QL_CAT_COUNT; i++) {
             bool cur = i == sQuestLogCategory;
-            QuestLog_Rect(d, QL_W / 2 - QL_CAT_COUNT * 6 + i * 12 + 3, 28, 6, 3, 255, cur ? 210 : 255,
-                          cur ? 60 : 255, cur ? 255 : 90);
+            s16 size = cur ? QL_TAB_SEL : QL_TAB;
+            s16 cx = cx0 + i * QL_TAB_STEP;
+
+            if (cur) {
+                // A golden glow behind the current tab.
+                QuestLog_Rect(d, cx - 17, QL_TABS_Y, 34, 30, 255, 200, 40, 40 + pulse * 2);
+            }
+            QuestLog_Icon(d, sQuestLogTabIcons[i], sQuestLogTabIconIs24[i], cx - size / 2,
+                          QL_TABS_Y + 15 - size / 2, size, cur);
+        }
+        len = QuestLog_Encode(QL_GLYPH_CLEFT, codes, ARRAY_COUNT(codes));
+        QuestLog_DrawCodes(d, cx0 - QL_TAB_STEP + 4, QL_TABS_Y + 4, codes, len, 22, 255, 255, 255, 255, QL_W);
+        len = QuestLog_Encode(QL_GLYPH_CRIGHT, codes, ARRAY_COUNT(codes));
+        QuestLog_DrawCodes(d, cx0 + rowW + QL_TAB_STEP - 26, QL_TABS_Y + 4, codes, len, 22, 255, 255, 255, 255, QL_W);
+
+        // Name of the list and its progress.
+        {
+            char countText[16];
+            u8 countCodes[16];
+            s32 countLen;
+            bool full = got >= total;
+            f32 w;
+            f32 x;
+
+            len = QuestLog_Encode(sQuestLogCategoryNames[sQuestLogCategory], codes, ARRAY_COUNT(codes));
+            snprintf(countText, sizeof(countText), "  %d/%d", got, total);
+            countLen = QuestLog_Encode(countText, countCodes, ARRAY_COUNT(countCodes));
+            w = QuestLog_TextWidth(codes, len, QL_NAME_SIZE) + QuestLog_TextWidth(countCodes, countLen, QL_NAME_SIZE);
+            x = (QL_W - w) / 2.0f;
+            x = QuestLog_DrawCodes(d, x, QL_NAME_Y, codes, len, QL_NAME_SIZE, 255, 255, 255, 255, QL_W);
+            QuestLog_DrawCodes(d, x, QL_NAME_Y, countCodes, countLen, QL_NAME_SIZE, 255, full ? 210 : 255,
+                               full ? 60 : 255, 255, QL_W);
         }
     }
 
@@ -892,13 +993,15 @@ void KaleidoScope_DrawQuestLog(PlayState* play, GraphicsContext* gfxCtx, bool ac
         s32 need;
 
         if (index == *cursor) {
-            // Selection: a soft pulsing band, like the pause cursor.
-            s32 phase = sQuestLogFrames % 40;
-            s32 pulse = (phase < 20) ? phase : (40 - phase);
-            QuestLog_Rect(d, 2, y - 1, QL_W - 12, QL_ROW_H, 255, 255, 255, 30 + pulse * 2);
+            // Selection: a soft golden band, and Navi floating at its left like when she points at something.
+            s16 bob = (s16)(sinf(sQuestLogFrames * 0.2f) * 2.0f);
+
+            QuestLog_Rect(d, 20, y - 1, QL_W - 30, QL_ROW_H, 255, 220, 120, 40 + pulse * 2);
+            QuestLog_Tex(d, gNaviIconTex, G_IM_FMT_RGBA, G_IM_SIZ_32b, 16, 16, 1, iconY + bob, QL_ICON, QL_ICON,
+                         true, 255);
         }
 
-        QuestLog_Icon(d, row->icon, row->iconIs24, 6, iconY, QL_ICON, row->done);
+        QuestLog_Icon(d, row->icon, row->iconIs24, 22, iconY, QL_ICON, row->done);
 
         // Right side: progress count, or the age and what the line needs.
         if (row->hasCount) {
@@ -920,27 +1023,31 @@ void KaleidoScope_DrawQuestLog(PlayState* play, GraphicsContext* gfxCtx, bool ac
             }
         }
 
-        QuestLog_DrawText(d, 30, y + 2, row->name, QL_ROW_SIZE, 255, row->done ? 210 : 255, row->done ? 60 : 255,
-                          255, rightX - 4);
+        QuestLog_DrawText(d, QL_TEXT_X, y + 2, row->name, QL_ROW_SIZE, 255, row->done ? 210 : 255,
+                          row->done ? 60 : 255, 255, rightX - 4);
     }
 
-    // Scroll bar.
-    if (rowCount > QL_ROWS) {
-        s16 barH = QL_ROWS * QL_ROW_H;
-        s16 thumbH = MAX(barH * QL_ROWS / rowCount, 8);
-        s16 thumbY = QL_LIST_Y + (barH - thumbH) * *top / (rowCount - QL_ROWS);
-
-        QuestLog_Rect(d, QL_W - 6, QL_LIST_Y, 3, barH, 0, 0, 0, 90);
-        QuestLog_Rect(d, QL_W - 6, thumbY, 3, thumbH, 255, 255, 255, 180);
+    // Scroll arrows, like the ones of the item lists of the game.
+    if (*top > 0) {
+        QuestLog_Tex(d, gArrowUpTex, G_IM_FMT_IA, G_IM_SIZ_16b, 16, 16, QL_W - 14, QL_LIST_Y - 12, 12, 12, true,
+                     120 + pulse * 6);
+    }
+    if (*top + QL_ROWS < rowCount) {
+        QuestLog_Tex(d, gArrowDownTex, G_IM_FMT_IA, G_IM_SIZ_16b, 16, 16, QL_W - 14, QL_LIST_Y + QL_ROWS * QL_ROW_H,
+                     12, 12, true, 120 + pulse * 6);
     }
 
-    // Detail box of the selected line.
-    QuestLog_Rect(d, 2, QL_DETAIL_Y - 4, QL_W - 4, QL_H - QL_DETAIL_Y + 2, 0, 0, 0, 110);
-    QuestLog_Rect(d, 2, QL_DETAIL_Y - 4, QL_W - 4, 2, 255, 210, 60, 140);
+    // Detail of the selected line, in a dialog text box, with Link's map head when the line is done.
+    QuestLog_TextBox(d, 0, QL_DETAIL_Y - 6, QL_W, QL_H - QL_DETAIL_Y + 6);
     if (rowCount > 0) {
         const QuestLogRow* row = &sQuestLogRows[*cursor];
-        QuestLog_DrawWrapped(d, 10, QL_DETAIL_Y + 2, QL_W - 20, row->detail, QL_DETAIL_SIZE, QL_DETAIL_LINE, 4, 230,
-                             230, 230, 255);
+
+        QuestLog_DrawWrapped(d, 14, QL_DETAIL_Y + 2, QL_W - (row->done ? 52 : 28), row->detail, QL_DETAIL_SIZE,
+                             QL_DETAIL_LINE, 4, 255, 255, 255, 255);
+        if (row->done) {
+            QuestLog_Tex(d, gDungeonMapLinkHeadTex, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, QL_W - 34, QL_H - 30, 22,
+                         22, true, 155 + pulse * 5);
+        }
     }
 
     QuestLog_EndDraw(play, gfxCtx, d);
@@ -962,21 +1069,73 @@ void KaleidoScope_DrawQuestLogHint(PlayState* play, GraphicsContext* gfxCtx) {
     QuestLog_EndDraw(play, gfxCtx, d);
 }
 
+static void QuestLog_SetMode(PauseContext* pauseCtx, u8 mode) {
+    if (mode == pauseCtx->randoQuestMode) {
+        return;
+    }
+    if (mode == PAUSE_QUEST_MODE_LOG) {
+        sQuestLogSavedCursorItem = pauseCtx->cursorItem[PAUSE_QUEST];
+    } else if (pauseCtx->randoQuestMode == PAUSE_QUEST_MODE_LOG) {
+        pauseCtx->cursorItem[PAUSE_QUEST] = sQuestLogSavedCursorItem;
+    }
+    pauseCtx->randoQuestMode = mode;
+}
+
 // C-Up on the Quest Status page: Quest Status -> Missões -> (randomizer collectibles) -> Quest Status.
+// The change happens halfway through the page flip.
 void KaleidoScope_CycleQuestMode(PlayState* play) {
     PauseContext* pauseCtx = &play->pauseCtx;
 
+    if (sQuestLogFlipTimer > 0) {
+        return;
+    }
     switch (pauseCtx->randoQuestMode) {
         case PAUSE_QUEST_MODE_STATUS:
-            sQuestLogSavedCursorItem = pauseCtx->cursorItem[PAUSE_QUEST];
-            pauseCtx->randoQuestMode = PAUSE_QUEST_MODE_LOG;
+            sQuestLogFlipTarget = PAUSE_QUEST_MODE_LOG;
             break;
         case PAUSE_QUEST_MODE_LOG:
-            pauseCtx->cursorItem[PAUSE_QUEST] = sQuestLogSavedCursorItem;
-            pauseCtx->randoQuestMode = IS_RANDO ? PAUSE_QUEST_MODE_RANDO : PAUSE_QUEST_MODE_STATUS;
+            sQuestLogFlipTarget = IS_RANDO ? PAUSE_QUEST_MODE_RANDO : PAUSE_QUEST_MODE_STATUS;
             break;
         default:
-            pauseCtx->randoQuestMode = PAUSE_QUEST_MODE_STATUS;
+            sQuestLogFlipTarget = PAUSE_QUEST_MODE_STATUS;
             break;
     }
+    sQuestLogFlipTimer = QL_FLIP_FRAMES;
+    Audio_PlaySoundGeneral(NA_SE_SY_WIN_SCROLL_RIGHT, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+}
+
+// B on the quest log: flip back to the Quest Status page.
+void KaleidoScope_CloseQuestLog(PlayState* play) {
+    if ((sQuestLogFlipTimer > 0) || (play->pauseCtx.randoQuestMode != PAUSE_QUEST_MODE_LOG)) {
+        return;
+    }
+    sQuestLogFlipTarget = PAUSE_QUEST_MODE_STATUS;
+    sQuestLogFlipTimer = QL_FLIP_FRAMES;
+    Audio_PlaySoundGeneral(NA_SE_SY_WIN_SCROLL_LEFT, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+}
+
+// Called with the Quest Status page matrix, before it is loaded: narrows the page while it flips.
+void KaleidoScope_ApplyQuestPageFlip(PlayState* play) {
+    PauseContext* pauseCtx = &play->pauseCtx;
+    f32 t;
+    f32 scale;
+
+    if (sQuestLogFlipTimer <= 0) {
+        return;
+    }
+    if ((pauseCtx->state != 6) || (pauseCtx->pageIndex != PAUSE_QUEST)) {
+        // The menu closed or moved on: finish at once.
+        QuestLog_SetMode(pauseCtx, sQuestLogFlipTarget);
+        sQuestLogFlipTimer = 0;
+        return;
+    }
+    sQuestLogFlipTimer--;
+    if (sQuestLogFlipTimer == QL_FLIP_FRAMES / 2) {
+        QuestLog_SetMode(pauseCtx, sQuestLogFlipTarget);
+    }
+    t = (f32)(QL_FLIP_FRAMES - sQuestLogFlipTimer) / QL_FLIP_FRAMES;
+    scale = fabsf(cosf(t * (f32)M_PI));
+    Matrix_Scale(MAX(scale, 0.02f), 1.0f, 1.0f, MTXMODE_APPLY);
 }

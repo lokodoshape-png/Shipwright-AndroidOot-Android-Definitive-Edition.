@@ -14,19 +14,23 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## [0.7] — Menu de Missões no pause
 
-- **Página "Missões" no menu de pausa.** Na tela Status de Missão, aperte **C-Cima** para virar a página para as
-  Missões (e C-Cima de novo para voltar). Ela usa o fundo de página, a fonte e os ícones do próprio jogo e gira junto
-  com o menu como as outras páginas, sem janelas flutuantes. **C-Esquerda / C-Direita** trocam a lista, o direcional
-  move o cursor e a caixa de baixo explica a linha escolhida. As listas são:
+- **Página "Missões" no menu de pausa.** Na tela Status de Missão, aperte **C-Cima** e a página vira como uma
+  carta, mostrando as Missões do outro lado. **B** (ou C-Cima) vira de volta. Ela usa o fundo de página, a fonte, os
+  ícones e a caixa de texto do próprio jogo e gira junto com o menu como as outras páginas, sem janelas flutuantes.
+  **Esquerda / direita** (direcional, analógico ou C-Esquerda / C-Direita) trocam a lista, **cima / baixo** escolhem
+  a linha, com a Navi apontando para ela, e a caixa de texto de baixo explica a linha escolhida. As listas, cada uma
+  com seu ícone no topo da página, são:
   - **Pedaços de Coração:** os 36, com onde fica cada um, como pegar e o que precisa;
   - **Garrafas:** as 4 (cucos do Talon, cucos da Anju, Carta de Ruto e Coletor de Poes);
   - **Máscaras:** a história da Loja da Máscara Feliz, do Ovo Estranho até a Máscara da Verdade, com quem compra cada
     máscara, e os prêmios do Teatro Deku;
   - **Troca de Adulto:** do Ovo de Bolso até a Espada do Biggoron, com quem recebe cada item;
-  - **Skulltulas de Ouro:** quantas faltam em cada região e masmorra e os prêmios da Casa das Skulltulas.
-  O que já foi feito aparece em dourado e com o ícone colorido. À direita de cada linha ficam os ícones do que ela
-  precisa (Feijão Mágico, Gancho, Bombas, Botas de Ferro, ocarina...) e da idade (Espada Kokiri = criança, Espada
-  Mestra = adulto): coloridos quando o Link já tem, cinza quando falta. Tudo é lido do save na hora.
+  - **Skulltulas de Ouro:** quantas faltam em cada região e masmorra (com a Pedra Espiritual ou o Medalhão de cada
+    masmorra) e os prêmios da Casa das Skulltulas.
+  O que já foi feito aparece em dourado, com o ícone colorido e a cabeça do Link na caixa de texto. À direita de cada
+  linha ficam os ícones do que ela precisa (Feijão Mágico, Gancho, Bombas, Botas de Ferro, ocarina...), da idade
+  (Espada Kokiri = criança, Espada Mestra = adulto) e da hora (Sol = de dia, Lua = à noite): coloridos quando o Link
+  já tem o item ou está na idade e na hora certas, cinza quando não. Tudo é lido do save na hora.
 - Um aviso pequeno "C-Cima Missões" no canto de baixo da tela Status de Missão mostra o atalho.
 - Os acentos usam as mesmas letras do mod de tradução (SolidOne / Letras). Sem o mod, Ã, Õ, Í, Ó e Ú aparecem
   com outros acentos.
