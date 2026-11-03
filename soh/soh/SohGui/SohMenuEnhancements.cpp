@@ -164,6 +164,12 @@ void SohMenu::AddMenuEnhancements() {
         .CVar(CVAR_ENHANCEMENT("PauseWarp"))
         .Options(CheckboxOptions().Tooltip(
             "Selection of warp song in pause menu initiates a warp. Disables song playback."));
+    AddWidget(path, "Skulltulas e Pedaços de Coração no mapa", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_ENHANCEMENT("MapCollectibleCounts"))
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "No mapa do menu de pausa, mostra ao lado da região escolhida quantas Skulltulas douradas e quantos "
+            "Pedaços de Coração dela você já pegou (por exemplo 1/4). Região completa fica com o ponto e os números "
+            "em dourado e a carinha do Link piscando. Conta só as regiões do mapa, não as masmorras."));
 
     path.column = SECTION_COLUMN_2;
     AddWidget(path, "Controls", WIDGET_SEPARATOR_TEXT);

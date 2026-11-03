@@ -36,6 +36,11 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Aviso "Segure B para acelerar"** no canto inferior direito quando a cena começa; enquanto acelera, mostra
   "Acelerando >>". Pode ser desligado na mesma tela.
 
+- **Skulltulas e Pedaços de Coração no mapa** (Aprimoramentos > Qualidade de vida > Menu de pausa, ligado por padrão). No mapa do
+  menu de pausa, ao escolher uma região aparece ao lado do ponto dela o ícone da Skulltula dourada e o do Pedaço de
+  Coração com a conta, por exemplo `1/4`. A conta vem do save e muda assim que você pega um. Região com tudo pego fica
+  com o ponto e os números em dourado e a carinha do Link piscando ao lado. Valem as 56 Skulltulas e os 35 Pedaços de
+  Coração fora das masmorras.
 - **Correção: letras grudadas na tradução.** O jogo reservava para cada letra a largura da letra original daquela
   posição da fonte. A tradução põe o Á no lugar do Î e o Ó no lugar do Ù, que são mais estreitos, então o Á e o Ó
   ficavam por cima da letra seguinte ("Á" ganhou a largura do A e "Ó" a do O). O "f" da fonte traduzida também é mais

@@ -19,6 +19,7 @@ const std::string* MenuTranslations_Find(const std::string& english) {
         { "Input Viewer", "Visualizador de comandos" },
         { "Notifications", "Notificações" },
         { "Quality of Life", "Qualidade de vida" },
+        { "Pause Menu", "Menu de pausa" },
         { "Skips & Speed-ups", "Pulos e acelerações" },
         { "Items", "Itens" },
         { "Fixes", "Correções" },
