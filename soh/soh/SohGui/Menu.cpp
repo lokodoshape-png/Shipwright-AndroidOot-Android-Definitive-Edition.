@@ -17,80 +17,9 @@ extern "C" {
 extern PlayState* gPlayState;
 }
 
+// Tabs, sidebar entries and headers use the same pt-BR dictionary as the widgets (MenuTranslations.cpp).
 static std::string TranslateMenuNavigationLabel(const std::string& source) {
-    static const std::unordered_map<std::string, std::string> translations = {
-        {"Settings", "Configurações"}, {"Enhancements", "Aprimoramentos"},
-        {"Randomizer", "Aleatorizador"}, {"Network", "Rede"},
-        {"Dev Tools", "Ferramentas de desenvolvedor"}, {"General", "Geral"},
-        {"Audio", "Áudio"}, {"Graphics", "Gráficos"}, {"Controls", "Controles"},
-        {"Input Viewer", "Visualizador de comandos"}, {"Notifications", "Notificações"},
-        {"Quality of Life", "Qualidade de vida"}, {"Skips & Speed-ups", "Pulos e acelerações"},
-        {"Items", "Itens"}, {"Fixes", "Correções"}, {"Difficulty", "Dificuldade"},
-        {"Minigames", "Minijogos"}, {"Extra Modes", "Modos extras"}, {"Cheats", "Trapaças"},
-        {"Cosmetics Editor", "Editor de personalização"}, {"Audio Editor", "Editor de áudio"},
-        {"Gameplay Stats", "Estatísticas de jogo"}, {"Time Splits", "Tempos parciais"},
-        {"Timers", "Cronômetros"}, {"Plandomizer", "Planejador de itens"},
-        {"Item Tracker", "Rastreador de itens"}, {"Entrance Tracker", "Rastreador de entradas"},
-        {"Check Tracker", "Rastreador de verificações"}, {"Stats", "Estatísticas"},
-        {"Console", "Console"}, {"Save Editor", "Editor de salvamento"},
-        {"Hook Debugger", "Depurador de ganchos"}, {"Collision Viewer", "Visualizador de colisões"},
-        {"Actor Viewer", "Visualizador de atores"}, {"DList Viewer", "Visualizador de listas de desenho"},
-        {"Value Viewer", "Visualizador de valores"}, {"Message Viewer", "Visualizador de mensagens"},
-        {"Gfx Debugger", "Depurador gráfico"}, {"Search", "Pesquisar"},
-        {"Crowd Control", "Controle da comunidade"},
-        {"Menu Settings", "Configurações do menu"}, {"Menu Theme", "Tema do menu"},
-        {"Menu Controller Navigation", "Navegação do menu por controle"},
-        {"Menu Background Opacity", "Opacidade do fundo do menu"},
-        {"General Settings", "Configurações gerais"}, {"Cursor Always Visible", "Cursor sempre visível"},
-        {"Search In Sidebar", "Pesquisar na barra lateral"},
-        {"Search Input Autofocus", "Foco automático na pesquisa"},
-        {"Alt Assets Tab hotkey", "Atalho da tecla Tab para recursos alternativos"},
-        {"Open App Files Folder", "Abrir pasta de arquivos do aplicativo"},
-        {"Boot", "Inicialização"}, {"Boot Sequence", "Sequência de inicialização"},
-        {"Languages", "Idiomas"}, {"Translate Title Screen", "Traduzir tela de título"},
-        {"Language", "Idioma"}, {"Accessibility", "Acessibilidade"},
-        {"Text to Speech", "Conversão de texto em fala"},
-        {"Disable Idle Camera Re-Centering", "Desativar recentralização da câmera quando ociosa"},
-        {"ImGui Menu Scaling", "Escala do menu ImGui"}, {"About", "Sobre"},
-        {"Ship Of Harkinian", "Ship of Harkinian"},
-        {"Master Volume: %d %%", "Volume principal: %d %%"},
-        {"Main Music Volume: %d %%", "Volume da música principal: %d %%"},
-        {"Sub Music Volume: %d %%", "Volume da música secundária: %d %%"},
-        {"Fanfare Volume: %d %%", "Volume das fanfarras: %d %%"},
-        {"Sound Effects Volume: %d %%", "Volume dos efeitos sonoros: %d %%"},
-        {"Audio API (Needs reload)", "API de áudio (requer reinicialização)"},
-        {"Graphics Options", "Opções gráficas"}, {"Toggle Fullscreen", "Alternar tela cheia"},
-        {"Internal Resolution", "Resolução interna"}, {"Anti-aliasing (MSAA)", "Antisserrilhamento (MSAA)"},
-        {"Current FPS", "FPS atual"}, {"Match Refresh Rate", "Sincronizar taxa de atualização"},
-        {"Renderer API (Needs reload)", "API de renderização (requer reinicialização)"},
-        {"Enable Vsync", "Ativar VSync"}, {"Enhancement Presets", "Predefinições de aprimoramentos"},
-        {"Select Preset", "Selecionar predefinição"}, {"Apply Preset##Enhancemnts", "Aplicar predefinição##Enhancemnts"},
-        {"Quality of Life", "Qualidade de vida"}, {"Skips & Speed-ups", "Pulos e acelerações"},
-        {"Popout Randomizer Settings Window", "Abrir configurações do aleatorizador em janela separada"},
-        {"Randomizer Enhancements", "Aprimoramentos do aleatorizador"},
-        {"Rando-Relevant Navi Hints", "Dicas da Navi relacionadas ao aleatorizador"},
-        {"Random Rupee Names", "Nomes aleatórios para rupias"},
-        {"Use Custom Key Models", "Usar modelos personalizados de chaves"},
-        {"Map & Compass Colors Match Dungeon", "Cores do mapa e da bússola correspondem à masmorra"},
-        {"Quest Item Fanfares", "Fanfarras de itens de missão"},
-        {"Popout Menu", "Menu em janela separada"}, {"Debug Mode", "Modo de depuração"},
-        {"OoT Registry Editor", "Editor de registro do OoT"},
-        {"Debug Save File Mode", "Modo de arquivo de salvamento de depuração"},
-        {"OoT Skulltula Debug", "Depuração das skulltulas do OoT"},
-        {"Better Debug Warp Screen", "Tela de teletransporte de depuração aprimorada"},
-        {"Debug Warp Screen Translation", "Tradução da tela de teletransporte de depuração"},
-        {"Resource logging", "Registro de recursos"}, {"Frame Advance", "Avanço de quadros"},
-        {"Clear", "Limpar"}, {"Search...", "Pesquisar..."}, {"No results found", "Nenhum resultado encontrado"},
-        {"Start typing to see results.", "Comece a digitar para ver os resultados."}
-    };
-
-    const auto idPosition = source.find("##");
-    const std::string visibleText = source.substr(0, idPosition);
-    const auto it = translations.find(visibleText);
-    if (it == translations.end()) {
-        return source;
-    }
-    return it->second + (idPosition == std::string::npos ? "" : source.substr(idPosition));
+    return UIWidgets::TranslateText(source);
 }
 std::vector<ImVec2> windowTypeSizes = { {} };
 
@@ -361,7 +290,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             case WIDGET_CVAR_CHECKBOX: {
                 auto options = std::static_pointer_cast<UIWidgets::CheckboxOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::CVarCheckbox(UIWidgets::WrappedText(widget.name.c_str(), width).c_str(), widget.cVar,
+                if (UIWidgets::CVarCheckbox(UIWidgets::WrappedText(translatedWidgetName.c_str(), width).c_str(), widget.cVar,
                                             *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);

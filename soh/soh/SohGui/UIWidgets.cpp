@@ -10,6 +10,8 @@
 #include <libultraship/libultra/types.h>
 #include <spdlog/fmt/fmt.h>
 
+#include "MenuTranslations.h"
+
 namespace UIWidgets {
 
 std::string TranslateText(const std::string& source) {
@@ -172,9 +174,11 @@ std::string TranslateText(const std::string& source) {
     };
     const auto idPosition = source.find("##");
     const std::string visibleText = source.substr(0, idPosition);
+    const std::string suffix = idPosition == std::string::npos ? "" : source.substr(idPosition);
     const auto it = translations.find(visibleText);
-    if (it == translations.end()) return source;
-    return it->second + (idPosition == std::string::npos ? "" : source.substr(idPosition));
+    if (it != translations.end()) return it->second + suffix;
+    if (const std::string* translated = MenuTranslations_Find(visibleText)) return *translated + suffix;
+    return source;
 }
 
 // Automatically adds newlines to break up text longer than a specified number of characters
