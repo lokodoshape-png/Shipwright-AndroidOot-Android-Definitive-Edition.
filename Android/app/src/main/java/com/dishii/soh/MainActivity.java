@@ -198,7 +198,6 @@ public class MainActivity extends SDLActivity{
         }
 
         updateSetupProgress(5, "Criando pasta principal...");
-        updateSetupProgress(5, "Criando pasta principal...");
         // Ensure root folder exists
         if (!targetRootFolder.exists()) {
             if (!targetRootFolder.mkdirs()) {
@@ -236,7 +235,7 @@ public class MainActivity extends SDLActivity{
         try (InputStream in = getAssets().open("soh.otr");
              OutputStream out = new FileOutputStream(targetOtrFile)) {
 
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[256 * 1024];
             int read;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
@@ -250,6 +249,12 @@ public class MainActivity extends SDLActivity{
             runOnUiThread(() -> Toast.makeText(this, "Error copying soh.otr", Toast.LENGTH_LONG).show());
         }
 
+        updateSetupProgress(100, "Configuração concluída.");
+        runOnUiThread(() -> {
+            if (setupProgressDialog != null && setupProgressDialog.isShowing()) {
+                setupProgressDialog.dismiss();
+            }
+        });
         setupLatch.countDown();
     }
 
@@ -265,33 +270,11 @@ public class MainActivity extends SDLActivity{
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            // Handle file selection
+            // Importa a ROM em segundo plano e exibe progresso real em bytes.
             Uri selectedFileUri = data.getData();
-            String fileName = "OOT.z64";
-
-            File destinationDirectory = new File(Environment.getExternalStorageDirectory(), "SOH");
-            File destinationFile = new File(destinationDirectory, fileName);
-
-            if (destinationDirectory != null && selectedFileUri != null) {
-                try {
-                    InputStream in = getContentResolver().openInputStream(selectedFileUri);
-                    OutputStream out = new FileOutputStream(destinationFile);
-
-                    byte[] buffer = new byte[4096];
-                    int bytesRead;
-                    while ((bytesRead = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, bytesRead);
-                    }
-
-                    in.close();
-                    out.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            if (selectedFileUri != null) {
+                importRomWithProgress(selectedFileUri);
             }
-
-            // Now pass the path of the file in the new folder
-            nativeHandleSelectedFile(destinationFile.getPath());
 
         } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
             // Handle MANAGE_EXTERNAL_STORAGE result
@@ -303,6 +286,70 @@ public class MainActivity extends SDLActivity{
                 }
             }
         }
+    }
+
+    private void importRomWithProgress(Uri sourceUri) {
+        ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setTitle("Importando ROM");
+        dialog.setMessage("Preparando importação...");
+        dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        dialog.setIndeterminate(false);
+        dialog.setMax(100);
+        dialog.setProgress(0);
+        dialog.setCancelable(false);
+        dialog.show();
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            File destinationDirectory = new File(Environment.getExternalStorageDirectory(), "SOH");
+            File destinationFile = new File(destinationDirectory, "OOT.z64");
+            try {
+                if (!destinationDirectory.exists() && !destinationDirectory.mkdirs()) {
+                    throw new IOException("Não foi possível criar a pasta SOH.");
+                }
+
+                long totalBytes = -1;
+                try (android.content.res.AssetFileDescriptor afd =
+                             getContentResolver().openAssetFileDescriptor(sourceUri, "r")) {
+                    if (afd != null) totalBytes = afd.getLength();
+                } catch (Exception ignored) { }
+
+                long copied = 0;
+                try (InputStream in = getContentResolver().openInputStream(sourceUri);
+                     OutputStream out = new FileOutputStream(destinationFile)) {
+                    if (in == null) throw new IOException("Não foi possível abrir a ROM selecionada.");
+                    byte[] buffer = new byte[256 * 1024];
+                    int count;
+                    while ((count = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, count);
+                        copied += count;
+                        if (totalBytes > 0) {
+                            final int percent = (int) Math.min(100, (copied * 100L) / totalBytes);
+                            runOnUiThread(() -> {
+                                dialog.setProgress(percent);
+                                dialog.setMessage("Importando ROM... " + percent + "%");
+                            });
+                        } else {
+                            final long current = copied / (1024 * 1024);
+                            runOnUiThread(() -> dialog.setMessage("Importando ROM... " + current + " MB"));
+                        }
+                    }
+                    out.flush();
+                }
+
+                runOnUiThread(() -> {
+                    dialog.setProgress(100);
+                    dialog.dismiss();
+                    Toast.makeText(this, "ROM importada com sucesso.", Toast.LENGTH_LONG).show();
+                    nativeHandleSelectedFile(destinationFile.getAbsolutePath());
+                });
+            } catch (IOException e) {
+                Log.e("OOTDE_IMPORT", "Falha ao importar ROM", e);
+                runOnUiThread(() -> {
+                    dialog.dismiss();
+                    Toast.makeText(this, "Falha ao importar ROM: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     public void openFilePicker() {
