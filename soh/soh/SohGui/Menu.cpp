@@ -37,7 +37,51 @@ static std::string TranslateMenuNavigationLabel(const std::string& source) {
         {"Actor Viewer", "Visualizador de atores"}, {"DList Viewer", "Visualizador de listas de desenho"},
         {"Value Viewer", "Visualizador de valores"}, {"Message Viewer", "Visualizador de mensagens"},
         {"Gfx Debugger", "Depurador gráfico"}, {"Search", "Pesquisar"},
-        {"Crowd Control", "Controle da comunidade"}
+        {"Crowd Control", "Controle da comunidade"},
+        {"Menu Settings", "Configurações do menu"}, {"Menu Theme", "Tema do menu"},
+        {"Menu Controller Navigation", "Navegação do menu por controle"},
+        {"Menu Background Opacity", "Opacidade do fundo do menu"},
+        {"General Settings", "Configurações gerais"}, {"Cursor Always Visible", "Cursor sempre visível"},
+        {"Search In Sidebar", "Pesquisar na barra lateral"},
+        {"Search Input Autofocus", "Foco automático na pesquisa"},
+        {"Alt Assets Tab hotkey", "Atalho da tecla Tab para recursos alternativos"},
+        {"Open App Files Folder", "Abrir pasta de arquivos do aplicativo"},
+        {"Boot", "Inicialização"}, {"Boot Sequence", "Sequência de inicialização"},
+        {"Languages", "Idiomas"}, {"Translate Title Screen", "Traduzir tela de título"},
+        {"Language", "Idioma"}, {"Accessibility", "Acessibilidade"},
+        {"Text to Speech", "Conversão de texto em fala"},
+        {"Disable Idle Camera Re-Centering", "Desativar recentralização da câmera quando ociosa"},
+        {"ImGui Menu Scaling", "Escala do menu ImGui"}, {"About", "Sobre"},
+        {"Ship Of Harkinian", "Ship of Harkinian"},
+        {"Master Volume: %d %%", "Volume principal: %d %%"},
+        {"Main Music Volume: %d %%", "Volume da música principal: %d %%"},
+        {"Sub Music Volume: %d %%", "Volume da música secundária: %d %%"},
+        {"Fanfare Volume: %d %%", "Volume das fanfarras: %d %%"},
+        {"Sound Effects Volume: %d %%", "Volume dos efeitos sonoros: %d %%"},
+        {"Audio API (Needs reload)", "API de áudio (requer reinicialização)"},
+        {"Graphics Options", "Opções gráficas"}, {"Toggle Fullscreen", "Alternar tela cheia"},
+        {"Internal Resolution", "Resolução interna"}, {"Anti-aliasing (MSAA)", "Antisserrilhamento (MSAA)"},
+        {"Current FPS", "FPS atual"}, {"Match Refresh Rate", "Sincronizar taxa de atualização"},
+        {"Renderer API (Needs reload)", "API de renderização (requer reinicialização)"},
+        {"Enable Vsync", "Ativar VSync"}, {"Enhancement Presets", "Predefinições de aprimoramentos"},
+        {"Select Preset", "Selecionar predefinição"}, {"Apply Preset##Enhancemnts", "Aplicar predefinição##Enhancemnts"},
+        {"Quality of Life", "Qualidade de vida"}, {"Skips & Speed-ups", "Pulos e acelerações"},
+        {"Popout Randomizer Settings Window", "Abrir configurações do aleatorizador em janela separada"},
+        {"Randomizer Enhancements", "Aprimoramentos do aleatorizador"},
+        {"Rando-Relevant Navi Hints", "Dicas da Navi relacionadas ao aleatorizador"},
+        {"Random Rupee Names", "Nomes aleatórios para rupias"},
+        {"Use Custom Key Models", "Usar modelos personalizados de chaves"},
+        {"Map & Compass Colors Match Dungeon", "Cores do mapa e da bússola correspondem à masmorra"},
+        {"Quest Item Fanfares", "Fanfarras de itens de missão"},
+        {"Popout Menu", "Menu em janela separada"}, {"Debug Mode", "Modo de depuração"},
+        {"OoT Registry Editor", "Editor de registro do OoT"},
+        {"Debug Save File Mode", "Modo de arquivo de salvamento de depuração"},
+        {"OoT Skulltula Debug", "Depuração das skulltulas do OoT"},
+        {"Better Debug Warp Screen", "Tela de teletransporte de depuração aprimorada"},
+        {"Debug Warp Screen Translation", "Tradução da tela de teletransporte de depuração"},
+        {"Resource logging", "Registro de recursos"}, {"Frame Advance", "Avanço de quadros"},
+        {"Clear", "Limpar"}, {"Search...", "Pesquisar..."}, {"No results found", "Nenhum resultado encontrado"},
+        {"Start typing to see results.", "Comece a digitar para ver os resultados."}
     };
 
     const auto idPosition = source.find("##");
@@ -266,6 +310,7 @@ std::unordered_map<uint32_t, disabledInfo>& Menu::GetDisabledMap() {
 }
 
 void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors menuThemeIndex) {
+    const std::string translatedWidgetName = TranslateMenuNavigationLabel(widget.name);
     disabledTempTooltip = "This setting is disabled because: \n";
     disabledValue = false;
     disabledTooltip = " ";
@@ -305,7 +350,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 }
                 auto options = std::static_pointer_cast<UIWidgets::CheckboxOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::Checkbox(UIWidgets::WrappedText(widget.name.c_str(), width).c_str(), pointer,
+                if (UIWidgets::Checkbox(UIWidgets::WrappedText(translatedWidgetName.c_str(), width).c_str(), pointer,
                                         *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
@@ -357,7 +402,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 if (options->color != UIWidgets::Colors::NoColor) {
                     ImGui::PushStyleColor(ImGuiCol_Text, UIWidgets::ColorValues.at(options->color));
                 }
-                ImGui::SeparatorText(widget.name.c_str());
+                ImGui::SeparatorText(translatedWidgetName.c_str());
                 if (options->color != UIWidgets::Colors::NoColor) {
                     ImGui::PopStyleColor();
                 }
@@ -368,7 +413,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                     ImGui::PushStyleColor(ImGuiCol_Text, UIWidgets::ColorValues.at(options->color));
                 }
                 ImGui::AlignTextToFramePadding();
-                ImGui::TextWrapped("%s", widget.name.c_str());
+                ImGui::TextWrapped("%s", translatedWidgetName.c_str());
                 if (options->color != UIWidgets::Colors::NoColor) {
                     ImGui::PopStyleColor();
                 }
@@ -382,7 +427,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 }
                 auto options = std::static_pointer_cast<UIWidgets::ComboboxOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::Combobox(widget.name.c_str(), pointer, options->comboMap, *options)) {
+                if (UIWidgets::Combobox(translatedWidgetName.c_str(), pointer, options->comboMap, *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -391,7 +436,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             case WIDGET_CVAR_COMBOBOX: {
                 auto options = std::static_pointer_cast<UIWidgets::ComboboxOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::CVarCombobox(widget.name.c_str(), widget.cVar, options->comboMap, *options)) {
+                if (UIWidgets::CVarCombobox(translatedWidgetName.c_str(), widget.cVar, options->comboMap, *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -406,7 +451,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 }
                 auto options = std::static_pointer_cast<UIWidgets::IntSliderOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::SliderInt(widget.name.c_str(), pointer, *options)) {
+                if (UIWidgets::SliderInt(translatedWidgetName.c_str(), pointer, *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -415,7 +460,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             case WIDGET_CVAR_SLIDER_INT: {
                 auto options = std::static_pointer_cast<UIWidgets::IntSliderOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::CVarSliderInt(widget.name.c_str(), widget.cVar, *options)) {
+                if (UIWidgets::CVarSliderInt(translatedWidgetName.c_str(), widget.cVar, *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -431,7 +476,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 }
                 auto options = std::static_pointer_cast<UIWidgets::FloatSliderOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::SliderFloat(widget.name.c_str(), pointer, *options)) {
+                if (UIWidgets::SliderFloat(translatedWidgetName.c_str(), pointer, *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -440,7 +485,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             case WIDGET_CVAR_SLIDER_FLOAT: {
                 auto options = std::static_pointer_cast<UIWidgets::FloatSliderOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::CVarSliderFloat(widget.name.c_str(), widget.cVar, *options)) {
+                if (UIWidgets::CVarSliderFloat(translatedWidgetName.c_str(), widget.cVar, *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -449,7 +494,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
             case WIDGET_BUTTON: {
                 auto options = std::static_pointer_cast<UIWidgets::ButtonOptions>(widget.options);
                 options->color = menuThemeIndex;
-                if (UIWidgets::Button(widget.name.c_str(), *options)) {
+                if (UIWidgets::Button(translatedWidgetName.c_str(), *options)) {
                     if (widget.callback != nullptr) {
                         widget.callback(widget);
                     }
@@ -477,7 +522,7 @@ void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors me
                 auto options = std::static_pointer_cast<UIWidgets::WindowButtonOptions>(widget.options);
                 options->color = menuThemeIndex;
                 if (options->showButton) {
-                    UIWidgets::WindowButton(widget.name.c_str(), widget.cVar, window, *options);
+                    UIWidgets::WindowButton(translatedWidgetName.c_str(), widget.cVar, window, *options);
                 }
                 if (!window->IsVisible() && options->embedWindow) {
                     window->DrawElement();
