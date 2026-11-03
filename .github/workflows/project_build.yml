@@ -69,8 +69,12 @@ jobs:
           fi
           git fetch --tags --force
           PREFIX="v${VERSION_NAME}-android."
-          LAST=$(git tag -l "${PREFIX}*" | sed "s/^\\${PREFIX}//" | grep -E '^[0-9]+ | sort -n | tail -n 1)
-          NEXT=$((${LAST:-0} + 1))
+          LAST=0
+          for TAG in $(git tag -l "${PREFIX}*"); do
+            N="${TAG#${PREFIX}}"
+            if [[ "$N" =~ ^[0-9]+$ ]] && (( N > LAST )); then LAST=$N; fi
+          done
+          NEXT=$((LAST + 1))
           echo "tag=${PREFIX}${NEXT}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
 
