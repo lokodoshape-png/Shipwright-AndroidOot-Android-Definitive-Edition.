@@ -767,7 +767,7 @@ f32 sFontWidths[144] = {
     8.0f,  // 'c'
     9.0f,  // 'd'
     9.0f,  // 'e'
-    6.0f,  // 'f'
+    7.0f,  // 'f' (OOT D.E.: 6 -> 7, the pt-BR font's f is wider)
     9.0f,  // 'g'
     8.0f,  // 'h'
     4.0f,  // 'i'
@@ -794,18 +794,18 @@ f32 sFontWidths[144] = {
     10.0f, // '~'
     10.0f, // '‾'
     12.0f, // 'À'
-    6.0f,  // 'î'
+    12.0f, // 'î' (OOT D.E.: slot 0x81 holds Á in the pt-BR font, so it gets the width of A)
     12.0f, // 'Â'
     12.0f, // 'Ä'
     11.0f, // 'Ç'
     8.0f,  // 'È'
     8.0f,  // 'É'
     8.0f,  // 'Ê'
-    6.0f,  // 'Ë'
+    8.0f,  // 'Ë' (OOT D.E.: same width as the other E letters)
     6.0f,  // 'Ï'
     13.0f, // 'Ô'
     13.0f, // 'Ö'
-    10.0f, // 'Ù'
+    13.0f, // 'Ù' (OOT D.E.: slot 0x8C holds Ó in the pt-BR font, so it gets the width of O)
     10.0f, // 'Û'
     10.0f, // 'Ü'
     9.0f,  // 'ß'

@@ -36,6 +36,11 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Aviso "Segure B para acelerar"** no canto inferior direito quando a cena começa; enquanto acelera, mostra
   "Acelerando >>". Pode ser desligado na mesma tela.
 
+- **Correção: letras grudadas na tradução.** O jogo reservava para cada letra a largura da letra original daquela
+  posição da fonte. A tradução põe o Á no lugar do Î e o Ó no lugar do Ù, que são mais estreitos, então o Á e o Ó
+  ficavam por cima da letra seguinte ("Á" ganhou a largura do A e "Ó" a do O). O "f" da fonte traduzida também é mais
+  largo que o original e ganhou um pouco mais de espaço.
+
 ### Android
 - **Pasta própria `OOT-DE`** na raiz do armazenamento, no lugar da `SOH` que era dividida com o Ship of Harkinian
   original. Na primeira abertura da 0.5, o app copia saves, mods, o `oot.otr` e as configurações da pasta `SOH`
