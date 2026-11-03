@@ -606,9 +606,9 @@ void Menu::DrawElement() {
     std::vector<ImVec2> headerSizes;
     float headerWidth = style.ItemSpacing.x + 20;
     bool headerSearch = !CVarGetInteger(CVAR_SETTING("Menu.SidebarSearch"), 0);
-    if (headerSearch) {
-        headerWidth += 200.0f + style.ItemSpacing.x + style.FramePadding.x;
-    }
+    // OOT D.E.: the tabs are drawn with exactly this padding (it used to be measured with one padding and drawn with
+    // a bigger one, so the tabs overflowed the header and a scroll bar covered their text).
+    const ImVec2 headerPadding = style.FramePadding;
     for (auto& label : menuOrder) {
         const std::string displayLabel = MenuHeaderLabel(label);
         ImVec2 size = ImGui::CalcTextSize(displayLabel.c_str());
@@ -638,7 +638,18 @@ void Menu::DrawElement() {
 
     std::unordered_map<std::string, SidebarEntry>* sidebar;
     float headerHeight = headerSizes.at(0).y + style.FramePadding.y * 2;
-    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_TIMES_CIRCLE) + style.FramePadding * 2;
+    // The power/reset/close buttons use the default button padding (10, 8) and a border.
+    ImVec2 buttonSize = ImGui::CalcTextSize(ICON_FA_TIMES_CIRCLE) + ImVec2(10.0f, 8.0f) * 2;
+    // OOT D.E.: the search box takes only the room the tabs leave, so the header never needs a scroll bar.
+    const float headerAvail = menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 4;
+    float searchWidth = 0.0f;
+    if (headerSearch) {
+        searchWidth = std::fminf(200.0f, headerAvail - headerWidth - style.ItemSpacing.x - style.FramePadding.x);
+        if (searchWidth < ImGui::GetFontSize() * 3.0f) {
+            searchWidth = ImGui::GetFontSize() * 3.0f;
+        }
+        headerWidth += searchWidth + style.ItemSpacing.x + style.FramePadding.x;
+    }
     bool scrollbar = false;
     if (headerWidth > menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 3) {
         headerHeight += style.ScrollbarSize;
@@ -659,7 +670,7 @@ void Menu::DrawElement() {
         }
         auto& entry = menuEntries.at(label);
         std::string nextIndex = label;
-        UIWidgets::PushStyleButton(menuThemeIndex);
+        UIWidgets::PushStyleButton(menuThemeIndex, headerPadding);
         if (headerIndex != label) {
             ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
         }
@@ -693,12 +704,13 @@ void Menu::DrawElement() {
         auto color = UIWidgets::ColorValues.at(menuThemeIndex);
         color.w = 0.2f;
         ImGui::PushStyleColor(ImGuiCol_FrameBg, color);
-        menuSearch.Draw("##search", 200.0f);
+        menuSearch.Draw("##search", searchWidth);
         menuSearchText = menuSearch.InputBuf;
         menuSearchText.erase(std::remove(menuSearchText.begin(), menuSearchText.end(), ' '), menuSearchText.end());
         if (menuSearchText.length() < 1) {
-            ImGui::SameLine(headerWidth - 200.0f + style.ItemSpacing.x);
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "Pesquisar...");
+            ImGui::SameLine(headerWidth - searchWidth + style.ItemSpacing.x);
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "%s",
+                               searchWidth >= ImGui::CalcTextSize("Pesquisar...").x ? "Pesquisar..." : ICON_FA_SEARCH);
         }
         ImGui::PopStyleColor();
     }
