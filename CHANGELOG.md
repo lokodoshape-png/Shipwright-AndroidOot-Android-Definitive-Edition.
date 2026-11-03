@@ -2,6 +2,17 @@
 
 Este arquivo registra as alterações da edição OOT D.E. As versões seguem a sequência 0.x até 1.0 e, depois, 1.1, 1.2 e assim por diante. Cada publicação deve incrementar também o `versionCode` Android.
 
+## [0.2] — Atualização segura de arquivos do usuário
+
+### Android e preservação de dados
+- Removida a exclusão automática de `SOH/assets`, `soh.otr`, `oot.otr` e `oot-mq.otr` durante a atualização do aplicativo.
+- Atualizações registram a nova versão sem apagar saves, mods, assets personalizados ou arquivos OTR existentes.
+- Mantida a rotina de configuração inicial para criar/copiar somente os arquivos que estiverem ausentes.
+- Incrementado o Android para `versionCode 10` e `versionName 0.2`, mantendo o mesmo identificador e a mesma configuração de assinatura.
+
+### Validação
+- APK de teste será considerado disponível somente após a conclusão do GitHub Actions e a verificação do artefato gerado.
+
 ## [0.1] — Primeira versão da edição
 
 ### Identidade e Android
