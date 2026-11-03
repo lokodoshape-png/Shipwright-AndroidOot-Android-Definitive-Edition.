@@ -15,32 +15,42 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 ## [0.7] — Diário de Quests no pause
 
 - **Diário de Quests no menu de pausa.** Na tela Status de Missão, aperte **C-Cima**: a página vira e o Diário abre
-  na tela toda, por cima do menu, com moldura de pedra, a placa com a Triforce alada e o fundo escurecido. **B** (ou
-  C-Cima) fecha e volta para o Status. Tudo é desenhado dentro do jogo, com a fonte, os ícones e o mapa de Hyrule do
-  próprio jogo, sem janelas flutuantes.
-  - **À esquerda**, os botões de pedra das listas (o escolhido brilha em dourado). **L / R** trocam a lista (também
-    Z, esquerda / direita e C-Esquerda / C-Direita).
-  - **No meio**, a lista com caixinhas de marcar, separada em grupos com título. **Cima / baixo** escolhem a linha
-    (segurando, ela anda sozinha).
-  - **À direita**, o pergaminho da linha escolhida: o que fazer, o progresso, o próximo objetivo (ou do que a linha
-    precisa: idade, itens e hora, coloridos quando o Link já tem) e o pedaço do mapa de Hyrule onde fica, com a
-    cabeça do Link piscando no lugar. Nas masmorras aparece a Pedra Espiritual ou o Medalhão.
-  - **Embaixo**, uma placa com uma dica da lista.
-- As listas:
-  - **Missões:** a história principal (Pedras Espirituais, Carta da Zelda, Ocarina do Tempo, Espada Mestra, Sábios,
-    Flechas de Luz e Ganondorf), com os seis medalhões no pergaminho, e um resumo das outras listas;
-  - **Corações:** os 36 Pedaços de Coração por região, com onde fica cada um, como pegar e o que precisa;
-  - **Garrafas:** as 4 (cucos do Talon, cucos da Anju, Carta de Ruto e Coletor de Poes);
-  - **Máscaras:** a história da Loja da Máscara Feliz, do Ovo Estranho até a Máscara da Verdade, com quem compra cada
-    máscara, e os prêmios do Teatro Deku;
-  - **Trocas:** do Ovo de Bolso até a Espada do Biggoron, com quem recebe cada item;
-  - **Skulltulas:** quantas faltam em cada região e masmorra e os prêmios da Casa das Skulltulas.
-  Tudo é lido do save na hora.
+  na tela toda, por cima do menu, com moldura de pedra, a placa com a Triforce alada e o fundo escurecido. **B**,
+  C-Cima ou o botão **Voltar** fecham e voltam para o Status. Tudo é desenhado dentro do jogo, com a fonte, os ícones
+  e o mapa de Hyrule do próprio jogo, sem janelas flutuantes.
+  - **À esquerda**, os seis botões de pedra das categorias (a escolhida brilha em dourado).
+  - **No meio**, a lista da categoria, separada em grupos com título e a contagem do grupo. Cada linha mostra o
+    estado: caixinha vazia (disponível), ampulheta (em andamento), cadeado (bloqueada, falta a etapa anterior da
+    mesma história) ou marcada (concluída).
+  - **À direita**, o pergaminho da linha escolhida: descrição, estado, progresso (os seis medalhões na história
+    principal, uma barra nas outras), o próximo objetivo e os objetivos em ícones, marcados quando feitos, e o
+    pedaço do mapa de Hyrule onde fica, com a cabeça do Link piscando no lugar (nas masmorras aparece a Pedra
+    Espiritual ou o Medalhão). Cada missão tem um número próprio no canto do pergaminho.
+  - **Embaixo**, uma placa com uma dica da categoria.
+- As categorias:
+  - **Principais:** a história (Pedras Espirituais, Carta da Zelda, Ocarina do Tempo, Espada Mestra, Sábios,
+    Flechas de Luz e Ganondorf), cada etapa com seus objetivos;
+  - **Secundárias:** a Loja da Máscara Feliz e o Teatro Deku, as trocas do Ovo de Bolso até a Espada do Biggoron, as
+    4 garrafas, os 36 Pedaços de Coração (com onde fica cada um e o que precisa) e as Skulltulas de Ouro por região,
+    masmorra e prêmio;
+  - **Personagens:** quem o Link já conheceu e ajudou;
+  - **Locais:** as regiões de Hyrule (as mesmas nuvens do mapa da pausa) e as masmorras já visitadas;
+  - **Itens:** os itens que abrem caminho (estilingue, bombas, magia, gancho, botas, Túnica Goron...);
+  - **Registros:** as 12 partituras e os documentos do Link (Carta da Zelda, Carta de Ruto, Cartão Gerudo...).
+  Tudo é lido do save na hora; nada é marcado sem uma checagem real do jogo.
+- **Controles:**
+  - **Controle / teclado** (pelo mapeamento de botões do jogo): **cima / baixo** escolhem a linha (segurando, ela
+    anda sozinha); **L / R**, Z, esquerda / direita e C-Esquerda / C-Direita trocam a categoria.
+  - **Toque (Android) e mouse:** toque numa categoria, numa linha, nas abas L / R ou em Voltar; arraste a lista para
+    rolar, ou toque nas setas; a roda do mouse também rola.
 - Um aviso pequeno "C-Cima Missões" no canto de baixo da tela Status de Missão mostra o atalho.
 - Os acentos usam as mesmas letras do mod de tradução (SolidOne / Letras). Sem o mod, Ã, Õ, Í, Ó e Ú aparecem
   com outros acentos.
 - No randomizador, o C-Cima passa por Status → Diário → colecionáveis do randomizador → Status. Com o teleporte pelas
   canções da pausa ligado, apertar A no Diário não teleporta mais por engano.
+- Código: o Diário é o módulo **QuestMenu** (`soh/src/overlays/misc/ovl_kaleido_scope/questmenu/`), separado em
+  dados, estado, desenho e interface, com as texturas em `soh/assets/custom/overlays/questmenu/`. Veja
+  [docs/QUESTMENU.md](docs/QUESTMENU.md).
 
 ## [0.6.1] — Correção do travamento no menu de pausa
 

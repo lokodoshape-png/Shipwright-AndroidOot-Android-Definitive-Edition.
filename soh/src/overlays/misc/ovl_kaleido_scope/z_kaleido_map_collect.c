@@ -222,7 +222,7 @@ static void MapCollect_Count(PlayState* play, s32 point, MapCollectCounts* count
     }
 }
 
-// Shared with the quest log page (z_kaleido_quest_log.c).
+// Shared with the quest log page (questmenu/questmenu_data.c).
 s32 KaleidoScope_MapCollectHeartPieceCount(void) {
     return ARRAY_COUNT(sMapCollectHeartPieces);
 }
