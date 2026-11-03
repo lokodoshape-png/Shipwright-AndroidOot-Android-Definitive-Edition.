@@ -18,6 +18,9 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Menu traduzido por inteiro.** Nomes das opções, dicas (tooltips), opções das listas e páginas agora passam
   pela tradução pt-BR. Antes as caixas de seleção, o tipo de opção mais comum, continuavam em inglês, e várias
   opções de Configurações só eram traduzidas nas abas. Todo o texto fica em `soh/soh/SohGui/MenuTranslations.cpp`.
+- **Abas e barra lateral sem cortes no celular.** As abas de cima usam nomes curtos (Ajustes, Melhorias,
+  Randomizador, Dev) e cabem sem a barra de rolagem que cobria o texto. A barra lateral fica larga o bastante para o
+  nome mais longo da aba aberta ("Editor de personalização" aparecia cortado dos dois lados).
 - **Página de Mods** (Configurações > Modificações): lista os mods da pasta, liga e desliga cada um e instala novos
   pelo botão "Adicionar mod...", que abre o seletor de arquivos do Android. Aceita `.otr`, `.o2r` e `.zip`; os
   `.otr`/`.o2r` de dentro de um `.zip` são extraídos. Um mod desligado ganha o final `.desativado` e não é carregado.

@@ -21,6 +21,27 @@ extern PlayState* gPlayState;
 static std::string TranslateMenuNavigationLabel(const std::string& source) {
     return UIWidgets::TranslateText(source);
 }
+
+// Short names for the tabs at the top. With the full Portuguese names ("Ferramentas de desenvolvedor"...) the tabs did
+// not fit on a phone: the row got a scroll bar drawn over the text and the text was cut.
+static std::string MenuHeaderLabel(const std::string& source) {
+    if (source == "Settings") {
+        return "Ajustes";
+    }
+    if (source == "Enhancements") {
+        return "Melhorias";
+    }
+    if (source == "Randomizer") {
+        return "Randomizador";
+    }
+    if (source == "Dev Tools") {
+        return "Dev";
+    }
+    if (source == "Network") {
+        return "Rede";
+    }
+    return TranslateMenuNavigationLabel(source);
+}
 std::vector<ImVec2> windowTypeSizes = { {} };
 
 extern std::unordered_map<s16, const char*> warpPointSceneList;
@@ -175,7 +196,7 @@ bool ModernMenuHeaderEntry(std::string label) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec2 pos = window->DC.CursorPos;
     const ImGuiID headerId = window->GetID(std::string(label + "##Header").c_str());
-    const std::string displayLabel = TranslateMenuNavigationLabel(label);
+    const std::string displayLabel = MenuHeaderLabel(label);
     ImVec2 labelSize = ImGui::CalcTextSize(displayLabel.c_str(), ImGui::FindRenderedTextEnd(displayLabel.c_str()), true);
     ImRect bb = { pos, pos + labelSize + style.FramePadding * 2 };
     ImGui::ItemSize(bb, style.FramePadding.y);
@@ -589,7 +610,7 @@ void Menu::DrawElement() {
         headerWidth += 200.0f + style.ItemSpacing.x + style.FramePadding.x;
     }
     for (auto& label : menuOrder) {
-        const std::string displayLabel = TranslateMenuNavigationLabel(label);
+        const std::string displayLabel = MenuHeaderLabel(label);
         ImVec2 size = ImGui::CalcTextSize(displayLabel.c_str());
         headerSizes.push_back(size);
         headerWidth += size.x + style.FramePadding.x * 2;
@@ -624,10 +645,9 @@ void Menu::DrawElement() {
         scrollbar = true;
     }
     ImGui::SetNextWindowSizeConstraints({ 0, headerHeight }, { headerWidth, headerHeight });
+    // headerHeight already has room for the scroll bar when there is one (OOT D.E.: it was added twice, which made the
+    // requested size disagree with the size constraint above).
     ImVec2 headerSelSize = { menuSize.x - buttonSize.x * 3 - style.ItemSpacing.x * 3, headerHeight };
-    if (scrollbar) {
-        headerSelSize.y += style.ScrollbarSize;
-    }
     bool autoFocus = CVarGetInteger(CVAR_SETTING("Menu.SearchAutofocus"), 0);
     ImGui::BeginChild("Header Selection", headerSelSize,
                       ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize,
@@ -750,6 +770,16 @@ void Menu::DrawElement() {
     float sidebarWidth = 200 - style.ItemSpacing.x;
     if (menuSize.x > 1600) {
         sidebarWidth = menuSize.x * 0.15f;
+    }
+    // OOT D.E.: wide enough for the longest Portuguese name ("Editor de personalização"...), which was cut on both
+    // sides, but never more than a quarter of the menu.
+    {
+        float widest = 0.0f;
+        for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
+            widest = std::fmaxf(widest, ImGui::CalcTextSize(TranslateMenuNavigationLabel(sidebarLabel).c_str()).x);
+        }
+        const float needed = widest + style.FramePadding.x * 2 + style.ItemSpacing.x * 2 + style.ScrollbarSize;
+        sidebarWidth = std::fmaxf(sidebarWidth, std::fminf(needed, menuSize.x * 0.25f));
     }
 
     const char* sidebarCvar = menuEntries.at(headerIndex).sidebarCvar;

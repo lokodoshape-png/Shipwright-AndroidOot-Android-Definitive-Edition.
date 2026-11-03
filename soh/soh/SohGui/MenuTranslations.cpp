@@ -10,6 +10,7 @@ const std::string* MenuTranslations_Find(const std::string& english) {
         { "Settings", "Configurações" },
         { "Enhancements", "Aprimoramentos" },
         { "Randomizer", "Aleatorizador" },
+        { "Mysterious Shuffled Items", "Itens embaralhados misteriosos" },
         { "Network", "Rede" },
         { "Dev Tools", "Ferramentas de desenvolvedor" },
         { "General", "Geral" },
