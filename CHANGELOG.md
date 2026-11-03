@@ -22,6 +22,8 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
   rastreador aceita tanto o nome em português quanto o original.
 - **Ícone novo.** O app agora usa a arte OOT D.E. — Definitive Edition como ícone, tanto na instalação quanto na tela
   inicial.
+- **Correção: travamento ao abrir o menu de pausa depois de ligar ou desligar um mod pelo menu.** As texturas
+  trocadas eram apagadas enquanto o minimapa e o menu de pausa ainda apontavam para elas.
 
 ## [0.5] — Menu em português, mods pelo menu e cenas aceleradas
 
