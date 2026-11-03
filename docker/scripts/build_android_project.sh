@@ -47,6 +47,10 @@ docker run --network="host" --rm \
     --name $CONTAINER_NAME \
     -v "$PROJECT_PATH":/workspace \
     -w /workspace \
+    -e ANDROID_KEYSTORE_FILE=/workspace/ootde-release.keystore \
+    -e ANDROID_KEYSTORE_PASSWORD \
+    -e ANDROID_KEY_ALIAS \
+    -e ANDROID_KEY_PASSWORD \
     $IMAGE_NAME \
     bash -c "cp -a local.properties Android/ && cd Android && ./gradlew ${GRADLEW_BUILD_TYPE}"
 
