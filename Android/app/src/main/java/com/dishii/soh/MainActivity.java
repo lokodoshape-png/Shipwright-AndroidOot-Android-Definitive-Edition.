@@ -202,7 +202,10 @@ public class MainActivity extends SDLActivity{
         if (!targetRootFolder.exists()) {
             if (!targetRootFolder.mkdirs()) {
                 Log.e("setupFiles", "Failed to create root folder");
-                runOnUiThread(() -> Toast.makeText(this, "Failed to create folder", Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Failed to create folder", Toast.LENGTH_LONG).show();
+                    if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
+                });
                 setupLatch.countDown();
                 return;
             }
@@ -222,7 +225,13 @@ public class MainActivity extends SDLActivity{
             if (!targetAssetsDir.exists()) {
                 targetAssetsDir.mkdirs();
             }
-            AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath());
+            AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath(),
+                    (copied, total, currentFile) -> {
+                        if (total > 0) {
+                            int percent = 25 + (int) Math.min(55, (copied * 55L) / total);
+                            updateSetupProgress(percent, "Copiando recursos: " + percent + "%");
+                        }
+                    });
             updateSetupProgress(80, "Recursos copiados. Preparando dados principais...");
             runOnUiThread(() -> Toast.makeText(this, "Assets copied", Toast.LENGTH_SHORT).show());
         } catch (IOException e) {
@@ -237,8 +246,15 @@ public class MainActivity extends SDLActivity{
 
             byte[] buffer = new byte[256 * 1024];
             int read;
+            long totalOtrBytes = getAssets().open("soh.otr").available();
+            long copiedOtrBytes = 0;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
+                copiedOtrBytes += read;
+                if (totalOtrBytes > 0) {
+                    int percent = 80 + (int) Math.min(15, (copiedOtrBytes * 15L) / totalOtrBytes);
+                    updateSetupProgress(percent, "Preparando dados principais: " + percent + "%");
+                }
             }
 
             updateSetupProgress(95, "Finalizando preparação...");
