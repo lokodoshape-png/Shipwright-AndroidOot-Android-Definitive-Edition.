@@ -58,8 +58,40 @@ jobs:
           path: Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
-      - name: Publish APK in GitHub Releases
-        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+      - name: Determine Android release tag
+        id: version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/pt-br-menu-navigation'
+        run: |
+          VERSION_NAME=$(sed -n 's/.*versionName "\\([^"]*\\)".*/\\1/p' Android/app/build.gradle | head -n 1)
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::Could not read Android versionName."
+            exit 1
+          fi
+          git fetch --tags --force
+          PREFIX="v${VERSION_NAME}-android."
+          LAST=$(git tag -l "${PREFIX}*" | sed "s/^\\${PREFIX}//" | grep -E '^[0-9]+ | sort -n | tail -n 1)
+          NEXT=$((${LAST:-0} + 1))
+          echo "tag=${PREFIX}${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish versioned APK release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/pt-br-menu-navigation'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: OOT Definitive Edition ${{ steps.version.outputs.version }} - Android ${{ steps.version.outputs.tag }}
+          body: |
+            Build Android automático da versão ${{ steps.version.outputs.version }}.
+
+            O APK desta versão foi compilado pelo GitHub Actions a partir do commit ${{ github.sha }}.
+          files: Android/app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach APK when a tag is built manually
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
