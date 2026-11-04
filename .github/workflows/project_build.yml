@@ -66,6 +66,10 @@ jobs:
           echo "name=$gradle_name" >> "$GITHUB_OUTPUT"
           echo "code=$gradle_code" >> "$GITHUB_OUTPUT"
 
+      # soh.otr is committed (the build does not generate it): every PNG of soh/assets/custom must be in it.
+      - name: Check that soh.otr has every custom texture
+        run: python3 scripts/otr_add_custom.py --check
+
       - name: Setup and build the project
         run: |
           cd docker

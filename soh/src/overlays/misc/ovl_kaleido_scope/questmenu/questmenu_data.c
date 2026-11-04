@@ -602,7 +602,7 @@ static s32 QuestMenu_AddEntries(PlayState* play, QuestMenuRow* rows, s32 n, s32 
         QuestMenuRow* row = &rows[n];
 
         memset(row, 0, sizeof(*row));
-        row->id = category * 1000 + n;
+        row->id = (category + 1) * 1000 + n + 1;
         row->entry = &entries[i];
         row->name = entries[i].name;
         row->detail = entries[i].detail;
@@ -670,7 +670,7 @@ static s32 QuestMenu_AddSkulltulas(PlayState* play, QuestMenuRow* rows, s32 n, s
         QuestMenuRow* row = &rows[n];
 
         memset(row, 0, sizeof(*row));
-        row->id = QM_CAT_SIDE * 1000 + n;
+        row->id = (QM_CAT_SIDE + 1) * 1000 + n + 1;
         row->name = area->name;
         row->icon = area->icon;
         row->iconIs24 = area->iconIs24;

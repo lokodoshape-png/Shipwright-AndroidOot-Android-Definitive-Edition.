@@ -136,7 +136,7 @@ typedef enum {
 
 // One line of the current list, built every frame from the tables.
 typedef struct {
-    u16 id; // unique: category * 1000 + line
+    u16 id; // unique: (category + 1) * 1000 + line + 1
     const char* name;
     const char* detail;
     const char* icon;
