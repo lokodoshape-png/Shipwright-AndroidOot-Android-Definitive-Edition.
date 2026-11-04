@@ -112,8 +112,16 @@ static void QuestMenu_DrawSidebar(QuestMenuDraw* d, f32 pulse) {
             // Silver when not selected, like the buttons of the reference.
             QM_IconTinted(d, gQuestMenuCategoryIcons[i], false, 87, (s16)y0 + 7, 28, cur, cur ? 255 : 235);
         }
-        QM_Print(d, 122, y0 + 13, gQuestMenuCategoryNames[i], 16, cur ? 255 : 226, cur ? 226 : 228, cur ? 130 : 232,
-                 true, QM_SIDE_X1 - 3);
+        {
+            // Smaller letters for long names ("Personagens", "Secundárias").
+            s16 size = 16;
+
+            while ((size > 11) && (QM_StrWidth(gQuestMenuCategoryNames[i], size) > QM_SIDE_X1 - 6 - 122)) {
+                size--;
+            }
+            QM_Print(d, 122, y0 + 13 + (16 - size) / 2, gQuestMenuCategoryNames[i], size, cur ? 255 : 226,
+                     cur ? 226 : 228, cur ? 130 : 232, true, QM_SIDE_X1 - 3);
+        }
         QuestMenu_AddHit(QM_SIDE_X0, y0, QM_SIDE_X1, y0 + QM_SIDE_H + 4, QM_HIT_CATEGORY, i);
     }
 }
@@ -306,6 +314,7 @@ static void QuestMenu_DrawCard(QuestMenuDraw* d, PlayState* play, s32 cursor, f3
 
     // Shadow, parchment, burnt edges and a thin brown rim.
     QM_Rect(d, QM_CARD_X0 + 4, QM_CARD_Y0 + 5, QM_CARD_X1 - QM_CARD_X0, QM_CARD_Y1 - QM_CARD_Y0, 0, 0, 0, 120);
+    QM_Fan(d, pts, 4, false, 222, 200, 158, 255);
     QM_LoadTile(d, gQMParchmentTex);
     QM_Fan(d, pts, 4, true, 255, 246, 226, 255);
     QM_Gradient(d, QM_CARD_X0, QM_CARD_Y0, QM_CARD_X1 - QM_CARD_X0, 14, burn, clear, true);
@@ -329,8 +338,13 @@ static void QuestMenu_DrawCard(QuestMenuDraw* d, PlayState* play, s32 cursor, f3
     }
 
     // Title and description.
-    titleSize = (QM_StrWidth(row->name, 20) > QM_CARD_X1 - QM_CARD_X0 - 60) ? 16 : 20;
-    QM_Print(d, QM_CARD_X0 + 14, QM_CARD_Y0 + 12, row->name, titleSize, 52, 30, 14, false, QM_CARD_X1 - 12);
+    // The title stops before the Triforce of the corner, with smaller letters when it is long.
+    titleSize = 20;
+    while ((titleSize > 13) && (QM_StrWidth(row->name, titleSize) > QM_CARD_X1 - 64 - (QM_CARD_X0 + 14))) {
+        titleSize--;
+    }
+    QM_Print(d, QM_CARD_X0 + 14, QM_CARD_Y0 + 12 + (20 - titleSize) / 2, row->name, titleSize, 52, 30, 14, false,
+             QM_CARD_X1 - 62);
     QM_Line(d, QM_CARD_X0 + 14, QM_CARD_Y0 + 36, QM_CARD_X1 - 60, QM_CARD_Y0 + 36, 1.2f, 150, 110, 70, 255);
     QM_DrawWrapped(d, QM_CARD_X0 + 14, QM_CARD_Y0 + 40, QM_CARD_X1 - QM_CARD_X0 - 28, row->detail, 13, 15, 6, ink[0],
                    ink[1], ink[2], 255);

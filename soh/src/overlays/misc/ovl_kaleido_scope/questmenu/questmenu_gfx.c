@@ -14,7 +14,15 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // Text
 
-// Converts UTF-8 to the codes of the game font, as redrawn by the PT-BR translation mods.
+// Accents drawn over the letter before them. The game font has À Â Ç É Ê Ô à á â ç é ê ô; the other Portuguese
+// letters are a font letter with an accent drawn as shapes, so they look the same with or without the PT-BR mods
+// (whose redrawn letters are smaller and leave a gap after them).
+#define QM_ACUTE 0x10
+#define QM_TILDE 0x11
+#define QM_DIAERESIS 0x12
+#define QM_DOTLESS_I 0x13 // an "i" whose dot is covered by the accent: drawn as "i" with the accent a bit higher
+
+// Converts UTF-8 to the codes of the game font.
 s32 QM_Encode(const char* text, u8* out, s32 max) {
     const u8* s = (const u8*)text;
     s32 n = 0;
@@ -41,31 +49,31 @@ s32 QM_Encode(const char* text, u8* out, s32 max) {
             case 0x06: out[n++] = 0xA2; continue; // L
             case 0x07: out[n++] = 0xA3; continue; // R
             case 0xC0: out[n++] = 0x80; continue; // À
-            case 0xC1: out[n++] = 0x81; continue; // Á (mod)
+            case 0xC1: out[n++] = 'A'; out[n++] = QM_ACUTE; continue; // Á
             case 0xC2: out[n++] = 0x82; continue; // Â
-            case 0xC3: out[n++] = 0x83; continue; // Ã (mod)
+            case 0xC3: out[n++] = 'A'; out[n++] = QM_TILDE; continue; // Ã
             case 0xC7: out[n++] = 0x84; continue; // Ç
             case 0xC9: out[n++] = 0x86; continue; // É
             case 0xCA: out[n++] = 0x87; continue; // Ê
-            case 0xCD: out[n++] = 0x89; continue; // Í (mod)
+            case 0xCD: out[n++] = 'I'; out[n++] = QM_ACUTE; continue; // Í
             case 0xD4: out[n++] = 0x8A; continue; // Ô
-            case 0xD5: out[n++] = 0x8B; continue; // Õ (mod)
-            case 0xD3: out[n++] = 0x8C; continue; // Ó (mod)
-            case 0xDC: out[n++] = 0x8D; continue; // Ü (mod)
-            case 0xDA: out[n++] = 0x8E; continue; // Ú (mod)
+            case 0xD5: out[n++] = 'O'; out[n++] = QM_TILDE; continue; // Õ
+            case 0xD3: out[n++] = 'O'; out[n++] = QM_ACUTE; continue; // Ó
+            case 0xDC: out[n++] = 'U'; out[n++] = QM_DIAERESIS; continue; // Ü
+            case 0xDA: out[n++] = 'U'; out[n++] = QM_ACUTE; continue; // Ú
             case 0xE0: out[n++] = 0x90; continue; // à
             case 0xE1: out[n++] = 0x91; continue; // á
             case 0xE2: out[n++] = 0x92; continue; // â
-            case 0xE3: out[n++] = 0x93; continue; // ã (mod)
+            case 0xE3: out[n++] = 'a'; out[n++] = QM_TILDE; continue; // ã
             case 0xE7: out[n++] = 0x94; continue; // ç
             case 0xE9: out[n++] = 0x96; continue; // é
             case 0xEA: out[n++] = 0x97; continue; // ê
-            case 0xED: out[n++] = 0x99; continue; // í (mod)
+            case 0xED: out[n++] = QM_DOTLESS_I; out[n++] = QM_ACUTE; continue; // í
             case 0xF4: out[n++] = 0x9A; continue; // ô
-            case 0xF5: out[n++] = 0x9B; continue; // õ (mod)
-            case 0xF3: out[n++] = 0x9C; continue; // ó (mod)
-            case 0xFC: out[n++] = 0x9D; continue; // ü (mod)
-            case 0xFA: out[n++] = 0x9E; continue; // ú (mod)
+            case 0xF5: out[n++] = 'o'; out[n++] = QM_TILDE; continue; // õ
+            case 0xF3: out[n++] = 'o'; out[n++] = QM_ACUTE; continue; // ó
+            case 0xFC: out[n++] = 'u'; out[n++] = QM_DIAERESIS; continue; // ü
+            case 0xFA: out[n++] = 'u'; out[n++] = QM_ACUTE; continue; // ú
         }
         out[n++] = ((cp >= ' ') && (cp < 0x7F)) ? (u8)cp : '?';
     }
@@ -174,8 +182,44 @@ void QM_Icon(QuestMenuDraw* d, const char* tex, bool is24, s16 x, s16 y, s16 siz
     QM_Tex(d, tex, G_IM_FMT_RGBA, G_IM_SIZ_32b, texSize, texSize, x, y, size, size, lit, 255);
 }
 
+// The letters of the game font are drawn a little closer than in the text boxes, like the reference.
+#define QM_TRACKING 0.9f
+
 f32 QM_CharAdvance(u8 c, s16 size) {
-    return Ship_GetCharFontWidth(c) * size / 16.0f;
+    if (c == QM_DOTLESS_I) {
+        c = 'i';
+    }
+    return Ship_GetCharFontWidth(c) * size * QM_TRACKING / 16.0f;
+}
+
+// An accent over the letter that ends at `x`, `adv` wide.
+static void QM_DrawAccent(QuestMenuDraw* d, u8 accent, u8 letter, f32 x, f32 adv, s16 y, s16 size, u8 r, u8 g, u8 b,
+                          u8 a) {
+    bool upper = (letter >= 'A') && (letter <= 'Z');
+    f32 cx = x - adv * 0.5f - size * 0.03f;
+    // Top of the letter in the 16 x 16 glyph: capitals from row 2, small letters from row 6 (row 3 for the "i").
+    f32 top = y + size * (upper ? 0.13f : ((letter == QM_DOTLESS_I) ? 0.20f : 0.36f));
+    f32 u = size / 16.0f;
+    f32 w = MAX(1.2f, 1.6f * u);
+    u8 alpha = a; // QM_Line applies the fade of the journal
+
+    if (!QM_HasRoom(d)) {
+        return;
+    }
+    switch (accent) {
+        case QM_ACUTE:
+            QM_Line(d, cx - 1.0f * u, top - 1.0f * u, cx + 1.6f * u, top - 3.6f * u, w, r, g, b, alpha);
+            break;
+        case QM_TILDE:
+            QM_Line(d, cx - 2.8f * u, top - 1.2f * u, cx - 1.2f * u, top - 2.8f * u, w, r, g, b, alpha);
+            QM_Line(d, cx - 1.2f * u, top - 2.8f * u, cx + 1.2f * u, top - 1.4f * u, w, r, g, b, alpha);
+            QM_Line(d, cx + 1.2f * u, top - 1.4f * u, cx + 2.8f * u, top - 3.0f * u, w, r, g, b, alpha);
+            break;
+        case QM_DIAERESIS:
+            QM_Line(d, cx - 2.2f * u, top - 2.4f * u, cx - 2.2f * u, top - 0.8f * u, w * 1.2f, r, g, b, alpha);
+            QM_Line(d, cx + 2.2f * u, top - 2.4f * u, cx + 2.2f * u, top - 0.8f * u, w * 1.2f, r, g, b, alpha);
+            break;
+    }
 }
 
 f32 QM_TextWidth(const u8* text, s32 len, s16 size) {
@@ -194,10 +238,17 @@ f32 QM_DrawCodes(QuestMenuDraw* d, f32 x, s16 y, const u8* text, s32 len, s16 si
     s32 i;
     s32 colorSet = -1;
 
-    QM_Combine(d, 1);
     for (i = 0; i < len; i++) {
         u8 c = text[i];
         f32 adv = QM_CharAdvance(c, size);
+
+        if ((c >= QM_ACUTE) && (c <= QM_DIAERESIS)) {
+            if (i > 0) {
+                QM_DrawAccent(d, c, text[i - 1], x, QM_CharAdvance(text[i - 1], size), y, size, r, g, b, a);
+                colorSet = -1;
+            }
+            continue;
+        }
         // Button glyphs keep their colors, except in shadows.
         s32 color = ((r | g | b) == 0) ? 0 : (((c >= 0xA5) && (c <= 0xA8)) ? 1 : ((c == 0xA0) ? 2 : 0));
 
@@ -205,6 +256,7 @@ f32 QM_DrawCodes(QuestMenuDraw* d, f32 x, s16 y, const u8* text, s32 len, s16 si
             break;
         }
         if ((c != ' ') && QM_HasRoom(d)) {
+            QM_Combine(d, 1);
             if (color != colorSet) {
                 if (color == 1) {
                     QM_SetColor(d, 255, 255, 50, a);
@@ -215,7 +267,7 @@ f32 QM_DrawCodes(QuestMenuDraw* d, f32 x, s16 y, const u8* text, s32 len, s16 si
                 }
                 colorSet = color;
             }
-            gDPLoadTextureBlock_4b(d->gfx++, Ship_GetCharFontTexture(c), G_IM_FMT_I, 16, 16, 0,
+            gDPLoadTextureBlock_4b(d->gfx++, Ship_GetCharFontTexture((c == QM_DOTLESS_I) ? 'i' : c), G_IM_FMT_I, 16, 16, 0,
                                    G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMASK, G_TX_NOMASK,
                                    G_TX_NOLOD, G_TX_NOLOD);
             QM_Quad(d, (s16)(x + 0.5f), y, size, size, 16, 16);
@@ -425,6 +477,8 @@ void QM_Circle(QuestMenuDraw* d, f32 cx, f32 cy, f32 radius, u8 r, u8 g, u8 b, u
 void QM_Stone(QuestMenuDraw* d, const f32 (*pts)[2], s32 n, u8 r, u8 g, u8 b, f32 bevel) {
     s32 i;
 
+    // An opaque base first, so nothing behind shows through the texture.
+    QM_Fan(d, pts, n, false, r * 6 / 10, g * 6 / 10, b * 6 / 10, 255);
     QM_LoadTile(d, gQMStoneTex);
     QM_Fan(d, pts, n, true, r, g, b, 255);
     for (i = 0; i < n; i++) {
@@ -457,6 +511,8 @@ void QM_Stone(QuestMenuDraw* d, const f32 (*pts)[2], s32 n, u8 r, u8 g, u8 b, f3
 void QM_Recess(QuestMenuDraw* d, const f32 (*pts)[2], s32 n, u8 r, u8 g, u8 b) {
     s32 i;
 
+    // An opaque base first, so nothing behind shows through the texture.
+    QM_Fan(d, pts, n, false, r * 6 / 10, g * 6 / 10, b * 6 / 10, 255);
     QM_LoadTile(d, gQMStoneTex);
     QM_Fan(d, pts, n, true, r, g, b, 255);
     for (i = 0; i < n; i++) {

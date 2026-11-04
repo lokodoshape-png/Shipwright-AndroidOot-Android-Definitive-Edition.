@@ -12,6 +12,21 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.7.1] — Diário de Quests corrigido
+
+- **As texturas do Diário não apareciam.** O `soh.otr` que vai dentro do APK não tinha as texturas novas (pedra,
+  pergaminho, asas da Triforce, ícones das categorias, marca, cadeado e ampulheta). Sem elas, os painéis ficavam
+  transparentes e riscados, e o menu de pausa aparecia por trás (as letras L/R e o "R" no pergaminho). Agora elas estão
+  no `soh.otr`, e os painéis têm um fundo opaco por baixo.
+- **Acentos:** Á, Ã, Í, Ó, Õ, Ú, Ü, ã, í, ó, õ, ú e ü são desenhados com a letra do jogo e o acento por cima, sem o
+  espaço quebrado depois da letra ("Á rvore", "histó ria"). Funciona com ou sem o mod de tradução. As letras ficaram
+  um pouco mais próximas.
+- **Nomes longos:** "Personagens" e "Secundárias" cabem no botão, e o título do pergaminho não passa por cima da
+  Triforce do canto.
+- O número das missões começa em 1 (por exemplo #1001).
+- Novo `scripts/otr_add_custom.py`: põe no `soh.otr` as texturas de `soh/assets/custom/` que faltam. O build confere
+  isso antes de compilar.
+
 ## [0.7] — Diário de Quests no pause
 
 - **Diário de Quests no menu de pausa.** Na tela Status de Missão, aperte **C-Cima**: a página vira e o Diário abre
