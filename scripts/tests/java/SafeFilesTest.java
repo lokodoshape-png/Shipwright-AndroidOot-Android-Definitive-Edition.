@@ -115,6 +115,33 @@ public class SafeFilesTest {
         check(SafeFiles.checkOtrFile(write(dir, "z.otr", new byte[64]), -1) != null, "non-MPQ file rejected");
         check(SafeFiles.checkOtrFile(new File(dir, "none.otr"), -1) != null, "missing file rejected");
 
+        // Mods.
+        File zipFile = new File(dir, "mod.o2r");
+        try (java.util.zip.ZipOutputStream z = new java.util.zip.ZipOutputStream(new FileOutputStream(zipFile))) {
+            z.putNextEntry(new java.util.zip.ZipEntry("textures/a"));
+            z.write(new byte[5000]);
+            z.closeEntry();
+        }
+        check(SafeFiles.checkModFile(zipFile, "mod.o2r") == null, "valid .o2r accepted");
+        byte[] zd = Files.readAllBytes(zipFile.toPath());
+        File cut = new File(dir, "cut.o2r");
+        try (FileOutputStream out = new FileOutputStream(cut)) { out.write(zd, 0, zd.length - 30); }
+        check(SafeFiles.checkModFile(cut, "cut.o2r") != null, "truncated .o2r rejected");
+        check(SafeFiles.checkModFile(write(dir, "bad.otr", new byte[100]), "bad.otr") != null, "invalid .otr rejected");
+        check(SafeFiles.checkModFile(zipFile, "mod.rar") != null, "unsupported extension rejected");
+        if (args.length > 1) {
+            check(SafeFiles.checkModFile(new File(args[1]), "soh.otr") == null, "valid .otr accepted");
+        }
+        File copy = write(dir, "copy.o2r", zd);
+        check(SafeFiles.sameContent(zipFile, copy), "same content detected");
+        check(!SafeFiles.sameContent(zipFile, cut), "different content detected");
+        File mods = new File(dir, "mods");
+        mods.mkdirs();
+        write(mods, "Letras.otr", new byte[1]);
+        write(mods, "Letras (2).otr.desativado", new byte[1]);
+        check(SafeFiles.uniqueModName(mods, "Letras.otr", ".desativado").equals("Letras (3).otr"),
+                "unique name skips names in use (also switched off)");
+
         System.out.println(failures == 0 ? "ALL TESTS PASSED" : failures + " TEST(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

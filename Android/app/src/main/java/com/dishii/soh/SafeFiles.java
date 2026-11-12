@@ -249,4 +249,82 @@ final class SafeFiles {
             length -= count;
         }
     }
+
+    // --- Mods -----------------------------------------------------------------------------------------------------
+
+    /**
+     * Checks a copied mod before it is installed: an .otr must be a complete MPQ archive (checkOtrFile); an .o2r or
+     * .zip must be a zip whose central directory can be read and that holds at least one file. Returns null when it
+     * is valid, or the reason it is not. The supported formats are the ones the game already loads.
+     */
+    static String checkModFile(File file, String name) {
+        String lower = name.toLowerCase();
+        if (lower.endsWith(".otr")) {
+            String problem = checkOtrFile(file, -1);
+            return (problem == null) ? null : "não é um mod .otr válido (" + problem + ")";
+        }
+        if (lower.endsWith(".o2r") || lower.endsWith(".zip")) {
+            if (!file.isFile() || file.length() < 22) {
+                return "arquivo vazio ou incompleto";
+            }
+            try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(file)) {
+                if (zip.size() == 0) {
+                    return "o arquivo zip está vazio";
+                }
+                java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zip.entries();
+                while (entries.hasMoreElements()) {
+                    entries.nextElement();
+                }
+            } catch (IOException | RuntimeException e) {
+                return "arquivo zip/o2r corrompido ou incompleto (" + e.getMessage() + ")";
+            }
+            return null;
+        }
+        return "extensão não suportada (use .otr, .o2r ou .zip)";
+    }
+
+    // True when both files have the same bytes.
+    static boolean sameContent(File a, File b) throws IOException {
+        if (a.length() != b.length()) {
+            return false;
+        }
+        byte[] ba = new byte[256 * 1024];
+        byte[] bb = new byte[256 * 1024];
+        try (InputStream ia = new FileInputStream(a); InputStream ib = new FileInputStream(b)) {
+            while (true) {
+                int na = readUpTo(ia, ba);
+                int nb = readUpTo(ib, bb);
+                if (na != nb) {
+                    return false;
+                }
+                if (na <= 0) {
+                    return true;
+                }
+                for (int i = 0; i < na; i++) {
+                    if (ba[i] != bb[i]) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    // "name (2).otr", "name (3).otr"... the first one free in the folder, switched on or off.
+    static String uniqueModName(File folder, String name, String disabledSuffix) {
+        int dot = name.lastIndexOf('.');
+        String base = (dot > 0) ? name.substring(0, dot) : name;
+        String extension = (dot > 0) ? name.substring(dot) : "";
+        for (int i = 2; ; i++) {
+            String candidate = base + " (" + i + ")" + extension;
+            if (!new File(folder, candidate).exists() && !new File(folder, candidate + disabledSuffix).exists()) {
+                return candidate;
+            }
+        }
+    }
+
+    static void deleteQuietly(File file) {
+        if (file.exists() && !file.delete()) {
+            System.err.println("OOTDE_FILES: could not delete " + file);
+        }
+    }
 }
