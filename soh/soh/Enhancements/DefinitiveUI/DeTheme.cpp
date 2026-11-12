@@ -41,6 +41,32 @@ ImTextureID GetTexture(Texture tex) {
     return sTextureLookup != nullptr ? sTextureLookup(tex) : (ImTextureID)0;
 }
 
+ImVec2 TextureSize(Texture tex) {
+    switch (tex) {
+        case TEX_STONE:
+            return ImVec2(256, 256);
+        case TEX_GLOW:
+            return ImVec2(128, 128);
+        case TEX_SPARK:
+            return ImVec2(64, 64);
+        case TEX_NAVI_WING:
+            return ImVec2(96, 64);
+        case TEX_TITLE_BG:
+            return ImVec2(1920, 834);
+        case TEX_LOGO:
+            return ImVec2(1215, 420);
+        case TEX_BUTTON_SELECTED:
+            return ImVec2(240, 136);
+        case TEX_BUTTON_NORMAL:
+        case TEX_BUTTON_PRESSED:
+            return ImVec2(224, 136);
+        case TEX_FRAME:
+            return ImVec2(600, 232);
+        default:
+            return ImVec2(1, 1);
+    }
+}
+
 static ImFont* OrDefault(ImFont* font) {
     return font != nullptr ? font : ImGui::GetFont();
 }
@@ -227,7 +253,7 @@ static void InsetPoly(ImVec2* out, const ImVec2* pts, int n, float d) {
 }
 
 void Glow(ImDrawList* dl, ImVec2 center, float radius, ImU32 col) {
-    const ImTextureID tex = GetTexture(TEX_GLOW);
+    ImTextureID tex = GetTexture(TEX_GLOW);
     if (tex != (ImTextureID)0) {
         dl->AddImage(tex, center - ImVec2(radius, radius), center + ImVec2(radius, radius), ImVec2(0, 0), ImVec2(1, 1),
                      col);
@@ -240,7 +266,7 @@ void Glow(ImDrawList* dl, ImVec2 center, float radius, ImU32 col) {
 }
 
 void Spark(ImDrawList* dl, ImVec2 center, float radius, ImU32 col, float angle) {
-    const ImTextureID tex = GetTexture(TEX_SPARK);
+    ImTextureID tex = GetTexture(TEX_SPARK);
     if (tex == (ImTextureID)0) {
         dl->AddCircleFilled(center, radius * 0.25f, col, 8);
         return;
@@ -336,6 +362,50 @@ void Button(ImDrawList* dl, ImVec2 a, ImVec2 b, float s, const char* label, floa
     const float tip = h * 0.42f;
     const bool disabled = state == BUTTON_DISABLED;
     const float hl = disabled ? highlight * 0.35f : highlight;
+
+    // The buttons of the reference art: left end, stretched middle, right end. The texture is taller than the
+    // button body (it has room for the glow), so it is drawn a bit larger than a..b.
+    ImTextureID normalTex = GetTexture(TEX_BUTTON_NORMAL);
+    ImTextureID selectedTex = GetTexture(TEX_BUTTON_SELECTED);
+    ImTextureID pressedTex = GetTexture(TEX_BUTTON_PRESSED);
+    if (normalTex != (ImTextureID)0 && selectedTex != (ImTextureID)0 && pressedTex != (ImTextureID)0) {
+        auto draw = [&](ImTextureID tex, Texture id, float a01) {
+            if (a01 <= 0.0f) {
+                return;
+            }
+            const ImVec2 ts = TextureSize(id);
+            const float cap = (id == TEX_BUTTON_SELECTED) ? 108.0f : 100.0f;
+            const float k = (h * 1.34f) / ts.y;
+            const float my = (a.y + b.y) * 0.5f;
+            const float y0 = my - ts.y * k * 0.5f;
+            const float y1 = my + ts.y * k * 0.5f;
+            const float x0 = a.x - (id == TEX_BUTTON_SELECTED ? 14.0f : 8.0f) * k;
+            const float x1 = b.x + (id == TEX_BUTTON_SELECTED ? 14.0f : 8.0f) * k;
+            const ImU32 tint = Fade(disabled ? Col::Rgba(150, 150, 160) : IM_COL32_WHITE, alpha * a01);
+            const float cw = cap * k;
+            const float u0 = cap / ts.x;
+            const float u1 = (ts.x - cap) / ts.x;
+            dl->AddImage(tex, ImVec2(x0, y0), ImVec2(x0 + cw, y1), ImVec2(0, 0), ImVec2(u0, 1), tint);
+            dl->AddImage(tex, ImVec2(x0 + cw, y0), ImVec2(x1 - cw, y1), ImVec2(u0, 0), ImVec2(u1, 1), tint);
+            dl->AddImage(tex, ImVec2(x1 - cw, y0), ImVec2(x1, y1), ImVec2(u1, 0), ImVec2(1, 1), tint);
+        };
+        const float pulse = 0.85f + 0.15f * sinf(time * 3.2f);
+        if (hl > 0.01f) {
+            Glow(dl, ImVec2((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f), (b.x - a.x) * 0.62f,
+                 Fade(Col::Magic, alpha * hl * 0.22f * pulse));
+        }
+        draw(normalTex, TEX_BUTTON_NORMAL, 1.0f - ImMax(hl, press));
+        draw(selectedTex, TEX_BUTTON_SELECTED, hl * (1.0f - press));
+        draw(pressedTex, TEX_BUTTON_PRESSED, press);
+        Fonts& f = GetFonts();
+        const float size = h * 0.47f;
+        const ImVec2 center((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f - size * 0.58f);
+        const ImU32 col = disabled ? Fade(Col::TextDim, alpha * 0.6f)
+                                   : Fade(Mix(Col::Parchment, IM_COL32_WHITE, hl), alpha);
+        Text(dl, f.display, size, center, col, label, 0.5f, size * 0.03f, 1.0f);
+        return;
+    }
+
     ImVec2 pts[6];
     Pointed(pts, a, b, tip);
 
@@ -530,6 +600,51 @@ void ButtonGlyph(ImDrawList* dl, ImVec2 c, float r, const char* letter, ImU32 co
     Text(dl, f.display, size, c - ImVec2(0, size * 0.55f), Fade(IM_COL32_WHITE, alpha), letter, 0.5f, 0.0f, 0.6f);
 }
 
+void NineSlice(ImDrawList* dl, ImTextureID tex, ImVec2 ts, ImVec2 a, ImVec2 b, ImVec2 corner, float scale,
+               ImU32 tint) {
+    // Texel edges of the three columns/rows: corner, a 2-texel strip next to it (stretched), opposite corner.
+    const float tx[4] = { 0.0f, corner.x, corner.x + 2.0f, ts.x - corner.x };
+    const float ty[4] = { 0.0f, corner.y, corner.y + 2.0f, ts.y - corner.y };
+    const float cw = ImMin(corner.x * scale, (b.x - a.x) * 0.5f);
+    const float ch = ImMin(corner.y * scale, (b.y - a.y) * 0.5f);
+    const float sx[4] = { a.x, a.x + cw, b.x - cw, b.x };
+    const float sy[4] = { a.y, a.y + ch, b.y - ch, b.y };
+    for (int j = 0; j < 3; j++) {
+        for (int i = 0; i < 3; i++) {
+            if (sx[i + 1] <= sx[i] || sy[j + 1] <= sy[j]) {
+                continue;
+            }
+            const float u0 = tx[i] / ts.x;
+            const float u1 = (i == 2 ? ts.x : tx[i + 1]) / ts.x;
+            const float v0 = ty[j] / ts.y;
+            const float v1 = (j == 2 ? ts.y : ty[j + 1]) / ts.y;
+            // The middle column/row uses the strip; the last one starts at the opposite corner.
+            const float uu0 = (i == 2) ? tx[3] / ts.x : u0;
+            const float vv0 = (j == 2) ? ty[3] / ts.y : v0;
+            dl->AddImage(tex, ImVec2(sx[i], sy[j]), ImVec2(sx[i + 1], sy[j + 1]), ImVec2(uu0, vv0), ImVec2(u1, v1),
+                         tint);
+        }
+    }
+}
+
+void CoverImage(ImDrawList* dl, ImTextureID tex, ImVec2 ts, ImVec2 a, ImVec2 b, float zoom, ImVec2 focus, ImU32 tint) {
+    const ImVec2 size = b - a;
+    // Part of the texture (in UV) with the proportions of the screen, zoomed around `focus` (UV).
+    const float screenAspect = size.x / ImMax(1.0f, size.y);
+    const float texAspect = ts.x / ts.y;
+    ImVec2 uvSize(1.0f, 1.0f);
+    if (screenAspect > texAspect) {
+        uvSize.y = texAspect / screenAspect;
+    } else {
+        uvSize.x = screenAspect / texAspect;
+    }
+    uvSize /= ImMax(1.0f, zoom);
+    ImVec2 uv0 = focus - uvSize * 0.5f;
+    uv0.x = ImClamp(uv0.x, 0.0f, 1.0f - uvSize.x);
+    uv0.y = ImClamp(uv0.y, 0.0f, 1.0f - uvSize.y);
+    dl->AddImage(tex, a, b, uv0, uv0 + uvSize, tint);
+}
+
 void Divider(ImDrawList* dl, ImVec2 a, float width, float s, float alpha) {
     const ImVec2 m(a.x + width * 0.5f, a.y);
     dl->AddRectFilledMultiColor(ImVec2(a.x, a.y - 0.8f * s), ImVec2(m.x, a.y + 0.8f * s), Fade(Col::Gold, 0),
@@ -550,7 +665,7 @@ void Navi(ImDrawList* dl, ImVec2 c, float s, float time, float alpha) {
     Glow(dl, c, 34.0f * s, Fade(Col::MagicLight, alpha * 0.55f));
 
     // Wings: two pairs, flapping fast.
-    const ImTextureID wing = GetTexture(TEX_NAVI_WING);
+    ImTextureID wing = GetTexture(TEX_NAVI_WING);
     const float flap = 0.35f + 0.65f * fabsf(sinf(time * 22.0f));
     const struct {
         float ang;

@@ -16,10 +16,12 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 Primeira etapa da nova interface (branch `feature/ootde-menu-definitivo`, ainda fora da `main`).
 
-- **Novo menu principal na tela de título**, no lugar do "PRESS START": painel de pedra com moldura de ouro
-  envelhecido, Triforce num medalhão com runas girando, botões com luz azul e pontas douradas na opção escolhida,
-  Navi voando ao lado da opção, partículas douradas e "DEFINITIVE EDITION" sob o logo original (que vai um pouco para
-  a esquerda). A abertura do jogo continua rodando atrás.
+- **Novo menu principal na tela de título**, no lugar do "PRESS START", feito com a arte da imagem de referência
+  (`docs/interface-de/referencia.png`), ampliada 4x com a rede de super-resolução EDSR (`scripts/ootde_ui_art.py`):
+  fundo de Hyrule ao entardecer com o castelo, Link com o Escudo Hylian e Navi (com zoom lento), logo com
+  "DEFINITIVE EDITION", painel com a moldura dourada e os botões azul e ouro (normal, selecionado e pressionado).
+  O texto dos botões é escrito pelo jogo. Navi voa ao lado da opção escolhida, com partículas douradas.
+  O fundo cobre a abertura do jogo; o "© Nintendo" fica no rodapé.
 - **Todos os botões fazem a função real**, pelo caminho original do jogo:
   - *Continuar* carrega o último arquivo jogado (passa pela seleção de arquivos e confirma sozinho).
   - *Novo Jogo* abre a criação de arquivo no primeiro espaço livre (escolha de missão, nome etc. originais).

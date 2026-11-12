@@ -2,8 +2,7 @@
 // (soh/soh/Enhancements/DefinitiveUI), to check the screens on a computer without a ROM, GPU or phone.
 //
 // Dear ImGui builds the draw lists exactly as in the game; a small software rasterizer below turns them into an
-// image. Only the backdrop differs: in the game the menu sits over the title screen running live, here over a
-// still image given on the command line. See build.sh.
+// image, with the same textures (soh/assets/custom/ootde/ui) and fonts. See build.sh.
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -197,18 +196,15 @@ int main(int argc, char** argv) {
     atlas.px.assign(atlasPx, atlasPx + (size_t)aw * ah * 4);
     io.Fonts->SetTexID(AddTexture(atlas));
 
-    const char* texNames[TEX_COUNT] = { "gDEStone", "gDEGlow", "gDESpark", "gDENaviWing" };
+    const char* texNames[TEX_COUNT] = { "gDEStone",          "gDEGlow",           "gDESpark",
+                                        "gDENaviWing",       "gDETitleBg",        "gDELogo",
+                                        "gDEButtonNormal",   "gDEButtonSelected", "gDEButtonPressed",
+                                        "gDEFrame" };
     for (int i = 0; i < TEX_COUNT; i++) {
         Image img;
         sThemeTex[i] = LoadRaw(raw + "/" + texNames[i] + ".raw", img) ? AddTexture(img) : (ImTextureID)0;
     }
     SetTextureLookup(LookupTex);
-
-    Image bg, logo;
-    const bool haveBg = LoadRaw(raw + "/background.raw", bg);
-    const bool haveLogo = LoadRaw(raw + "/logo.raw", logo);
-    const ImTextureID bgTex = haveBg ? AddTexture(bg) : (ImTextureID)0;
-    const ImTextureID logoTex = haveLogo ? AddTexture(logo) : (ImTextureID)0;
 
     TitleMenuItem mainItems[MAIN_COUNT];
     const char* mainDetails[MAIN_COUNT] = { Strings::kContinue, nullptr,         Strings::kFileSelect, Strings::kJournal,
@@ -239,50 +235,22 @@ int main(int argc, char** argv) {
         TitleMenuRenderer renderer;
         TitleMenuView view;
         view.items = sc.extras ? extrasItems : mainItems;
-        view.count = sc.extras ? EXTRAS_COUNT : MAIN_COUNT;
+        view.count = sc.extras ? (int)EXTRAS_COUNT : (int)MAIN_COUNT;
         view.title = sc.extras ? Strings::kExtrasTitle : nullptr;
         view.showBack = sc.extras;
-        view.footer = "OOT D.E. 0.9-menu · Ship of Harkinian 9.0.2";
+        view.footer = "OOT D.E. 0.9-menu · Ship of Harkinian 9.0.2 · © Nintendo";
         if (!sc.extras && (sc.selected == MAIN_CONTINUE || sc.selected == MAIN_JOURNAL)) {
             view.showSave = true;
             snprintf(view.saveTitle, sizeof(view.saveTitle), Strings::kSaveTitle, 1, "Link");
             view.heartsCapacity = 13;
             view.health = 13 * 16 - 6;
         }
-        // The game's logo: 160x160 N64 pixels centered at (160 - 8 - 56, 100) of the 320x240 screen.
-        const float k = H / 240.0f;
-        view.logoCenter = ImVec2(W * 0.5f + (96.0f - 8.0f - 160.0f) * k, 100.0f * k);
-        view.logoWidth = 160.0f * k;
-        view.logoBottom = 181.0f * k;
-
         const int frames = 150;
         for (int fr = 0; fr < frames; fr++) {
             const float t = fr / 60.0f;
             io.DeltaTime = 1.0f / 60.0f;
             ImGui::NewFrame();
             ImDrawList* dl = ImGui::GetBackgroundDrawList();
-            if (haveBg) {
-                // Cover the screen keeping the image's proportions.
-                const float sc2 = std::fmax((float)W / bg.w, (float)H / bg.h);
-                const float dw = bg.w * sc2, dh = bg.h * sc2;
-                dl->AddImage(bgTex, ImVec2((W - dw) * 0.5f, (H - dh) * 0.5f), ImVec2((W + dw) * 0.5f, (H + dh) * 0.5f));
-            }
-            {
-                // Where the game draws its own logo (the preview has no ROM, so only its place is marked).
-                const ImVec2 la = view.logoCenter - ImVec2(view.logoWidth * 0.5f, view.logoWidth * 0.5f);
-                const ImVec2 lb = view.logoCenter + ImVec2(view.logoWidth * 0.5f, view.logoWidth * 0.5f);
-                dl->AddRect(la, lb, IM_COL32(255, 255, 255, 90), 12.0f, 0, 3.0f);
-                DefinitiveUI::Text(dl, GetFonts().body, 40.0f * H / 1080.0f, view.logoCenter - ImVec2(0, 60.0f * H / 1080.0f),
-                                   IM_COL32(255, 255, 255, 170), "logo original do jogo", 0.5f);
-                DefinitiveUI::Text(dl, GetFonts().body, 30.0f * H / 1080.0f, view.logoCenter,
-                                   IM_COL32(255, 255, 255, 140), "(desenhado pelo próprio jogo)", 0.5f);
-            }
-            if (haveLogo) {
-                const float lw = view.logoWidth * 1.15f;
-                const float lh = lw * logo.h / logo.w;
-                dl->AddImage(logoTex, view.logoCenter - ImVec2(lw * 0.5f, lh * 0.55f),
-                             view.logoCenter + ImVec2(lw * 0.5f, lh * 0.45f));
-            }
             view.selected = (fr < 40) ? 0 : sc.selected; // let Navi fly from the first button
             view.alpha = ImMin(1.0f, t / 0.4f);
             view.slide = ImMax(0.0f, 1.0f - t / 0.35f);

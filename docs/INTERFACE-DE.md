@@ -29,8 +29,7 @@ Reformulação visual da interface do OOT D.E., em etapas, na branch `feature/oo
 
 Ganchos no código do jogo (pequenos e marcados com `OOT D.E.`):
 
-- `z_en_mag.c` — com o logo na tela, entrega o controle ao menu; esconde o "PRESS START"; desloca o logo 56 px (N64)
-  para a esquerda.
+- `z_en_mag.c` — com o logo na tela, entrega o controle ao menu; esconde o "PRESS START".
 - `z_file_choose.c` — *Continuar*/*Novo Jogo*: escolhe o arquivo como se o jogador tivesse apertado A nele; *Continuar*
   responde "Sim" na confirmação.
 - `z_kaleido_setup.c` — *Diário de Quests*: abre o pause no Diário quando o jogo permite pausar (mesmas condições do
@@ -41,7 +40,14 @@ Ganchos no código do jogo (pequenos e marcados com `OOT D.E.`):
 ## Prévia no computador
 
 `scripts/ootde_ui_preview/build.sh <pasta do imgui v1.91.6-docking> <saída>` desenha as telas com o mesmo código do
-jogo (sem ROM nem GPU). O fundo da prévia é uma imagem gerada; no jogo o fundo é a abertura rodando.
+jogo (sem ROM nem GPU), com as mesmas texturas.
+
+## Arte
+
+Fundo, logo, botões e moldura vêm da imagem de referência (`docs/interface-de/referencia.png`), recortados e
+ampliados 4x com a rede EDSR por `scripts/ootde_ui_art.py` (instruções no próprio script). Os botões perdem o texto
+original (o jogo escreve o seu) e ganham fundo transparente. Depois, `scripts/otr_add_custom.py` coloca tudo no
+`soh.otr` do APK.
 
 ## Próximas fases
 

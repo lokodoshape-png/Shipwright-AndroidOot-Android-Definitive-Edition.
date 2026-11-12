@@ -52,12 +52,15 @@ namespace DefinitiveUI {
 // Resources
 
 static const char* const kTexturePaths[TEX_COUNT] = {
-    "ootde/ui/textures/gDEStone",
-    "ootde/ui/effects/gDEGlow",
-    "ootde/ui/effects/gDESpark",
-    "ootde/ui/decor/gDENaviWing",
+    "ootde/ui/textures/gDEStone",       "ootde/ui/effects/gDEGlow",          "ootde/ui/effects/gDESpark",
+    "ootde/ui/decor/gDENaviWing",       "ootde/ui/backgrounds/gDETitleBg",   "ootde/ui/decor/gDELogo",
+    "ootde/ui/buttons/gDEButtonNormal", "ootde/ui/buttons/gDEButtonSelected", "ootde/ui/buttons/gDEButtonPressed",
+    "ootde/ui/frames/gDEFrame",
 };
-static const char* const kTextureNames[TEX_COUNT] = { "OOTDE_Stone", "OOTDE_Glow", "OOTDE_Spark", "OOTDE_NaviWing" };
+static const char* const kTextureNames[TEX_COUNT] = {
+    "OOTDE_Stone",        "OOTDE_Glow",         "OOTDE_Spark",         "OOTDE_NaviWing", "OOTDE_TitleBg",
+    "OOTDE_Logo",         "OOTDE_ButtonNormal", "OOTDE_ButtonSelected", "OOTDE_ButtonPressed", "OOTDE_Frame",
+};
 static bool sTexturesLoaded = false;
 static bool sTextureAvailable[TEX_COUNT] = {};
 
@@ -435,7 +438,7 @@ void TitleMenuWindow::Draw() {
         view.pressed = sPressTimer > 0 ? sPressed : -1;
         view.title = sScreen == SCREEN_EXTRAS ? Strings::kExtrasTitle : nullptr;
         view.showBack = sScreen == SCREEN_EXTRAS;
-        snprintf(sFooter, sizeof(sFooter), "OOT D.E. %s · Ship of Harkinian %s", OOTDE_VERSION, (char*)gBuildVersion);
+        snprintf(sFooter, sizeof(sFooter), "OOT D.E. %s · Ship of Harkinian %s · © Nintendo", OOTDE_VERSION, (char*)gBuildVersion);
         view.footer = sFooter;
         if (sScreen == SCREEN_MAIN && (view.selected == MAIN_CONTINUE || view.selected == MAIN_JOURNAL)) {
             const int file = ContinueFile();
@@ -449,12 +452,6 @@ void TitleMenuWindow::Draw() {
                 view.health = meta->health;
             }
         }
-        // The game's logo, moved left by EnMag: 160x160 N64 pixels around (160 + shift, 100).
-        const float k = size.y / 240.0f;
-        const float logoX = 160.0f + (ResourceMgr_IsGameMasterQuest() ? 0.0f : -8.0f) + DefinitiveUI_TitleLogoShiftX();
-        view.logoCenter = origin + ImVec2(size.x * 0.5f + (logoX - 160.0f) * k, 100.0f * k);
-        view.logoWidth = 160.0f * k;
-        view.logoBottom = origin.y + 181.0f * k;
         view.alpha = sAlpha;
         view.slide = (1.0f - sAlpha) * (1.0f - sAlpha);
 
@@ -504,10 +501,6 @@ using namespace DefinitiveUI;
 
 extern "C" bool DefinitiveUI_TitleMenuEnabled(void) {
     return CVarGetInteger(CVAR_TITLE_MENU, 1) != 0;
-}
-
-extern "C" int32_t DefinitiveUI_TitleLogoShiftX(void) {
-    return DefinitiveUI_TitleMenuEnabled() ? -56 : 0;
 }
 
 extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {

@@ -17,7 +17,6 @@ trap 'rm -rf "$work"' EXIT
 
 mkdir -p "$work/raw/fonts"
 cp "$root/soh/assets/custom/fonts/"{Cinzel-Bold,Cinzel-Regular,EBGaramond-Medium}.ttf "$work/raw/fonts/"
-python3 "$here/backdrop.py" "$work/backdrop.png" "$width" "$height"
 python3 - "$root" "$work" <<'PY'
 import glob, os, sys
 from PIL import Image
@@ -29,11 +28,11 @@ def raw(src, dst):
         f.write(im.tobytes())
 for png in glob.glob(os.path.join(root, "soh/assets/custom/ootde/ui/*/*.rgba32.png")):
     raw(png, os.path.join(work, "raw", os.path.basename(png).split(".")[0] + ".raw"))
-raw(os.path.join(work, "backdrop.png"), os.path.join(work, "raw", "background.raw"))
 PY
 
 src="$root/soh/soh/Enhancements/DefinitiveUI"
-g++ -O2 -std=c++20 -DIMGUI_DEFINE_MATH_OPERATORS -I"$imgui" -I"$src" \
+# Same ImTextureID as libultraship (a macro for void*), so code that only builds in the preview is caught here.
+g++ -O2 -std=c++20 -DIMGUI_DEFINE_MATH_OPERATORS "-DImTextureID=void*" -I"$imgui" -I"$src" \
     "$here/preview.cpp" "$src/DeTheme.cpp" "$src/DeTitleMenuView.cpp" \
     "$imgui/imgui.cpp" "$imgui/imgui_draw.cpp" "$imgui/imgui_widgets.cpp" "$imgui/imgui_tables.cpp" \
     -o "$work/preview"

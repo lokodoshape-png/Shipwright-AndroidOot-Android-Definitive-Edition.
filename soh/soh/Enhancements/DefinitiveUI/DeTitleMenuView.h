@@ -30,11 +30,6 @@ struct TitleMenuView {
     bool showBack = false;  // B: Voltar hint
     const char* footer = nullptr; // small text at the bottom of the panel (version)
 
-    // Where the game draws its logo, in screen pixels (the subtitle goes under it).
-    ImVec2 logoCenter = ImVec2(0, 0);
-    float logoWidth = 0.0f;
-    float logoBottom = 0.0f;
-
     float alpha = 1.0f;   // opening / closing fade
     float slide = 0.0f;   // 0 = in place, 1 = fully slid out to the right
 };

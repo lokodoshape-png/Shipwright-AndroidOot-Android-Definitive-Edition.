@@ -16,10 +16,8 @@ extern "C" {
 
 struct PlayState;
 
-// The menu replaces "PRESS START" (Configurações > Interface; on by default).
+// The menu (drawn over the whole title screen, with the art of the reference image) replaces "PRESS START" (Configurações > Interface; on by default).
 bool DefinitiveUI_TitleMenuEnabled(void);
-// How far the title logo moves left (N64 pixels) to leave room for the menu.
-int32_t DefinitiveUI_TitleLogoShiftX(void);
 // Called by EnMag every frame once the logo is shown. Returns true when the game must go to the file select screen.
 bool DefinitiveUI_TitleMenuUpdate(struct PlayState* play);
 // The title screen is gone (EnMag destroyed).

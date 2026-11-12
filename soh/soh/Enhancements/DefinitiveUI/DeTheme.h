@@ -56,8 +56,17 @@ enum Texture {
     TEX_GLOW,
     TEX_SPARK,
     TEX_NAVI_WING,
+    // Art from Rafael's reference image (scripts/ootde_ui_art.py), enlarged 4x.
+    TEX_TITLE_BG,
+    TEX_LOGO,
+    TEX_BUTTON_NORMAL,
+    TEX_BUTTON_SELECTED,
+    TEX_BUTTON_PRESSED,
+    TEX_FRAME,
     TEX_COUNT,
 };
+// Pixel size of each texture (as written by the asset scripts).
+ImVec2 TextureSize(Texture tex);
 // Returns 0 when the texture is not available; every shape then falls back to plain geometry.
 using TextureLookup = ImTextureID (*)(Texture tex);
 void SetTextureLookup(TextureLookup lookup);
@@ -112,6 +121,13 @@ void Heart(ImDrawList* dl, ImVec2 center, float size, float fill, float alpha);
 // Round button badge with a letter (A, B, Start...).
 void ButtonGlyph(ImDrawList* dl, ImVec2 center, float radius, const char* letter, ImU32 col, float alpha);
 // Thin gold line with a diamond in the middle and fading ends.
+// Image stretched over a..b keeping its corners: `corner` texels of each edge are drawn at `scale`, and only a thin
+// strip next to them is stretched (so ornaments in the middle of the edges are not smeared).
+void NineSlice(ImDrawList* dl, ImTextureID tex, ImVec2 texSize, ImVec2 a, ImVec2 b, ImVec2 corner, float scale,
+               ImU32 tint);
+// Image covering a..b (cropped, keeping proportions), with a slow zoom for a cinematic feel.
+void CoverImage(ImDrawList* dl, ImTextureID tex, ImVec2 texSize, ImVec2 a, ImVec2 b, float zoom, ImVec2 focus,
+                ImU32 tint);
 void Divider(ImDrawList* dl, ImVec2 a, float width, float s, float alpha);
 
 // The fairy: glowing orb with four flapping wings.
