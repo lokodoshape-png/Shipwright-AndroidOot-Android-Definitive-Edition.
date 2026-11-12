@@ -72,11 +72,12 @@ A: Have your controller plugged in before opening the app. Don't disconnect it m
 - [CMake 3.31.5](https://github.com/Kitware/CMake/releases)
 - [OpenJDK 17 | Java Development Kit](https://jdk.java.net/archive/)
 - [Android Studio Koala | 2024.1.1 Patch 2 August 8, 2024](https://developer.android.com/studio/archive)
-- Android SDK 31 | Android 12
-- Android SDK Build-Tools 30.0.2
+- Android SDK Platform 33 | Android 13 (`compileSdk` and `targetSdk` 33, `minSdk` 24)
+- Android SDK Build-Tools: the version chosen by AGP 8.10 (Gradle downloads it if missing)
 - Android SDK Command-Line Tools 17.0
 - Android NDK 26.0.10792818
-- Android Gradle Plugin (AGP) 7.0.3
+- Android Gradle Plugin (AGP) 8.10.1 (`Android/build.gradle`)
+- Gradle 8.11.1 through the wrapper (`Android/gradlew`; AGP 8.10 needs Gradle 8.11.1 or newer)
 
 **Note:** These are the tools and versions that has been tested and are supported to build the project directly. If you want to use different tools/versions, note that you would need to figure out by yourself how to setup and configure the tools/project to build with them.
 
@@ -117,8 +118,7 @@ A: Have your controller plugged in before opening the app. Don't disconnect it m
 
 5. Go to "Tools/SDK Manager" and install the next tools:
 
-    - Android SDK 31 | Android 12
-    - Android SDK Build-Tools 30.0.2
+    - Android SDK Platform 33 | Android 13
     - Android NDK 26.0.10792818
     - Android SDK Command-Line Tools 17.0
     - Android SDK Platform-Tools 35.0.2

@@ -12,6 +12,34 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.8.0] — Estabilidade e arquivos seguros
+
+- **O app não fica mais preso numa tela preta sem permissão.** Se a permissão de acesso aos arquivos for negada, ou
+  se você sair da tela de configurações sem ativá-la, aparece "Permissão necessária" com "Conceder permissão" e "Sair".
+  Se você ativar a permissão depois, pelas configurações do Android, o jogo continua sozinho ao voltar para o app.
+  Fechar o app nesse momento também não trava mais.
+- **O jogo só inicia com os arquivos completos.** Se a cópia dos arquivos do jogo falhar (falta de espaço, por
+  exemplo), aparece "Falha na preparação" com o motivo, "Tentar novamente" e "Sair", em vez de abrir o jogo com
+  arquivos faltando. O `soh.otr` é copiado para um arquivo temporário e conferido antes de substituir o antigo. Se o
+  app for fechado no meio da preparação, ela é refeita na próxima vez.
+- **Importar a ROM não apaga mais a ROM que já estava lá.** A ROM escolhida é copiada para `OOT.z64.tmp`, conferida
+  como o extrator confere (tamanho de 32, 54 ou 64 MB, não compactada e com o CRC32C numa das versões compatíveis) e
+  só então troca o `OOT.z64`. Se a cópia for interrompida ou a ROM for recusada, aparece o motivo e a ROM anterior
+  continua lá.
+- **Instalar mods ficou seguro.** Cada mod é copiado para um arquivo temporário e conferido (um `.otr` precisa estar
+  completo; um `.o2r` ou `.zip` precisa abrir como zip) antes de entrar na pasta `mods`. Se já existir um mod com o
+  mesmo nome e conteúdo diferente, o app pergunta: "Substituir", "Manter os dois" ou "Cancelar". Nada é sobrescrito
+  sem você escolher.
+- **Diário de Quests:** "Derrote Ganondorf" pode ser marcada como concluída. O jogo não salva essa vitória (os
+  créditos terminam o jogo), então, depois que a etapa anterior estiver concluída, aperte A ou toque na linha
+  "Marcar como concluída" do pergaminho. A marca vale só para aquele arquivo de save e pode ser desfeita.
+- Corrigido um erro do Diário que podia escrever um byte fora do lugar ao converter textos com acentos.
+- Android 10: o acesso à pasta `OOT-DE` funciona (modo de armazenamento legado).
+- Build: versões alinhadas (AGP 8.10.1, Gradle 8.11.1, compileSdk e targetSdk 33). O CMake percebe arquivos novos
+  sozinho. Antes de compilar, o GitHub Actions confere o `soh.otr` por inteiro (`scripts/otr_add_custom.py --verify`)
+  e roda os testes de `scripts/tests/`.
+- Os testes feitos e os que ainda precisam de um celular estão em [docs/TESTES-0.8.md](docs/TESTES-0.8.md).
+
 ## [0.7.1] — Diário de Quests corrigido
 
 - **As texturas do Diário não apareciam.** O `soh.otr` que vai dentro do APK não tinha as texturas novas (pedra,
