@@ -38,16 +38,35 @@ OSMesg sSiIntMsgBuf[1];
 #ifdef __ANDROID__
 #include <jni.h>
 #include <SDL.h>
-void wait_for_java_setup() {
+// Waits until MainActivity has prepared the data folder (soh.otr, assets/). Returns 0 when the preparation did not
+// succeed (the user left, or the activity was closed): the game must not start on missing files.
+int wait_for_java_setup() {
     JNIEnv* env = SDL_AndroidGetJNIEnv();
-    jobject activity = SDL_AndroidGetActivity();
+    jclass mainActivityClass;
+    jmethodID waitMethod;
+    jboolean ready;
 
-    jclass activityClass = (*env)->GetObjectClass(env, activity);
-    jclass mainActivityClass = (*env)->FindClass(env, "com/dishii/soh/MainActivity");
-
-    jmethodID waitMethod = (*env)->GetStaticMethodID(env, mainActivityClass, "waitForSetupFromNative", "()V");
-
-    (*env)->CallStaticVoidMethod(env, mainActivityClass, waitMethod);
+    if (env == NULL) {
+        return 0;
+    }
+    mainActivityClass = (*env)->FindClass(env, "com/dishii/soh/MainActivity");
+    if (mainActivityClass == NULL) {
+        (*env)->ExceptionClear(env);
+        return 0;
+    }
+    waitMethod = (*env)->GetStaticMethodID(env, mainActivityClass, "waitForSetupFromNative", "()Z");
+    if (waitMethod == NULL) {
+        (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, mainActivityClass);
+        return 0;
+    }
+    ready = (*env)->CallStaticBooleanMethod(env, mainActivityClass, waitMethod);
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionClear(env);
+        ready = JNI_FALSE;
+    }
+    (*env)->DeleteLocalRef(env, mainActivityClass);
+    return ready == JNI_TRUE;
 }
 #endif
 
@@ -72,7 +91,11 @@ int SDL_main(int argc, char** argv) {
 #elif defined(__ANDROID__)
 int SDL_main(int argc, char** argv)
 {
-    wait_for_java_setup();  // Pause here until Java is ready
+    // Pause here until Java has prepared the files; leave without starting the game when it could not.
+    if (!wait_for_java_setup()) {
+        SDL_Log("OOT D.E.: setup not completed, the game is not started");
+        return 1;
+    }
 #else //_WIN32
 int main(int argc, char** argv) {
 #endif

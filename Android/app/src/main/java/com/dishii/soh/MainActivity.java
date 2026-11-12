@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.os.Environment;
 import android.provider.Settings;
 import java.io.File;
@@ -14,7 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
-import java.util.concurrent.CountDownLatch;
+import java.lang.ref.WeakReference;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -52,8 +53,27 @@ public class MainActivity extends SDLActivity{
     static File getDataFolder() {
         return new File(Environment.getExternalStorageDirectory(), DATA_FOLDER);
     }
-    private static final CountDownLatch setupLatch = new CountDownLatch(1);
+    // State of the preparation of the data folder. The native side (SDL_main) waits in waitForSetupFromNative()
+    // and starts the game only on SUCCESS. Every change goes through setSetupState(), which wakes the waiting thread.
+    //   PENDING   nothing started yet, or waiting for the storage permission;
+    //   PREPARING the preparation was started (confirmation dialog shown or files being copied);
+    //   SUCCESS   every needed file is in place and was checked;
+    //   FAILED    the preparation failed; the user can try again or leave.
+    enum SetupState { PENDING, PREPARING, SUCCESS, FAILED }
+
+    private static final Object sSetupLock = new Object();
+    private static SetupState sSetupState = SetupState.PENDING;
+    // Set when the user leaves without finishing the preparation (or the activity is destroyed): the native wait
+    // returns false and SDL_main ends instead of waiting forever. SDLActivity.onDestroy() joins the SDL thread, so a
+    // wait that never returns would freeze the app.
+    private static boolean sSetupAbandoned = false;
+    // The activity on screen, for the background preparation to report to.
+    private static WeakReference<MainActivity> sCurrentActivity = new WeakReference<>(null);
+
     private ProgressDialog setupProgressDialog;
+    private AlertDialog permissionDialog;
+    // True between asking for the storage permission and getting the answer, so it is never asked twice at once.
+    private boolean permissionRequestInFlight = false;
     // True when this install is newer than the one that created the SOH folder: the files the app ships
     // (soh.otr and the extractor's assets/) are then replaced, while saves, mods and oot.otr are kept.
     private boolean refreshPortFiles = false;
@@ -65,12 +85,17 @@ public class MainActivity extends SDLActivity{
 
         preferences = getSharedPreferences("com.dishii.soh.prefs",Context.MODE_PRIVATE);
 
-        // Check if storage permissions are granted
-        if (hasStoragePermission()) {
-            checkAndSetupFiles();
-        } else {
-            requestStoragePermission();
+        sCurrentActivity = new WeakReference<>(this);
+        synchronized (sSetupLock) {
+            // A new activity gets a new SDL thread, which must wait again. A failed or abandoned preparation of an
+            // earlier activity of this process starts over.
+            sSetupAbandoned = false;
+            if (sSetupState == SetupState.FAILED) {
+                sSetupState = SetupState.PENDING;
+            }
         }
+
+        startSetupFlow();
 
         super.onCreate(savedInstanceState);
 
@@ -78,11 +103,134 @@ public class MainActivity extends SDLActivity{
         attachController();
     }
 
-    public static void waitForSetupFromNative() {
-        try {
-            setupLatch.await();  // Block until setup is complete
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // The permission may have been granted in the system settings while the app was in the background.
+        if (getSetupState() == SetupState.PENDING && !permissionRequestInFlight && hasStoragePermission()) {
+            if (permissionDialog != null && permissionDialog.isShowing()) {
+                permissionDialog.dismiss();
+            }
+            permissionDialog = null;
+            checkAndSetupFiles();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        // SDLActivity.onDestroy() waits for the SDL thread to end; release it if it is still waiting for the setup.
+        if (getSetupState() != SetupState.SUCCESS) {
+            abandonSetup();
+        }
+        if (sCurrentActivity.get() == this) {
+            sCurrentActivity = new WeakReference<>(null);
+        }
+        super.onDestroy();
+    }
+
+    static SetupState getSetupState() {
+        synchronized (sSetupLock) {
+            return sSetupState;
+        }
+    }
+
+    static void setSetupState(SetupState state) {
+        synchronized (sSetupLock) {
+            sSetupState = state;
+            sSetupLock.notifyAll();
+        }
+    }
+
+    // Ends the native wait without starting the game.
+    static void abandonSetup() {
+        synchronized (sSetupLock) {
+            sSetupAbandoned = true;
+            sSetupLock.notifyAll();
+        }
+    }
+
+    /**
+     * Called by SDL_main (soh/src/code/main.c) on the SDL thread before the game starts.
+     *
+     * Returns true when the data folder is ready (SUCCESS), false when the user left without finishing it; SDL_main
+     * then ends instead of starting the game on missing files. While the app waits for the user (the permission
+     * screen, a confirmation or an error dialog), the UI thread stays free and every dialog offers a way on, so the
+     * wait always ends with SUCCESS or with the user leaving.
+     */
+    public static boolean waitForSetupFromNative() {
+        long lastLog = SystemClock.elapsedRealtime();
+        synchronized (sSetupLock) {
+            while (sSetupState != SetupState.SUCCESS && !sSetupAbandoned) {
+                try {
+                    sSetupLock.wait(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    Log.w("OOTDE_SETUP", "Interrupted while waiting for the setup");
+                    return false;
+                }
+                long now = SystemClock.elapsedRealtime();
+                if (now - lastLog >= 30000) {
+                    Log.i("OOTDE_SETUP", "Native start still waiting for the setup, state " + sSetupState);
+                    lastLog = now;
+                }
+            }
+            Log.i("OOTDE_SETUP", "Native start: state " + sSetupState + (sSetupAbandoned ? " (abandoned)" : ""));
+            return sSetupState == SetupState.SUCCESS;
+        }
+    }
+
+    // Starts (or resumes) the preparation: asks for the permission first when it is missing. Safe to call again.
+    private void startSetupFlow() {
+        SetupState state = getSetupState();
+        if (state == SetupState.SUCCESS || state == SetupState.PREPARING) {
+            return;
+        }
+        if (hasStoragePermission()) {
+            checkAndSetupFiles();
+        } else {
+            requestStoragePermission();
+        }
+    }
+
+    // Shown when the permission was not granted: the game cannot start, but the user can try again or leave.
+    private void showPermissionDeniedDialog() {
+        if (isFinishing() || (permissionDialog != null && permissionDialog.isShowing())) {
+            return;
+        }
+        permissionDialog = new AlertDialog.Builder(this)
+                .setTitle("Permissão necessária")
+                .setMessage("O OOT D.E. guarda os saves, os mods e os arquivos do jogo na pasta " + DATA_FOLDER
+                        + " do armazenamento do celular. Sem a permissão de acesso aos arquivos o jogo não pode iniciar.\n\n"
+                        + "Toque em \"Conceder permissão\" e ative \"Permitir acesso para gerenciar todos os arquivos\".")
+                .setCancelable(false)
+                .setPositiveButton("Conceder permissão", (dialog, which) -> {
+                    permissionDialog = null;
+                    requestStoragePermission();
+                })
+                .setNegativeButton("Sair", (dialog, which) -> {
+                    permissionDialog = null;
+                    abandonSetup();
+                    finish();
+                })
+                .show();
+    }
+
+    private void onStoragePermissionResult() {
+        permissionRequestInFlight = false;
+        if (hasStoragePermission()) {
+            checkAndSetupFiles();
+        } else {
+            Log.w("OOTDE_SETUP", "Storage permission not granted");
+            showPermissionDeniedDialog();
+        }
+    }
+
+    // Android 6 to 10: answer of the runtime permission dialog.
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+            onStoragePermissionResult();
         }
     }
 
@@ -126,18 +274,35 @@ public class MainActivity extends SDLActivity{
     private static final int MOD_PICKER_REQUEST_CODE = 4;
 
     private void requestStoragePermission() {
+        if (permissionRequestInFlight) {
+            return;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Android 11+ → MANAGE_EXTERNAL_STORAGE
             if (!Environment.isExternalStorageManager()) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivityForResult(intent, STORAGE_PERMISSION_REQUEST_CODE);
+                try {
+                    permissionRequestInFlight = true;
+                    startActivityForResult(intent, STORAGE_PERMISSION_REQUEST_CODE);
+                } catch (android.content.ActivityNotFoundException e) {
+                    // Some systems have no per-app screen: open the general one.
+                    try {
+                        startActivityForResult(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+                                STORAGE_PERMISSION_REQUEST_CODE);
+                    } catch (android.content.ActivityNotFoundException e2) {
+                        permissionRequestInFlight = false;
+                        Log.e("OOTDE_SETUP", "No settings screen for the storage permission", e2);
+                        showPermissionDeniedDialog();
+                    }
+                }
             } else {
                 // Already granted
                 checkAndSetupFiles();
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Android 6–10 → request READ/WRITE at runtime
+            permissionRequestInFlight = true;
             ActivityCompat.requestPermissions(this,
                     new String[]{
                             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -151,6 +316,13 @@ public class MainActivity extends SDLActivity{
     }
 
     public void checkAndSetupFiles() {
+        // Guard against a second start (permission answer and onResume can both get here).
+        synchronized (sSetupLock) {
+            if (sSetupState == SetupState.PREPARING || sSetupState == SetupState.SUCCESS) {
+                return;
+            }
+            sSetupState = SetupState.PREPARING;
+        }
         doVersionCheck();
         File targetRootFolder = getDataFolder();
         File assetsFolder = new File(targetRootFolder, "assets");
@@ -176,7 +348,7 @@ public class MainActivity extends SDLActivity{
                     .show();
         } else {
             // No setup needed, still need to count down
-            setupLatch.countDown();
+            setSetupState(SetupState.SUCCESS);
         }
     }
 
@@ -227,7 +399,7 @@ public class MainActivity extends SDLActivity{
                     Toast.makeText(this, "Não foi possível criar a pasta " + DATA_FOLDER, Toast.LENGTH_LONG).show();
                     if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
                 });
-                setupLatch.countDown();
+                setSetupState(SetupState.SUCCESS);
                 return;
             }
         }
@@ -344,7 +516,7 @@ public class MainActivity extends SDLActivity{
                 setupProgressDialog.dismiss();
             }
         });
-        setupLatch.countDown();
+        setSetupState(SetupState.SUCCESS);
     }
 
 
@@ -386,14 +558,9 @@ public class MainActivity extends SDLActivity{
             }
 
         } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            // Handle MANAGE_EXTERNAL_STORAGE result
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (Environment.isExternalStorageManager()) {
-                    checkAndSetupFiles();
-                } else {
-                    Toast.makeText(this, "A permissão de acesso aos arquivos é necessária para jogar.", Toast.LENGTH_LONG).show();
-                }
-            }
+            // Answer of the MANAGE_EXTERNAL_STORAGE settings screen (Android 11+). The result code says nothing:
+            // the permission itself is checked.
+            onStoragePermissionResult();
         }
     }
 
