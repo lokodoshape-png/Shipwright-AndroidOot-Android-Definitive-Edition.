@@ -8,6 +8,11 @@ writes for them). Run it after adding a texture under soh/assets/custom/:
 
     python3 scripts/otr_add_custom.py            # update the archive
     python3 scripts/otr_add_custom.py --check    # only list what is missing; exit 1 if anything is
+    python3 scripts/otr_add_custom.py --verify   # full check before building the APK (CI runs this); exit 1 on error
+
+--verify checks that soh.otr exists, is a complete MPQ archive (header, hash and block tables, every file inside the
+archive and readable), holds the resources the game needs at start (REQUIRED), has the portVersion of this source
+tree (CMakeLists.txt project VERSION, which OTRGlobals.cpp compares at start) and every custom texture.
 
 It needs Pillow.
 """
@@ -69,7 +74,7 @@ def _crypt(words, key, decrypt):
     return out
 
 
-def read_mpq(path):
+def read_mpq(path, want_unpack=False):
     data = open(path, "rb").read()
     if data[:4] != b"MPQ\x1a":
         sys.exit(f"{path}: not an MPQ archive")
@@ -119,6 +124,8 @@ def read_mpq(path):
         blk = raw_block(name)
         if blk is not None:
             files[name] = blk
+    if want_unpack:
+        return shift, files, unpack, (len(data), ht_pos, bt_pos, ht_n, bt_n, bt)
     return shift, files
 
 
@@ -200,11 +207,103 @@ def missing_textures(files):
     return missing
 
 
+# Resources soh.otr must hold for the game to start: the port version (checked against the build by
+# CheckSoHOTRVersion in OTRGlobals.cpp), the OpenGL ES shaders and the fonts of the menus.
+REQUIRED = [
+    "portVersion",
+    "shaders/opengl/default.shader.vs",
+    "shaders/opengl/default.shader.fs",
+    "fonts/Montserrat-Regular.ttf",
+    "fonts/Inconsolata-Regular.ttf",
+    "fonts/PressStart2P-Regular.ttf",
+    "fonts/Fipps-Regular.otf",
+]
+
+
+def project_version():
+    import re
+    text = open(os.path.join(ROOT, "CMakeLists.txt"), encoding="utf-8").read()
+    m = re.search(r"project\(\s*\w+\s+VERSION\s+(\d+)\.(\d+)\.(\d+)", text)
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def verify(path):
+    """Full check of soh.otr before the APK is built. Returns a list of problems (empty: valid)."""
+    if not os.path.isfile(path):
+        return [f"{path}: file not found"]
+    size = os.path.getsize(path)
+    with open(path, "rb") as f:
+        head = f.read(32)
+    if len(head) < 32 or head[:4] != b"MPQ\x1a":
+        return [f"{path}: not an MPQ archive (bad header)"]
+    problems = []
+    header_size, archive_size = struct.unpack("<II", head[4:12])
+    if archive_size > size:
+        return [f"{path}: truncated ({size} bytes, header says {archive_size})"]
+    try:
+        _, files, unpack, (length, ht_pos, bt_pos, ht_n, bt_n, bt) = read_mpq(path, want_unpack=True)
+    except SystemExit as e:
+        return [f"{path}: {e}"]
+    except Exception as e:  # broken tables
+        return [f"{path}: cannot read the archive tables ({e})"]
+    if ht_pos + ht_n * 16 > length or bt_pos + bt_n * 16 > length:
+        problems.append("hash or block table outside the file")
+    for i in range(bt_n):
+        pos, csize, fsize, flags = bt[i * 4:i * 4 + 4]
+        if flags & FILE_EXISTS and pos + csize > length:
+            problems.append(f"block {i} goes past the end of the file")
+    if not files:
+        problems.append("the archive lists no files")
+    # Every file must decompress to its stored size.
+    for name in sorted(files):
+        try:
+            data = unpack(name)
+        except SystemExit as e:
+            problems.append(f"{name}: {e}")
+            continue
+        except Exception as e:
+            problems.append(f"{name}: cannot be read ({e})")
+            continue
+        if len(data) != files[name][1]:
+            problems.append(f"{name}: {len(data)} bytes instead of {files[name][1]}")
+    for name in REQUIRED:
+        if name not in files:
+            problems.append(f"missing required resource: {name}")
+    if "portVersion" in files:
+        data = unpack("portVersion")
+        if len(data) >= 7:
+            order = "<" if data[0] == 0 else ">"
+            version = struct.unpack(order + "HHH", data[1:7])
+            expected = project_version()
+            if expected is not None and version != expected:
+                problems.append(f"portVersion {version} does not match CMakeLists.txt {expected}: "
+                                "the game would refuse soh.otr")
+        else:
+            problems.append("portVersion is too short")
+    for name, _ in missing_textures(files):
+        problems.append(f"missing custom texture: {name} (run python3 scripts/otr_add_custom.py)")
+    return problems
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="only report missing textures")
+    parser.add_argument("--verify", action="store_true", help="full check of the archive (used before building)")
     parser.add_argument("--otr", default=OTR)
     args = parser.parse_args()
+
+    if args.verify:
+        problems = verify(args.otr)
+        for p in problems:
+            print("error: " + p)
+        if problems:
+            sys.exit(1)
+        _, files = read_mpq(args.otr)
+        print(f"{args.otr}: OK ({len(files)} files, portVersion {'.'.join(map(str, project_version() or ()))}, "
+              f"every required resource and custom texture present)")
+        return
+    if not os.path.isfile(args.otr):
+        sys.exit(f"{args.otr}: file not found")
 
     shift, files = read_mpq(args.otr)
     missing = missing_textures(files)

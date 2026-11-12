@@ -66,9 +66,17 @@ jobs:
           echo "name=$gradle_name" >> "$GITHUB_OUTPUT"
           echo "code=$gradle_code" >> "$GITHUB_OUTPUT"
 
-      # soh.otr is committed (the build does not generate it): every PNG of soh/assets/custom must be in it.
-      - name: Check that soh.otr has every custom texture
-        run: python3 scripts/otr_add_custom.py --check
+      # soh.otr is committed (the build does not generate it). Before building: it must be a complete archive, with
+      # the resources the game needs, the portVersion of this source tree and every PNG of soh/assets/custom.
+      - name: Verify soh.otr
+        run: python3 scripts/otr_add_custom.py --verify
+
+      # Computer-side tests of the code changed for 0.8 (file checks of MainActivity, QM_Encode, the soh.otr check).
+      - name: Run host tests
+        run: |
+          scripts/tests/run_java_tests.sh
+          scripts/tests/run_qm_encode_test.sh
+          scripts/tests/run_otr_verify_test.sh
 
       - name: Setup and build the project
         run: |
