@@ -17,6 +17,8 @@
 #include <variables.h>
 #include <libultraship/libultraship.h>
 #include "soh/SohGui/SohGui.hpp"
+#include "soh/Enhancements/DefinitiveExpansion/DefinitiveExpansion.h"
+#include "soh/Enhancements/DefinitiveExpansion/DEStorage.h"
 
 #define NOGDI // avoid various windows defines that conflict with things in z64.h
 #include <spdlog/spdlog.h>
@@ -1258,25 +1260,32 @@ void SaveManager::SaveFileThreaded(int fileNum, SaveContext* saveContext, int se
     std::string json_string = saveBlock.dump(4);
     fwrite(json_string.c_str(), sizeof(char), json_string.length(), w);
     fclose(w);
-#else
-    std::ofstream output(tempFile);
-    output << std::setw(4) << saveBlock << std::endl;
-    output.close();
-#endif
-
     if (std::filesystem::exists(fileName)) {
         std::filesystem::remove(fileName);
     }
 
-#if defined(__SWITCH__) || defined(__WIIU__)
     copy_file(tempFile.c_str(), fileName.c_str());
-#else
-    std::filesystem::copy_file(tempFile, fileName);
-#endif
 
     if (std::filesystem::exists(tempFile)) {
         std::filesystem::remove(tempFile);
     }
+#else
+    // OOT D.E.: the new save is written completely (and flushed to disk) before the old one is touched, then renamed
+    // over it. The original code deleted the old save first and copied the temporary file afterwards, so a crash,
+    // the app being killed or a full storage in between lost the save. If writing fails, the old save is kept.
+    // Before replacing it, the Definitive save manager may keep a copy of the old save (automatic backups).
+    std::string saveError;
+    if (!DE::AtomicWriteFile(tempFile, saveBlock.dump(4) + "\n", &saveError)) {
+        SPDLOG_ERROR("Save File - could not write {}: {}; the previous save was kept", tempFile.string(), saveError);
+    } else {
+        DefinitiveExpansion::BeforeSaveOverwrite(fileNum);
+        if (!DE::AtomicReplace(tempFile, fileName, &saveError)) {
+            SPDLOG_ERROR("Save File - could not replace {}: {}", fileName.string(), saveError);
+        }
+    }
+    std::error_code tempEc;
+    std::filesystem::remove(tempFile, tempEc);
+#endif
 
     delete saveContext;
     InitMeta(fileNum);
@@ -2489,9 +2498,16 @@ void SaveManager::LoadStruct(const std::string& name, LoadStructFunc func) {
     }
 }
 
+// OOT D.E.: set while CopyZeldaFile clears the target, which it already backed up as "before copy".
+static bool sSkipDeleteBackup = false;
+
 void SaveManager::CopyZeldaFile(int from, int to) {
     assert(std::filesystem::exists(GetFileName(from)));
+    // OOT D.E.: keep the save that the copy replaces (Definitive > Saves can bring it back).
+    DefinitiveExpansion::BeforeSlotCopiedOver(to);
+    sSkipDeleteBackup = true;
     DeleteZeldaFile(to);
+    sSkipDeleteBackup = false;
 #if defined(__WIIU__) || defined(__SWITCH__)
     copy_file(GetFileName(from).c_str(), GetFileName(to).c_str());
 #else
@@ -2521,6 +2537,10 @@ void SaveManager::CopyZeldaFile(int from, int to) {
 }
 
 void SaveManager::DeleteZeldaFile(int fileNum) {
+    // OOT D.E.: keep the save that is deleted (Definitive > Saves can bring it back).
+    if (!sSkipDeleteBackup) {
+        DefinitiveExpansion::BeforeSlotDeleted(fileNum);
+    }
     if (std::filesystem::exists(GetFileName(fileNum))) {
         std::filesystem::remove(GetFileName(fileNum));
     }

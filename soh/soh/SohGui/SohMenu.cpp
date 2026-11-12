@@ -85,6 +85,8 @@ void SohMenu::InitElement() {
     AddMenuSettings();
     AddMenuEnhancements();
     AddMenuRandomizer();
+    // OOT D.E.: Definitive Expansion (saves, settings and the new systems).
+    AddMenuDefinitive();
 #ifdef ENABLE_REMOTE_CONTROL
     AddMenuNetwork();
 #endif

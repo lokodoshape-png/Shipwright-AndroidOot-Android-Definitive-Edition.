@@ -12,6 +12,53 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.10.0] — Definitive Expansion
+
+Dez sistemas novos, todos opcionais: a aventura original continua igual sem ligar nenhum deles. Ficam no menu
+principal em **Definitive Features** e no menu do jogo, em **Definitive**. Os dados da expansão ficam em
+`OOT-DE/ootde/`, separados dos saves.
+
+- **Menus nítidos.** O texto dos menus era desenhado pequeno e esticado (2x no Android), por isso saía borrado.
+  Agora as fontes são geradas no tamanho real da tela, tanto no menu principal quanto no menu do jogo.
+  Se você mudar a escala do menu nas configurações, ela vale na hora e fica nítida ao abrir o app de novo.
+- **Saves mais seguros.** O jogo agora grava o save novo por completo e só então troca o arquivo antigo por ele.
+  Antes o arquivo antigo era apagado primeiro, e fechar o app ou ficar sem espaço nesse instante perdia o save.
+- **Gerenciador de saves** (menu do jogo > Definitive > Saves): estado de cada slot (válido, inválido ou vazio),
+  backup manual, backups automáticos antes de gravar, exportar, importar e restaurar. Restaurar e importar
+  conferem o arquivo, guardam o save atual nos backups e pedem confirmação. Apagar ou copiar um save na seleção
+  de arquivos também guarda uma cópia antes.
+- **Configurações Definitive** (Definitive > Recursos): arquivo próprio e versionado (`OOT-DE/ootde/config.json`),
+  separado dos saves; perfis e botão de restaurar padrões.
+- **Touch 2.0** (Definitive > Touch & Motion): editor dos controles de toque. Arraste para mover, mude o tamanho
+  de cada controle, a distância entre os botões e a transparência; 3 perfis e botão para voltar ao padrão.
+- **Mira por movimento**: ativar, sensibilidade, calibrar, suavização, eixos e inversão, e escolha dos itens que
+  usam o giroscópio. O analógico continua funcionando junto.
+- **HUD** (Definitive > HUD): perfis Clássico, Minimalista, Definitive e Personalizado; posição e visibilidade de
+  cada elemento. Tamanho e transparência por elemento ainda não.
+- **Definitive Features no menu principal**: um botão novo no menu Definitive Edition leva a todos os sistemas
+  da expansão, com o mesmo visual e navegação por toque, teclado e controle.
+- **Randomizer** (Definitive > Randomizer): o Randomizer do Ship of Harkinian com semente pronta, código para
+  copiar e compartilhar, geração por semente digitada e histórico das partidas (concluídas e em andamento).
+- **Hyrule Explorer** (Definitive > Hyrule Explorer): mapa de Hyrule com as áreas já visitadas (as mesmas
+  que somem as nuvens no mapa de pausa), progresso por região (Skulltulas e Pedaços de Coração) e o Álbum:
+  personagens, chefes, inimigos, itens, eventos e lugares, tudo lido do save.
+- **3D Museum** (Definitive > 3D Museum): catálogo de 49 itens com ícone, descrição, zoom e desbloqueio pelo
+  que o save já tem. O modelo 3D girando ainda não.
+- **Link Customization** (Definitive > Link Customization): cores de túnicas, cabelo, botas, escudo e espadas
+  com prévia antes de aplicar, restaurar originais, 3 visuais guardados e visuais liberados por conquistas.
+- **Conquistas** (Definitive > Conquistas): 42 conquistas em 7 categorias, conferidas pelo que o jogo registra de
+  verdade (itens, chefes derrotados, contadores). Progresso, data, percentual, histórico e aviso na tela. Ficam
+  num arquivo próprio, fora dos saves.
+- **Boss Rush com recordes** (Definitive > Boss Rush): cada corrida terminada do Boss Rush guarda tempo, mortes,
+  vida restante e pontuação. Ranking por conjunto de chefes e dificuldade (Normal, Difícil, Sobrevivência) e
+  histórico.
+- **Master Mode** (Definitive > Master Mode): presets Clássico, Herói, Mestre e Lendário, feitos dos
+  modificadores de dificuldade que o jogo já tem. Pode ser desligado a qualquer momento.
+- Formato dos saves inalterado. Backups e exportações ficam em `OOT-DE/ootde/`.
+
+Ainda não: modelo 3D girando no Museu, tamanho e transparência por elemento no HUD e desafio de tempo no Boss Rush.
+Detalhes, testes e riscos em [docs/DEFINITIVE-EXPANSION.md](docs/DEFINITIVE-EXPANSION.md).
+
 ## [0.9] — Interface Definitive Edition: menu principal
 
 Primeira etapa da nova interface, publicada junto com as correções de estabilidade da 0.8.0 (seção abaixo), que

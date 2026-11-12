@@ -40,6 +40,8 @@ void KaleidoScope_UpdatePrompt(PlayState* play);
 s32 KaleidoScope_MapCollectHeartPieceCount(void);
 bool KaleidoScope_MapCollectHeartPieceTaken(PlayState* play, s32 index);
 void KaleidoScope_MapCollectSkulltulas(PlayState* play, s32 point, s16* got, s16* total);
+void KaleidoScope_MapCollectRegionCounts(PlayState* play, s32 point, s16* skullGot, s16* skullTotal, s16* heartGot,
+                                         s16* heartTotal);
 Gfx* KaleidoScope_DrawQuestLogPageSections(Gfx* gfx, Vtx* pageVtx, void** pageTexs);
 void KaleidoScope_DrawQuestJournal(PlayState* play);
 void KaleidoScope_SetView(PauseContext* pauseCtx, f32 x, f32 y, f32 z);

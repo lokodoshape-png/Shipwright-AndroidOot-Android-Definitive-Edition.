@@ -1129,6 +1129,21 @@ public class MainActivity extends SDLActivity{
 
         setupToggleButton(buttonToggle,buttonGroup);
 
+        // OOT D.E. Touch 2.0: saved position, size, spacing and opacity of the controls, and their editor.
+        touchLayout = new TouchLayoutEditor(this, (ViewGroup) overlayView, buttonGroup,
+                this::updateTouchControlsVisibility);
+        touchLayout.apply();
+    }
+
+    private TouchLayoutEditor touchLayout;
+
+    // Called by the game menu (Definitive > Touch & Motion), from the game thread.
+    public void openTouchLayoutEditor() {
+        runOnUiThread(() -> {
+            if (touchLayout != null) {
+                touchLayout.open();
+            }
+        });
     }
 
     private void setupToggleButton(Button button, ViewGroup uiGroup){
@@ -1149,10 +1164,12 @@ public class MainActivity extends SDLActivity{
             return;
         }
         boolean menuOpen = !TouchAreaEnabled;
-        boolean hidden = controlsHiddenByUser || menuOpen;
+        // While the layout editor is open the controls are shown so they can be arranged; its layer takes the touches.
+        boolean editing = touchLayout != null && touchLayout.isEditing();
+        boolean hidden = (controlsHiddenByUser || menuOpen) && !editing;
         touchButtonGroup.setVisibility(hidden ? View.INVISIBLE : View.VISIBLE);
         if (buttonToggle != null) {
-            buttonToggle.setVisibility(menuOpen ? View.INVISIBLE : View.VISIBLE);
+            buttonToggle.setVisibility(menuOpen || editing ? View.INVISIBLE : View.VISIBLE);
         }
         if (hidden) {
             // Let go of anything the overlay was holding, so the game does not see a stuck button or stick.

@@ -2646,6 +2646,46 @@ void CosmeticsEditor_ResetAll() {
     ApplyOrResetCustomGfxPatches();
 }
 
+// OOT D.E. Definitive Expansion (Link Customization): read, set and reset one option by its id, through the same
+// steps the editor itself uses, so the editor and the game stay in step.
+bool CosmeticsEditor_GetColor(const char* id, Color_RGBA8* color) {
+    auto it = cosmeticOptions.find(id);
+    if (it == cosmeticOptions.end()) {
+        return false;
+    }
+    const CosmeticOption& option = it->second;
+    *color = CVarGetColor(option.valuesCvar, Color_RGBA8{ option.defaultColor.r, option.defaultColor.g,
+                                                          option.defaultColor.b, option.defaultColor.a });
+    if (!CVarGetInteger(option.changedCvar, 0)) {
+        *color = Color_RGBA8{ option.defaultColor.r, option.defaultColor.g, option.defaultColor.b,
+                              option.defaultColor.a };
+    }
+    return true;
+}
+
+bool CosmeticsEditor_SetColor(const char* id, Color_RGBA8 color) {
+    auto it = cosmeticOptions.find(id);
+    if (it == cosmeticOptions.end()) {
+        return false;
+    }
+    CosmeticOption& option = it->second;
+    option.currentColor = ImVec4(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
+    CVarSetColor(option.valuesCvar, color);
+    CVarSetInteger(option.rainbowCvar, 0);
+    CVarSetInteger(option.changedCvar, 1);
+    ApplySideEffects(option);
+    return true;
+}
+
+bool CosmeticsEditor_ResetColor(const char* id) {
+    auto it = cosmeticOptions.find(id);
+    if (it == cosmeticOptions.end()) {
+        return false;
+    }
+    ResetColor(it->second);
+    return true;
+}
+
 void CosmeticsEditor_ResetGroup(CosmeticGroup group) {
     for (auto& [id, cosmeticOption] : cosmeticOptions) {
         if (!CVarGetInteger(cosmeticOption.lockedCvar, 0) && cosmeticOption.group == group) {

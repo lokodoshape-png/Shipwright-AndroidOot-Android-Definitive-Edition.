@@ -10,6 +10,7 @@ enum TitleMainItem {
     MAIN_NEW_GAME,
     MAIN_FILES,
     MAIN_JOURNAL,
+    MAIN_FEATURES,
     MAIN_MODS,
     MAIN_SETTINGS,
     MAIN_EXTRAS,
@@ -26,8 +27,55 @@ enum TitleExtrasItem {
 
 namespace Strings {
 constexpr const char* kMainLabels[MAIN_COUNT] = {
-    "Continuar", "Novo Jogo", "Arquivos de Jogo", "Diário de Quests", "Mods", "Configurações", "Extras",
+    "Continuar", "Novo Jogo", "Arquivos de Jogo", "Diário de Quests", "Definitive Features", "Mods", "Configurações",
+    "Extras",
 };
+
+// Definitive Features (the systems of the Definitive Expansion). Two pages so every button keeps a touch-friendly
+// height. Each one opens its page of the port menu (Definitive).
+} // namespace Strings
+
+enum TitleFeatureItem {
+    FEATURE_SAVES,
+    FEATURE_TOUCH,
+    FEATURE_HUD,
+    FEATURE_LINK,
+    FEATURE_MUSEUM,
+    FEATURE_EXPLORER,
+    FEATURE_ACHIEVEMENTS,
+    FEATURE_BOSS_RUSH,
+    FEATURE_MASTER,
+    FEATURE_RANDOMIZER,
+    FEATURE_COUNT,
+};
+
+namespace Strings {
+constexpr int kFeaturesFirstPage = 5; // FEATURE_SAVES..FEATURE_MUSEUM, then "Mais recursos"
+constexpr const char* kFeaturesTitle = "Definitive Features";
+constexpr const char* kFeaturesMoreTitle = "Definitive Features · 2";
+constexpr const char* kFeatureLabels[FEATURE_COUNT] = {
+    "Save Manager", "Touch & Motion", "HUD Editor", "Link Customization", "3D Museum",
+    "Hyrule Explorer", "Achievements", "Boss Rush", "Master Mode", "Randomizer",
+};
+// The port menu page of each one (sidebar names of SohMenuDefinitive.cpp).
+constexpr const char* kFeatureSidebars[FEATURE_COUNT] = {
+    "Saves", "Touch & Motion", "HUD", "Link Customization", "3D Museum",
+    "Hyrule Explorer", "Conquistas", "Boss Rush", "Master Mode", "Randomizer",
+};
+constexpr const char* kFeatureDetails[FEATURE_COUNT] = {
+    "Backups, exportar, importar e restaurar os saves, com verificação de cada arquivo.",
+    "Posição, tamanho e transparência dos controles de toque e a mira por movimento.",
+    "Perfis Clássico, Minimalista e Definitive, e a posição de cada elemento do HUD.",
+    "Cores das túnicas, do cabelo, do escudo e das espadas, com prévia antes de aplicar.",
+    "Catálogo dos itens com o que o save já encontrou. Abra dentro de um jogo para ver o seu.",
+    "Mapa das áreas visitadas, progresso por região e álbum. Abra dentro de um jogo para ver o seu.",
+    "Conquistas de história, exploração, combate, coleção, masmorras, desafios e segredos.",
+    "Recordes, ranking e histórico das corridas do Boss Rush.",
+    "Presets de dificuldade feitos dos modificadores do jogo. Desligue quando quiser.",
+    "Gerar e compartilhar sementes, e o histórico das partidas do Randomizer.",
+};
+constexpr const char* kFeaturesMore = "Mais recursos";
+constexpr const char* kFeaturesMoreDetail = "Hyrule Explorer, Achievements, Boss Rush, Master Mode e Randomizer.";
 constexpr const char* kExtrasTitle = "Extras";
 constexpr const char* kExtrasLabels[EXTRAS_COUNT] = {
     "Mods Instalados",
@@ -47,6 +95,8 @@ constexpr const char* kJournalNone = "O Diário de Quests acompanha um arquivo s
 constexpr const char* kMods = "Ative, desative e instale mods de texturas, textos e traduções.";
 constexpr const char* kSettings = "Jogo, gráficos, áudio, controles, interface e acessibilidade.";
 constexpr const char* kExtras = "Mods instalados, informações da versão e créditos.";
+constexpr const char* kFeatures = "Save Manager, Touch & Motion, HUD, Link, 3D Museum, Hyrule Explorer, Achievements, "
+                                  "Boss Rush, Master Mode e Randomizer.";
 
 constexpr const char* kExtrasMods = "%d mod(s) ativo(s) de %d na pasta mods. Abre a lista para ativar, desativar ou "
                                     "instalar.";
