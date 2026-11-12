@@ -12,6 +12,29 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.9-menu] — Interface Definitive Edition: menu principal (prévia)
+
+Primeira etapa da nova interface (branch `feature/ootde-menu-definitivo`, ainda fora da `main`).
+
+- **Novo menu principal na tela de título**, no lugar do "PRESS START": painel de pedra com moldura de ouro
+  envelhecido, Triforce num medalhão com runas girando, botões com luz azul e pontas douradas na opção escolhida,
+  Navi voando ao lado da opção, partículas douradas e "DEFINITIVE EDITION" sob o logo original (que vai um pouco para
+  a esquerda). A abertura do jogo continua rodando atrás.
+- **Todos os botões fazem a função real**, pelo caminho original do jogo:
+  - *Continuar* carrega o último arquivo jogado (passa pela seleção de arquivos e confirma sozinho).
+  - *Novo Jogo* abre a criação de arquivo no primeiro espaço livre (escolha de missão, nome etc. originais).
+  - *Selecionar Arquivo* abre a seleção de arquivos original (copiar e apagar continuam lá).
+  - *Diário de Quests* carrega o último arquivo e abre o pause já no Diário, assim que o jogo permite pausar.
+  - *Mods* e *Configurações* abrem o menu do port na página certa.
+  - *Extras*: mods instalados, informações da versão; Créditos aparece como "em breve".
+- Funciona com controle (D-pad/analógico, A, Start, B), teclado (pelo mapeamento do controle) e toque. Os controles
+  de toque somem enquanto o menu está na tela. Sons de cursor, confirmação e erro do próprio jogo.
+- Dá para voltar ao "PRESS START" original em Configurações > Geral > *Menu principal Definitive Edition*.
+- Fontes novas Cinzel e EB Garamond (licença OFL) e texturas geradas por `scripts/ootde_ui_assets.py`
+  (`soh/assets/custom/ootde/ui/`), já incluídas no `soh.otr`. `scripts/otr_add_custom.py` agora também adiciona
+  fontes.
+- `scripts/ootde_ui_preview/`: desenha as telas no computador com o mesmo código do jogo, para conferir o visual.
+
 ## [0.7.1] — Diário de Quests corrigido
 
 - **As texturas do Diário não apareciam.** O `soh.otr` que vai dentro do APK não tinha as texturas novas (pedra,

@@ -10,7 +10,9 @@ name: Build Android APK (OOT D.E.)
 # download link, without opening the zip of the workflow artifact.
 on:
   push:
-    branches: [main]
+    # feature/* branches publish a test pre-release, so a new interface can be tried on the phone before it reaches
+    # main.
+    branches: [main, "feature/**"]
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -86,7 +88,7 @@ jobs:
 
       # The release holds only the app; the game data (oot.otr) is generated on the phone from the user's own ROM.
       - name: Publish release
-        # Only main publishes: PR builds just check that the code compiles (no more test pre-releases).
+        # main publishes the release, feature/* branches a test pre-release; PR builds only check that it compiles.
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -99,7 +101,7 @@ jobs:
           target_sha="${PR_HEAD_SHA:-$GITHUB_SHA}"
           branch="${PR_HEAD_REF:-$GITHUB_REF_NAME}"
           short_sha="${target_sha::7}"
-          if [ -n "$PR_HEAD_SHA" ]; then
+          if [ -n "$PR_HEAD_SHA" ] || [ "$branch" != "main" ]; then
             tag="android-${VERSION_NAME}-teste-build-${GITHUB_RUN_NUMBER}"
             apk="ootde-${VERSION_NAME}-teste-build-${GITHUB_RUN_NUMBER}.apk"
           else
@@ -127,7 +129,7 @@ jobs:
             echo "## Mudanças desta versão"
             cat changes.md
             echo
-            if [ -n "$PR_HEAD_SHA" ]; then echo "Versão de teste (ainda não está na main)."; echo; fi
+            if [ -n "$PR_HEAD_SHA" ] || [ "$branch" != "main" ]; then echo "Versão de teste (ainda não está na main)."; echo; fi
             echo "Commit: ${target_sha} (branch ${branch})"
           } > notes.md
 
