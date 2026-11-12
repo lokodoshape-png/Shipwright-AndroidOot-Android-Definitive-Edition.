@@ -221,6 +221,17 @@ else()
     add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 endif()
 
+# OOT D.E.: the version shown by the Definitive Edition interface comes from the Android app (build.gradle), so it is
+# written in one place only.
+set(OOTDE_VERSION "dev")
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../Android/app/build.gradle")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../Android/app/build.gradle" OOTDE_VERSION_LINE REGEX "versionName[ \t]+\"")
+    if (OOTDE_VERSION_LINE MATCHES "versionName[ \t]+\"([^\"]+)\"")
+        set(OOTDE_VERSION "${CMAKE_MATCH_1}")
+    endif()
+endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE OOTDE_VERSION="${OOTDE_VERSION}")
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 endif()

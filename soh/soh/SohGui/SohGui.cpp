@@ -34,6 +34,7 @@
 #include "soh/Enhancements/debugger/MessageViewer.h"
 #include "soh/Notification/Notification.h"
 #include "soh/Enhancements/TimeDisplay/TimeDisplay.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 
 namespace SohGui {
 
@@ -203,6 +204,8 @@ void SetupGuiElements() {
     mNotificationWindow->Show();
     mTimeDisplayWindow = std::make_shared<TimeDisplayWindow>(CVAR_WINDOW("TimeDisplayEnabled"), "Additional Timers");
     gui->AddGuiWindow(mTimeDisplayWindow);
+    // OOT D.E.: main menu of the Definitive Edition interface, over the title screen.
+    DefinitiveUI::RegisterWindow();
 }
 
 void Destroy() {
@@ -238,6 +241,7 @@ void Destroy() {
     mTimeSplitWindow = nullptr;
     mPlandomizerWindow = nullptr;
     mTimeDisplayWindow = nullptr;
+    DefinitiveUI::UnregisterWindow();
 }
 
 void RegisterPopup(std::string title, std::string message, std::string button1, std::string button2,

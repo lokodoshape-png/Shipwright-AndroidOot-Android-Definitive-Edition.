@@ -115,6 +115,14 @@ void SohMenu::AddMenuSettings() {
         .Options(FloatSliderOptions().DefaultValue(0.85f).IsPercentage().Tooltip(
             "Sets the opacity of the background of the port menu."));
 
+    // OOT D.E.: main menu of the Definitive Edition interface (soh/Enhancements/DefinitiveUI). Labels are pt-BR.
+    AddWidget(path, "Interface Definitive Edition", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "Menu principal Definitive Edition", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SETTING("DefinitiveUI.TitleMenu"))
+        .RaceDisable(false)
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "Mostra o novo menu principal na tela de título (Continuar, Novo Jogo, Selecionar Arquivo, Diário de "
+            "Quests, Mods, Configurações e Extras). Desligado, volta o \"PRESS START\" original."));
     AddWidget(path, "General Settings", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Cursor Always Visible", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SETTING("CursorVisibility"))
