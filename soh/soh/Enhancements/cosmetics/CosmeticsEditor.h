@@ -59,6 +59,9 @@ void CosmeticsEditor_RandomizeGroup(CosmeticGroup group);
 void CosmeticsEditor_ResetAll();
 void CosmeticsEditor_ResetGroup(CosmeticGroup group);
 void ApplyOrResetCustomGfxPatches(bool manualChange = true);
+bool CosmeticsEditor_GetColor(const char* id, Color_RGBA8* color);
+bool CosmeticsEditor_SetColor(const char* id, Color_RGBA8 color);
+bool CosmeticsEditor_ResetColor(const char* id);
 
 class CosmeticsEditorWindow : public Ship::GuiWindow {
   public:

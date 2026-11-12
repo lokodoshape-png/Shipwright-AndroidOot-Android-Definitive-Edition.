@@ -433,6 +433,10 @@ void ReportAchievement(const char* id) {
     SaveStore(true);
 }
 
+bool AchievementUnlocked(const char* id) {
+    return Store().State(id).Unlocked();
+}
+
 void MarkPlaceVisited(int sceneNum) {
     // The save already has a "places discovered" bit set (written with the Ship of Harkinian statistics); the game
     // only fills it for randomizer entrances. Setting the bit here does not write the save: it goes to disk the next

@@ -31,6 +31,13 @@ cima das builds de teste anteriores; a versão oficial é definida quando a expa
   usam o giroscópio. O analógico continua funcionando junto.
 - **HUD** (Definitive > HUD): perfis Clássico, Minimalista, Definitive e Personalizado; posição e visibilidade de
   cada elemento. Tamanho e transparência por elemento ainda não.
+- **Hyrule Explorer** (Definitive > Hyrule Explorer): mapa de Hyrule com as áreas já visitadas (as mesmas
+  que somem as nuvens no mapa de pausa), progresso por região (Skulltulas e Pedaços de Coração) e o Álbum:
+  personagens, chefes, inimigos, itens, eventos e lugares, tudo lido do save.
+- **3D Museum** (Definitive > 3D Museum): catálogo de 49 itens com ícone, descrição, zoom e desbloqueio pelo
+  que o save já tem. O modelo 3D girando ainda não.
+- **Link Customization** (Definitive > Link Customization): cores de túnicas, cabelo, botas, escudo e espadas
+  com prévia antes de aplicar, restaurar originais, 3 visuais guardados e visuais liberados por conquistas.
 - **Conquistas** (Definitive > Conquistas): 42 conquistas em 7 categorias, conferidas pelo que o jogo registra de
   verdade (itens, chefes derrotados, contadores). Progresso, data, percentual, histórico e aviso na tela. Ficam
   num arquivo próprio, fora dos saves.

@@ -28,17 +28,22 @@ void DrawHudEditor();
 void DrawAchievements();
 void DrawBossRush();
 void DrawMasterMode();
+void DrawExplorer();
+void DrawMuseum();
+void DrawLinkCustomization();
 
 // Settings of each phase are registered before the settings file is read.
 void RegisterControlSettings(DE::Config& config);
 void RegisterAchievementSettings(DE::Config& config);
 void RegisterChallengeSettings(DE::Config& config);
+void RegisterLinkSettings(DE::Config& config);
 
 // <app folder>/ootde: where every file of the expansion lives.
 std::filesystem::path DataDir();
 
 // Unlocks an achievement that is tied to an event (see DEAchievements.cpp); does nothing if it is already unlocked.
 void ReportAchievement(const char* id);
+bool AchievementUnlocked(const char* id);
 // Marks a scene as visited in the statistics of the save being played (used by the explorer and by achievements).
 void MarkPlaceVisited(int sceneNum);
 

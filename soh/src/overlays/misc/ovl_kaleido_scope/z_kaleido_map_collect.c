@@ -242,6 +242,18 @@ void KaleidoScope_MapCollectSkulltulas(PlayState* play, s32 point, s16* got, s16
     *total = counts.skullTotal;
 }
 
+// Shared with the Hyrule Explorer of the Definitive Expansion (soh/Enhancements/DefinitiveExpansion/DEExplorer.cpp).
+void KaleidoScope_MapCollectRegionCounts(PlayState* play, s32 point, s16* skullGot, s16* skullTotal, s16* heartGot,
+                                         s16* heartTotal) {
+    MapCollectCounts counts;
+
+    MapCollect_Count(play, point, &counts);
+    *skullGot = counts.skullGot;
+    *skullTotal = counts.skullTotal;
+    *heartGot = counts.heartGot;
+    *heartTotal = counts.heartTotal;
+}
+
 static bool MapCollect_IsComplete(const MapCollectCounts* counts) {
     return (counts->skullGot == counts->skullTotal) && (counts->heartGot == counts->heartTotal) &&
            (counts->skullTotal + counts->heartTotal > 0);

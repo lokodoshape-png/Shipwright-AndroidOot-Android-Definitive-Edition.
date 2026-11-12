@@ -32,6 +32,27 @@ void SohMenu::AddMenuDefinitive() {
         DefinitiveExpansion::DrawHudEditor();
     });
 
+    path.sidebarName = "3D Museum";
+    AddSidebarEntry("Definitive", path.sidebarName, 1);
+    AddWidget(path, "Museu de itens", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "DefinitiveMuseum", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        DefinitiveExpansion::DrawMuseum();
+    });
+
+    path.sidebarName = "Link Customization";
+    AddSidebarEntry("Definitive", path.sidebarName, 1);
+    AddWidget(path, "Aparência do Link", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "DefinitiveLink", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        DefinitiveExpansion::DrawLinkCustomization();
+    });
+
+    path.sidebarName = "Hyrule Explorer";
+    AddSidebarEntry("Definitive", path.sidebarName, 1);
+    AddWidget(path, "Hyrule Explorer e Álbum", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "DefinitiveExplorer", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        DefinitiveExpansion::DrawExplorer();
+    });
+
     path.sidebarName = "Conquistas";
     AddSidebarEntry("Definitive", path.sidebarName, 1);
     AddWidget(path, "Conquistas", WIDGET_SEPARATOR_TEXT);

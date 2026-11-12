@@ -124,6 +124,56 @@ giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/t
 - Não testado no computador: `TouchLayoutEditor.java` (precisa do SDK Android; é compilado no GitHub Actions) e o
   comportamento no aparelho.
 
+## Fases 3 e 4 — Museu, aparência do Link, Hyrule Explorer e Álbum (feitas, com o Museu parcial)
+
+### 3D Museum (Definitive > 3D Museum) — parcial
+
+- Catálogo de 49 peças em Armas, Escudos, Equipamentos, Máscaras, Instrumentos e Itens especiais, com nome,
+  categoria, descrição, zoom e estado de desbloqueio.
+- O desbloqueio é o estado real do save carregado (inventário, equipamentos, melhorias, flags de evento). Item
+  não encontrado fica bloqueado e aparece como "???" com uma pista.
+- Imagem: os ícones que o próprio port já registra para os menus (`RegisterImGuiItemIcons`); nenhuma textura nova
+  ou copiada. Se o arquivo do jogo não tiver o ícone, o quadro diz "sem ícone".
+- **Não feito:** modelo 3D com rotação. O port não tem como desenhar um modelo do jogo dentro de uma janela do
+  menu; fazer isso exige renderizar o modelo numa textura à parte, o que fica como pendência. A tela diz isso.
+- Personagens, chefes e inimigos estão no Álbum (Hyrule Explorer), com os dados reais; sem modelo 3D.
+
+### Link Customization (Definitive > Link Customization)
+
+- Cores de túnica Kokiri, Goron e Zora, cabelo, botas, Mirror Shield, lâminas das três espadas e rastro da Master
+  Sword. São opções do Editor de personalização do Ship of Harkinian, mudadas pelas funções do próprio editor
+  (`CosmeticsEditor_SetColor/ResetColor`, novas e só aditivas), então o editor e o jogo ficam iguais.
+- Prévia antes de aplicar (figura 2D com as cores escolhidas; a prévia 3D real é a tela Equipamento do menu de
+  pausa, depois de aplicar), Aplicar, Descartar, Restaurar originais e 3 visuais guardados em `ootde/config.json`.
+- Visuais desbloqueáveis: Sombra (conquista Dark Link), Sábio (seis medalhões), Herói Dourado (derrotar Ganon).
+- Só cor: hitbox, atributos, dano, velocidade, física e animações não mudam. Nenhuma textura é substituída.
+
+### Hyrule Explorer e Álbum (Definitive > Hyrule Explorer)
+
+- Mapa: as 22 áreas do mapa-múndi do menu de pausa, nas posições e tamanhos que o jogo usa para a caixa "posição
+  atual" (`areaBoxPosX/Y` em `z_kaleido_map_PAL.c`). Visitada = o bit da área em `worldMapAreaData`, o mesmo que
+  tira a nuvem do mapa de pausa; vale para saves antigos também. Toque numa área para ver o estado.
+- Regiões: os 12 pontos do mapa de pausa com áreas visitadas, Gold Skulltulas e Pedaços de Coração, contados pela
+  mesma função do painel do mapa (`KaleidoScope_MapCollectRegionCounts`, nova, só lê).
+- Álbum: personagens encontrados (19, por flags de conversa e evento), chefes enfrentados e derrotados (flag de
+  início de batalha e horário da vitória nas estatísticas), inimigos derrotados (70 tipos, contadores do Ship of
+  Harkinian), itens, eventos marcantes e lugares visitados.
+- Lugares visitados usam os bits `scenesDiscovered` que o save já tem; só são marcados a partir desta versão.
+- Nada é gravado no save pelo Explorer.
+
+### Arquivos
+
+- Novos: `DEMuseum.cpp`, `DEExplorer.cpp`.
+- Alterados: `CosmeticsEditor.{h,cpp}` (3 funções novas), `z_kaleido_map_collect.c` e `z_kaleido_scope.h` (1 função
+  nova que só lê), `DefinitiveExpansion.{h,cpp}`, `DEAchievements.cpp`, `SohMenuDefinitive.cpp`.
+
+### Testes feitos
+
+- Conferência de sintaxe de `DEMuseum.cpp`, `DEExplorer.cpp` e da integração contra os cabeçalhos do jogo.
+  `CosmeticsEditor.cpp` e os arquivos C do menu de pausa dependem de cabeçalhos gerados na compilação: conferidos
+  pela compilação do Android.
+- Não testado: em jogo real.
+
 ## Fases 5 e 6 — Conquistas, recordes do Boss Rush e Master Mode (feitas; falta testar no aparelho)
 
 ### Conquistas (Definitive > Conquistas)

@@ -51,6 +51,7 @@ static void InitOnce() {
         RegisterControlSettings(*sConfig);
         RegisterAchievementSettings(*sConfig);
         RegisterChallengeSettings(*sConfig);
+        RegisterLinkSettings(*sConfig);
         sLoadResult = sConfig->Load(DataDir() / "config.json");
         if (sLoadResult == DE::Config::LoadResult::RecoveredBroken) {
             SPDLOG_WARN("OOT D.E.: ootde/config.json estava corrompido; foi guardado à parte e os padrões foram usados");
@@ -336,9 +337,12 @@ static const SystemStatus kSystems[] = {
     { "Touch & Motion", "Disponível (Definitive > Touch & Motion)" },
     { "HUD Editor", "Disponível (Definitive > HUD): perfis, posição e visibilidade. Tamanho e transparência por "
                     "elemento ainda não" },
-    { "3D Museum", "Fase 3" },
-    { "Link Customization", "Fase 3. Cores de túnica já existem no Editor de personalização" },
-    { "Hyrule Explorer", "Fase 4" },
+    { "3D Museum", "Parcial (Definitive > 3D Museum): catálogo com ícones do jogo, descrição, zoom e desbloqueio real. "
+                   "Modelos 3D com rotação ainda não" },
+    { "Link Customization", "Disponível (Definitive > Link Customization): cores com prévia, aplicar, restaurar, 3 "
+                            "visuais guardados e visuais desbloqueados por conquistas" },
+    { "Hyrule Explorer", "Disponível (Definitive > Hyrule Explorer): mapa das áreas visitadas, progresso por região e "
+                         "álbum (personagens, chefes, inimigos, itens, eventos, lugares)" },
     { "Achievements", "Disponível (Definitive > Conquistas)" },
     { "Boss Rush", "Disponível (Definitive > Boss Rush): recordes, ranking e histórico das corridas do Boss Rush "
                    "do Ship of Harkinian. Desafio de tempo ainda não" },
