@@ -441,6 +441,7 @@ void TitleMenuWindow::Draw() {
         view.pressed = sPressTimer > 0 ? sPressed : -1;
         view.title = sScreen == SCREEN_EXTRAS ? Strings::kExtrasTitle : nullptr;
         view.showBack = sScreen == SCREEN_EXTRAS;
+        view.screen = (int)sScreen;
         snprintf(sFooter, sizeof(sFooter), "OOT D.E. %s · Ship of Harkinian %s · © Nintendo", OOTDE_VERSION, (char*)gBuildVersion);
         view.footer = sFooter;
         if (sScreen == SCREEN_MAIN && (view.selected == MAIN_CONTINUE || view.selected == MAIN_JOURNAL)) {

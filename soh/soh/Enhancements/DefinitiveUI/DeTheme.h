@@ -129,6 +129,16 @@ void NineSlice(ImDrawList* dl, ImTextureID tex, ImVec2 texSize, ImVec2 a, ImVec2
 void CoverImage(ImDrawList* dl, ImTextureID tex, ImVec2 texSize, ImVec2 a, ImVec2 b, float zoom, ImVec2 focus,
                 ImU32 tint);
 void Divider(ImDrawList* dl, ImVec2 a, float width, float s, float alpha);
+// A slanted band of light crossing a..b (clipped to it). t = 0..1 moves it from the left edge to the right one.
+void LightSweep(ImDrawList* dl, ImVec2 a, ImVec2 b, float t, float width, ImU32 col);
+// Soft rays of sunlight coming out of `center`, slowly turning and breathing.
+void SunRays(ImDrawList* dl, ImVec2 center, float length, float time, ImU32 col);
+
+// Animation curves (t = 0..1).
+float EaseOut(float t);
+float EaseOutBack(float t);
+// 0 before `start`, then EaseOut over `duration` seconds.
+float Appear(float time, float start, float duration);
 
 // The fairy: glowing orb with four flapping wings.
 void Navi(ImDrawList* dl, ImVec2 center, float s, float time, float alpha);
@@ -142,6 +152,8 @@ class Particles {
     void UpdateDust(float dt, ImVec2 a, ImVec2 b, float s);
     // A sparkle left behind by Navi.
     void EmitTrail(ImVec2 pos, float s);
+    // A burst of gold and blue sparks spreading out of a..b (a button being chosen).
+    void EmitBurst(ImVec2 a, ImVec2 b, float s, int count);
     void Update(float dt);
     void Draw(ImDrawList* dl, float alpha) const;
 

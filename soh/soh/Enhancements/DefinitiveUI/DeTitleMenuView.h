@@ -15,6 +15,7 @@ struct TitleMenuItem {
 };
 
 struct TitleMenuView {
+    int screen = 0;              // which list is shown (main, extras...): a change slides the new buttons in
     const char* title = nullptr; // plaque above the buttons (null: none)
     const TitleMenuItem* items = nullptr;
     int count = 0;
@@ -57,10 +58,18 @@ class TitleMenuRenderer {
 
   private:
     float mHighlight[16] = {};
+    float mPop[16] = {};        // bounce of a button that was just chosen
     ImVec2 mNaviPos = ImVec2(-1, -1);
     float mTrailTimer = 0.0f;
-    Particles mParticles;
+    Particles mParticles;       // over the panel (dust, Navi's trail, bursts)
+    Particles mSceneParticles;  // fireflies over the landscape
     int mPressedItem = -1;
+    float mAge = 0.0f;          // time since the menu appeared (opening animation)
+    int mScreen = -1;
+    float mScreenAge = 10.0f;   // time since the list of buttons changed
+    float mScreenDir = 1.0f;    // +1: new list comes from the right, -1: from the left
+    int mLastSelected = -1;
+    float mCardAge = 10.0f;     // time since the description changed
 };
 
 } // namespace DefinitiveUI

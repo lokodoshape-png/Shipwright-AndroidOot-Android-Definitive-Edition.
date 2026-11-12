@@ -170,13 +170,14 @@ struct Scene {
 
 int main(int argc, char** argv) {
     if (argc < 4) {
-        fprintf(stderr, "usage: preview <raw dir> <out dir> <width> [height]\n");
+        fprintf(stderr, "usage: preview <raw dir> <out dir> <width> [height] [video]\n");
         return 1;
     }
     const std::string raw = argv[1];
     const std::string out = argv[2];
     const int W = atoi(argv[3]);
     const int H = argc > 4 ? atoi(argv[4]) : 1080;
+    const bool video = argc > 5 && strcmp(argv[5], "video") == 0;
 
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -230,6 +231,69 @@ int main(int argc, char** argv) {
         { "menu-principal-configuracoes", false, MAIN_SETTINGS },
         { "menu-extras-versao", true, EXTRAS_VERSION },
     };
+
+    if (video) {
+        // A scripted visit, 30 frames per second: the menu opens, the cursor goes down to Extras, Extras opens,
+        // the cursor goes to Voltar and the main menu comes back.
+        struct Step {
+            float at;
+            bool extras;
+            int selected;
+            bool press;
+        };
+        const Step steps[] = {
+            { 0.0f, false, MAIN_CONTINUE, false },  { 3.2f, false, MAIN_NEW_GAME, false },
+            { 3.6f, false, MAIN_FILE_SELECT, false }, { 4.0f, false, MAIN_JOURNAL, false },
+            { 5.0f, false, MAIN_MODS, false },      { 5.4f, false, MAIN_SETTINGS, false },
+            { 5.8f, false, MAIN_EXTRAS, false },    { 7.0f, false, MAIN_EXTRAS, true },
+            { 7.25f, true, EXTRAS_MODS, false },    { 8.6f, true, EXTRAS_VERSION, false },
+            { 10.0f, true, EXTRAS_CREDITS, false }, { 10.4f, true, EXTRAS_BACK, false },
+            { 11.4f, true, EXTRAS_BACK, true },     { 11.65f, false, MAIN_EXTRAS, false },
+            { 13.0f, false, MAIN_EXTRAS, false },
+        };
+        const int nSteps = (int)(sizeof(steps) / sizeof(steps[0]));
+        const float fps = 30.0f;
+        const int frames = (int)(steps[nSteps - 1].at * fps);
+        TitleMenuRenderer renderer;
+        int fileNo = 0;
+        for (int fr = 0; fr < frames; fr++) {
+            const float t = fr / fps;
+            const Step* st = &steps[0];
+            for (int i = 0; i < nSteps; i++) {
+                if (steps[i].at <= t) {
+                    st = &steps[i];
+                }
+            }
+            TitleMenuView view;
+            view.screen = st->extras ? 1 : 0;
+            view.items = st->extras ? extrasItems : mainItems;
+            view.count = st->extras ? (int)EXTRAS_COUNT : (int)MAIN_COUNT;
+            view.title = st->extras ? Strings::kExtrasTitle : nullptr;
+            view.showBack = st->extras;
+            view.footer = "OOT D.E. 0.9-menu · Ship of Harkinian 9.0.2 · © Nintendo";
+            view.selected = st->selected;
+            view.pressed = (st->press && t - st->at < 0.17f) ? st->selected : -1;
+            if (!st->extras && (st->selected == MAIN_CONTINUE || st->selected == MAIN_JOURNAL)) {
+                view.showSave = true;
+                snprintf(view.saveTitle, sizeof(view.saveTitle), Strings::kSaveTitle, 1, "Link");
+                view.heartsCapacity = 13;
+                view.health = 13 * 16 - 6;
+            }
+            io.DeltaTime = 1.0f / fps;
+            ImGui::NewFrame();
+            renderer.Draw(ImGui::GetBackgroundDrawList(), ImVec2(0, 0), io.DisplaySize, view, io.DeltaTime, t,
+                          PointerState());
+            ImGui::Render();
+            Canvas cv{ W, H, std::vector<float>((size_t)W * H * 3, 0.0f) };
+            Render(cv, ImGui::GetDrawData());
+            char name[64];
+            snprintf(name, sizeof(name), "/frame%04d.ppm", fileNo++);
+            WritePPM(cv, out + name);
+        }
+        printf("wrote %d frames to %s\n", fileNo, out.c_str());
+        ImGui::DestroyContext();
+        return 0;
+    }
 
     for (const Scene& sc : scenes) {
         TitleMenuRenderer renderer;

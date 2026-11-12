@@ -22,6 +22,11 @@ Primeira etapa da nova interface (branch `feature/ootde-menu-definitivo`, ainda 
   "DEFINITIVE EDITION", painel com a moldura dourada e os botões azul e ouro (normal, selecionado e pressionado).
   O texto dos botões é escrito pelo jogo. Navi voa ao lado da opção escolhida, com partículas douradas.
   O fundo cobre a abertura do jogo; o "© Nintendo" fica no rodapé.
+- **Menu animado**: abertura em sequência (cenário saindo do escuro, logo crescendo com um clarão, painel e botões
+  deslizando um após o outro), raios de sol e vaga-lumes sobre a paisagem, luz passando pelo logo e pelo botão
+  escolhido, estrelas piscando no logo, brilhos correndo pela moldura, botão escolhido maior e flutuando, faíscas e
+  salto ao confirmar, troca de telas deslizando para o lado certo, descrição e corações entrando, último coração
+  batendo e Navi voando do cenário até o cursor. Prévia em vídeo: `scripts/ootde_ui_preview/build.sh ... video`.
 - **Todos os botões fazem a função real**, pelo caminho original do jogo:
   - *Continuar* carrega o último arquivo jogado (passa pela seleção de arquivos e confirma sozinho).
   - *Novo Jogo* abre a criação de arquivo no primeiro espaço livre (escolha de missão, nome etc. originais).

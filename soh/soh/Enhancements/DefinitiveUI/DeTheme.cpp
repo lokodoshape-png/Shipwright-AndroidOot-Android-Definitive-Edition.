@@ -743,6 +743,26 @@ void Particles::EmitTrail(ImVec2 pos, float s) {
     p->col = Col::MagicLight;
 }
 
+void Particles::EmitBurst(ImVec2 a, ImVec2 b, float s, int count) {
+    for (int i = 0; i < count; i++) {
+        P* p = Free();
+        if (p == nullptr) {
+            return;
+        }
+        p->pos = ImVec2(ImLerp(a.x, b.x, Rand()), ImLerp(a.y, b.y, Rand()));
+        const ImVec2 c = (a + b) * 0.5f;
+        ImVec2 d = p->pos - c;
+        const float len = ImMax(1.0f, sqrtf(d.x * d.x + d.y * d.y));
+        const float speed = (60.0f + Rand() * 140.0f) * s;
+        p->vel = ImVec2(d.x / len * speed, d.y / len * speed * 0.6f - 30.0f * s);
+        p->maxLife = p->life = 0.5f + Rand() * 0.6f;
+        p->size = (7.0f + Rand() * 10.0f) * s;
+        p->phase = Rand() * 6.28f;
+        p->spark = Rand() < 0.75f;
+        p->col = Rand() < 0.6f ? Col::GoldPale : Col::MagicLight;
+    }
+}
+
 void Particles::Update(float dt) {
     for (P& p : mPool) {
         if (p.life <= 0.0f) {
@@ -766,6 +786,94 @@ void Particles::Draw(ImDrawList* dl, float alpha) const {
             Spark(dl, p.pos, p.size, Fade(p.col, alpha * fade * tw), p.phase);
         } else {
             Glow(dl, p.pos, p.size, Fade(p.col, alpha * fade * tw * 0.8f));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Animation
+
+float EaseOut(float t) {
+    t = ImClamp(t, 0.0f, 1.0f);
+    const float u = 1.0f - t;
+    return 1.0f - u * u * u;
+}
+
+float EaseOutBack(float t) {
+    t = ImClamp(t, 0.0f, 1.0f);
+    const float c1 = 1.70158f;
+    const float u = t - 1.0f;
+    return 1.0f + (c1 + 1.0f) * u * u * u + c1 * u * u;
+}
+
+float Appear(float time, float start, float duration) {
+    return EaseOut((time - start) / duration);
+}
+
+void LightSweep(ImDrawList* dl, ImVec2 a, ImVec2 b, float t, float width, ImU32 col) {
+    if (((col >> IM_COL32_A_SHIFT) & 0xFF) == 0 || t <= 0.0f || t >= 1.0f) {
+        return;
+    }
+    const float skew = (b.y - a.y) * 0.6f;
+    const float cx = ImLerp(a.x - width - skew, b.x + width, t);
+    const ImU32 clear = col & ~IM_COL32_A_MASK;
+    dl->PushClipRect(a, b, true);
+    const ImVec2 uv = dl->_Data->TexUvWhitePixel;
+    dl->PrimReserve(12, 6);
+    const ImDrawIdx base = (ImDrawIdx)dl->_VtxCurrentIdx;
+    const float xs[3] = { cx - width, cx, cx + width };
+    const ImU32 cols[3] = { clear, col, clear };
+    for (int i = 0; i < 3; i++) {
+        dl->PrimWriteVtx(ImVec2(xs[i] + skew, a.y), uv, cols[i]);
+        dl->PrimWriteVtx(ImVec2(xs[i], b.y), uv, cols[i]);
+    }
+    for (int i = 0; i < 2; i++) {
+        const ImDrawIdx v = (ImDrawIdx)(base + i * 2);
+        dl->PrimWriteIdx(v);
+        dl->PrimWriteIdx((ImDrawIdx)(v + 2));
+        dl->PrimWriteIdx((ImDrawIdx)(v + 1));
+        dl->PrimWriteIdx((ImDrawIdx)(v + 1));
+        dl->PrimWriteIdx((ImDrawIdx)(v + 2));
+        dl->PrimWriteIdx((ImDrawIdx)(v + 3));
+    }
+    dl->PopClipRect();
+}
+
+void SunRays(ImDrawList* dl, ImVec2 center, float length, float time, ImU32 col) {
+    const int kRays = 11;
+    const ImVec2 uv = dl->_Data->TexUvWhitePixel;
+    const ImU32 clear = col & ~IM_COL32_A_MASK;
+    for (int i = 0; i < kRays; i++) {
+        const float ang = i * (6.2831853f / kRays) + time * 0.025f + sinf(i * 3.7f) * 0.25f;
+        const float spread = 0.05f + 0.035f * (0.5f + 0.5f * sinf(i * 1.9f + time * 0.4f));
+        const float breathe = 0.45f + 0.55f * (0.5f + 0.5f * sinf(time * (0.35f + i * 0.04f) + i * 2.1f));
+        const float len = length * (0.7f + 0.3f * (0.5f + 0.5f * sinf(i * 5.3f)));
+        const ImU32 c = Fade(col, breathe);
+        // Two rows (near the sun and at the far end), each left side / middle / right side: bright along the
+        // middle near the sun, fading to nothing at both sides and at the far end.
+        const ImVec2 dir(cosf(ang), sinf(ang));
+        const ImVec2 nrm(-dir.y, dir.x);
+        const float r0 = len * 0.04f;
+        const float w0 = r0 * spread * 3.0f + 2.0f;
+        const float w1 = len * spread;
+        const ImVec2 n0 = center + dir * r0;
+        const ImVec2 n1 = center + dir * len;
+        dl->PrimReserve(12, 6);
+        const ImDrawIdx base = (ImDrawIdx)dl->_VtxCurrentIdx;
+        dl->PrimWriteVtx(n0 - nrm * w0, uv, clear);
+        dl->PrimWriteVtx(n0, uv, c);
+        dl->PrimWriteVtx(n0 + nrm * w0, uv, clear);
+        dl->PrimWriteVtx(n1 - nrm * w1, uv, clear);
+        dl->PrimWriteVtx(n1, uv, clear);
+        dl->PrimWriteVtx(n1 + nrm * w1, uv, clear);
+        for (int k = 0; k < 2; k++) {
+            const ImDrawIdx v = (ImDrawIdx)(base + k);
+            dl->PrimWriteIdx(v);
+            dl->PrimWriteIdx((ImDrawIdx)(v + 1));
+            dl->PrimWriteIdx((ImDrawIdx)(v + 4));
+            dl->PrimWriteIdx(v);
+            dl->PrimWriteIdx((ImDrawIdx)(v + 4));
+            dl->PrimWriteIdx((ImDrawIdx)(v + 3));
         }
     }
 }
