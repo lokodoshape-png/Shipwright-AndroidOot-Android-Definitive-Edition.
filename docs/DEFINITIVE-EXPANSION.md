@@ -124,6 +124,20 @@ giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/t
 - Não testado no computador: `TouchLayoutEditor.java` (precisa do SDK Android; é compilado no GitHub Actions) e o
   comportamento no aparelho.
 
+## Fase 8 — Definitive Features no menu principal (feita)
+
+- Novo botão **Definitive Features** no menu principal Definitive Edition (entre Diário de Quests e Mods), com
+  duas telas para manter os botões altos o bastante para o toque: Save Manager, Touch & Motion, HUD Editor, Link
+  Customization, 3D Museum, "Mais recursos" e Voltar; depois Hyrule Explorer, Achievements, Boss Rush, Master
+  Mode, Randomizer e Voltar.
+- Mesmo visual, animações, cartão de descrição e navegação (toque, teclado, controle e B para voltar) dos outros
+  botões do menu: é o mesmo código de desenho (`DeTitleMenuView`), só com itens novos.
+- Cada botão abre a página correspondente do menu do jogo (cabeçalho "Definitive"). Nenhum botão é decorativo.
+  Museu e Explorer explicam que mostram o save quando abertos dentro de um jogo.
+- A ferramenta de prévia (`scripts/ootde_ui_preview`) ganhou as telas novas; as imagens geradas por ela estão no
+  relatório.
+- Arquivos: `DeTitleMenu.cpp`, `DeTitleMenuText.h`, `scripts/ootde_ui_preview/preview.cpp`.
+
 ## Fase 7 — Randomizer (feita)
 
 - A auditoria confirmou: o Randomizer completo do Ship of Harkinian já existe (gerador, lógica de acesso,
@@ -266,8 +280,6 @@ giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/t
 | Gráficos | Museu 3D | Fase 3 |
 
 ## Próximas fases e dependências
-- **Fase 8** (menu Definitive): a categoria "Definitive Features" entra no menu principal da branch
-  `feature/ootde-menu-definitivo`. Até lá os sistemas ficam no menu do jogo, em "Definitive".
 - Versão: `0.9.1-expansao` / `versionCode` 22 é só para o APK de teste instalar por cima das outras builds de teste.
   O número oficial é decidido na hora de juntar à `main`.
 

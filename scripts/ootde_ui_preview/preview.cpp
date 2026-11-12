@@ -162,7 +162,7 @@ static void WritePPM(const Canvas& cv, const std::string& path) {
 
 // ---- Scenes
 
-enum SceneKind { SCENE_MAIN, SCENE_EXTRAS, SCENE_FILES, SCENE_FILE, SCENE_QUEST, SCENE_NAME, SCENE_SPLASH, SCENE_LOADING };
+enum SceneKind { SCENE_MAIN, SCENE_FEATURES, SCENE_FEATURES_MORE, SCENE_EXTRAS, SCENE_FILES, SCENE_FILE, SCENE_QUEST, SCENE_NAME, SCENE_SPLASH, SCENE_LOADING };
 
 struct Scene {
     const char* name;
@@ -174,6 +174,8 @@ static const char* const kFooter = "OOT D.E. 0.9 · Ship of Harkinian 9.0.2 · �
 
 static TitleMenuItem sMainItems[MAIN_COUNT];
 static TitleMenuItem sExtrasItems[EXTRAS_COUNT];
+static TitleMenuItem sFeatureItems[Strings::kFeaturesFirstPage + 2];
+static TitleMenuItem sFeatureMoreItems[FEATURE_COUNT - Strings::kFeaturesFirstPage + 1];
 static TitleMenuItem sFilesItems[4];
 static TitleMenuItem sFileItems[4];
 static TitleMenuItem sQuestItems[4];
@@ -191,6 +193,16 @@ static void FillView(TitleMenuView& view, SceneKind kind, int selected, bool tou
     view.showBack = kind != SCENE_MAIN;
     bool save = false;
     switch (kind) {
+        case SCENE_FEATURES:
+            view.items = sFeatureItems;
+            view.count = Strings::kFeaturesFirstPage + 2;
+            view.title = Strings::kFeaturesTitle;
+            break;
+        case SCENE_FEATURES_MORE:
+            view.items = sFeatureMoreItems;
+            view.count = FEATURE_COUNT - Strings::kFeaturesFirstPage + 1;
+            view.title = Strings::kFeaturesMoreTitle;
+            break;
         case SCENE_EXTRAS:
             view.items = sExtrasItems;
             view.count = EXTRAS_COUNT;
@@ -277,8 +289,19 @@ int main(int argc, char** argv) {
     }
     SetTextureLookup(LookupTex);
 
-    const char* mainDetails[MAIN_COUNT] = { Strings::kContinue, nullptr,            Strings::kFiles, Strings::kJournal,
-                                            Strings::kMods,     Strings::kSettings, Strings::kExtras };
+    const char* mainDetails[MAIN_COUNT] = { Strings::kContinue, nullptr,        Strings::kFiles,
+                                            Strings::kJournal,  Strings::kFeatures, Strings::kMods,
+                                            Strings::kSettings, Strings::kExtras };
+    for (int i = 0; i < Strings::kFeaturesFirstPage; i++) {
+        sFeatureItems[i] = { Strings::kFeatureLabels[i], Strings::kFeatureDetails[i], true };
+    }
+    sFeatureItems[Strings::kFeaturesFirstPage] = { Strings::kFeaturesMore, Strings::kFeaturesMoreDetail, true };
+    sFeatureItems[Strings::kFeaturesFirstPage + 1] = { Strings::kBack, Strings::kExtrasBack, true };
+    for (int i = Strings::kFeaturesFirstPage; i < FEATURE_COUNT; i++) {
+        sFeatureMoreItems[i - Strings::kFeaturesFirstPage] = { Strings::kFeatureLabels[i], Strings::kFeatureDetails[i],
+                                                               true };
+    }
+    sFeatureMoreItems[FEATURE_COUNT - Strings::kFeaturesFirstPage] = { Strings::kBack, Strings::kBackDetail, true };
     static char newGame[160];
     snprintf(newGame, sizeof(newGame), Strings::kNewGame, 3);
     mainDetails[MAIN_NEW_GAME] = newGame;
@@ -319,6 +342,9 @@ int main(int argc, char** argv) {
         { "menu-principal-continuar", SCENE_MAIN, MAIN_CONTINUE },
         { "menu-principal-configuracoes", SCENE_MAIN, MAIN_SETTINGS },
         { "menu-extras-versao", SCENE_EXTRAS, EXTRAS_VERSION },
+        { "menu-principal-definitive-features", SCENE_MAIN, MAIN_FEATURES },
+        { "definitive-features-1", SCENE_FEATURES, FEATURE_SAVES },
+        { "definitive-features-2", SCENE_FEATURES_MORE, 1 },
         { "arquivos-de-jogo", SCENE_FILES, 0 },
         { "arquivo-opcoes", SCENE_FILE, 0 },
         { "novo-jogo-aventura", SCENE_QUEST, 0 },

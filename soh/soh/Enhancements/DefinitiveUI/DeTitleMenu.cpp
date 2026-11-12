@@ -149,6 +149,8 @@ void LoadFonts() {
 // In the order the player goes deeper (a screen with a higher number slides in from the right).
 enum Screen {
     SCREEN_MAIN,
+    SCREEN_FEATURES,      // Definitive Features, first page
+    SCREEN_FEATURES_MORE, // Definitive Features, second page
     SCREEN_EXTRAS,
     SCREEN_FILES,  // the three files
     SCREEN_FILE,   // one file: play, copy, erase
@@ -178,6 +180,9 @@ enum Action {
     ACT_COPY_TO, // arg: file
     ACT_QUEST,   // arg: quest
     ACT_CLASSIC, // the game's own file select screen
+    ACT_FEATURES,
+    ACT_FEATURES_MORE,
+    ACT_FEATURE, // arg: TitleFeatureItem
 };
 
 struct Item {
@@ -408,11 +413,27 @@ static void BuildItems() {
             AddItem(Strings::kMainLabels[MAIN_FILES], Strings::kFiles, ACT_FILES);
             AddItem(Strings::kMainLabels[MAIN_JOURNAL], cont >= 0 ? Strings::kJournal : Strings::kJournalNone,
                     ACT_JOURNAL, 0, cont >= 0);
+            AddItem(Strings::kMainLabels[MAIN_FEATURES], Strings::kFeatures, ACT_FEATURES);
             AddItem(Strings::kMainLabels[MAIN_MODS], Strings::kMods, ACT_MODS);
             AddItem(Strings::kMainLabels[MAIN_SETTINGS], Strings::kSettings, ACT_SETTINGS);
             AddItem(Strings::kMainLabels[MAIN_EXTRAS], Strings::kExtras, ACT_EXTRAS);
             break;
         }
+        case SCREEN_FEATURES:
+            snprintf(sTitle, sizeof(sTitle), "%s", Strings::kFeaturesTitle);
+            for (int i = 0; i < Strings::kFeaturesFirstPage; i++) {
+                AddItem(Strings::kFeatureLabels[i], Strings::kFeatureDetails[i], ACT_FEATURE, i);
+            }
+            AddItem(Strings::kFeaturesMore, Strings::kFeaturesMoreDetail, ACT_FEATURES_MORE);
+            AddItem(Strings::kBack, Strings::kExtrasBack, ACT_BACK);
+            break;
+        case SCREEN_FEATURES_MORE:
+            snprintf(sTitle, sizeof(sTitle), "%s", Strings::kFeaturesMoreTitle);
+            for (int i = Strings::kFeaturesFirstPage; i < FEATURE_COUNT; i++) {
+                AddItem(Strings::kFeatureLabels[i], Strings::kFeatureDetails[i], ACT_FEATURE, i);
+            }
+            AddItem(Strings::kBack, Strings::kBackDetail, ACT_BACK);
+            break;
         case SCREEN_EXTRAS:
             snprintf(sTitle, sizeof(sTitle), "%s", Strings::kExtrasTitle);
             snprintf(text, sizeof(text), Strings::kExtrasMods, sModsEnabled, sModsTotal);
@@ -518,6 +539,12 @@ static void GoTo(Screen screen, int cursor = 0) {
 
 static void Back() {
     switch (sScreen) {
+        case SCREEN_FEATURES:
+            GoTo(SCREEN_MAIN, MAIN_FEATURES);
+            break;
+        case SCREEN_FEATURES_MORE:
+            GoTo(SCREEN_FEATURES, Strings::kFeaturesFirstPage);
+            break;
         case SCREEN_EXTRAS:
             GoTo(SCREEN_MAIN, MAIN_EXTRAS);
             break;
@@ -552,6 +579,19 @@ static void OpenPortMenu(const char* sidebar) {
     if (gui->GetMenu() != nullptr) {
         gui->GetMenu()->Show();
         // Same as opening it with its key: let the controller move in it when that option is on.
+        if (CVarGetInteger(CVAR_IMGUI_CONTROLLER_NAV, 0)) {
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+        }
+    }
+}
+
+// Definitive Features: their pages live in the port menu, header "Definitive" (SohMenuDefinitive.cpp).
+static void OpenDefinitivePage(const char* sidebar) {
+    CVarSetString(CVAR_SETTING("Menu.ActiveHeader"), "Definitive");
+    CVarSetString(CVAR_SETTING("Menu.DefinitiveSidebarSection"), sidebar);
+    auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
+    if (gui->GetMenu() != nullptr) {
+        gui->GetMenu()->Show();
         if (CVarGetInteger(CVAR_IMGUI_CONTROLLER_NAV, 0)) {
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
         }
@@ -646,6 +686,20 @@ static bool Activate(int index) {
         case ACT_SETTINGS:
             PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
             OpenPortMenu("General");
+            return false;
+        case ACT_FEATURES:
+            PlaySfx(NA_SE_SY_WIN_OPEN);
+            GoTo(SCREEN_FEATURES, 0);
+            return false;
+        case ACT_FEATURES_MORE:
+            PlaySfx(NA_SE_SY_WIN_OPEN);
+            GoTo(SCREEN_FEATURES_MORE, 0);
+            return false;
+        case ACT_FEATURE:
+            if (item.arg >= 0 && item.arg < FEATURE_COUNT) {
+                PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
+                OpenDefinitivePage(Strings::kFeatureSidebars[item.arg]);
+            }
             return false;
         case ACT_EXTRAS:
             PlaySfx(NA_SE_SY_WIN_OPEN);
