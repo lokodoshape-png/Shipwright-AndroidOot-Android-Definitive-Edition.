@@ -26,7 +26,7 @@
 #include "soh/SaveManager.h"
 #include "soh/ResourceManagerHelpers.h"
 #include <resource/ResourceType.h>
-#include <resource/type/Font.h>
+#include "window/gui/resource/Font.h"
 #include "soh/cvar_prefixes.h"
 #include "soh/SohGui/ModsMenu.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
@@ -38,6 +38,9 @@ extern "C" {
 #include "variables.h"
 extern PlayState* gPlayState;
 }
+
+// SaveManager.h only declares this one for C files.
+extern "C" SaveFileMetaInfo* Save_GetSaveMetaInfo(int fileNum);
 
 #ifndef OOTDE_VERSION
 #define OOTDE_VERSION "dev"
