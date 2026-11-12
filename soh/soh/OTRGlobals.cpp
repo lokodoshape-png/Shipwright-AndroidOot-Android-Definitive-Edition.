@@ -157,6 +157,10 @@ Color_RGB8 goronColor = { 0x64, 0x14, 0x00 };
 Color_RGB8 zoraColor = { 0x00, 0xEC, 0x64 };
 
 float previousImGuiScale;
+// OOT D.E.: the menu fonts are rasterized at the menu scale chosen at startup, so they are drawn 1:1 instead of being
+// stretched by FontGlobalScale (on Android the scale is 2x, which made every menu text blurry). Changing the scale
+// later still works: FontGlobalScale then holds only the ratio to this value until the next start.
+static float sFontBakeScale = 1.0f;
 
 bool prevAltAssets = false;
 
@@ -430,6 +434,10 @@ OTRGlobals::OTRGlobals() {
     hasMasterQuest = hasOriginal = false;
 
     previousImGuiScale = defaultImGuiScale;
+    {
+        const int option = CVarGetInteger(CVAR_SETTING("ImGuiScale"), defaultImGuiScale);
+        sFontBakeScale = (option >= 0 && option < 4) ? imguiScaleOptionToValue[option] : 1.0f;
+    }
 
     fontMonoSmall = CreateFontWithSize(14.0f, "fonts/Inconsolata-Regular.ttf");
     fontMono = CreateFontWithSize(16.0f, "fonts/Inconsolata-Regular.ttf");
@@ -502,7 +510,7 @@ void OTRGlobals::ScaleImGui() {
     float scale = imguiScaleOptionToValue[CVarGetInteger(CVAR_SETTING("ImGuiScale"), defaultImGuiScale)];
     float newScale = scale / previousImGuiScale;
     ImGui::GetStyle().ScaleAllSizes(newScale);
-    ImGui::GetIO().FontGlobalScale = scale;
+    ImGui::GetIO().FontGlobalScale = scale / sFontBakeScale;
     previousImGuiScale = scale;
 }
 
@@ -1663,6 +1671,7 @@ extern "C" SoundFontSample* ReadCustomSample(const char* path) {
 
 ImFont* OTRGlobals::CreateFontWithSize(float size, std::string fontPath) {
     auto mImGuiIo = &ImGui::GetIO();
+    size *= sFontBakeScale;
     ImFont* font;
     if (fontPath == "") {
         ImFontConfig fontCfg = ImFontConfig();

@@ -280,8 +280,7 @@ giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/t
 | Gráficos | Museu 3D | Fase 3 |
 
 ## Próximas fases e dependências
-- Versão: `0.9.1-expansao` / `versionCode` 22 é só para o APK de teste instalar por cima das outras builds de teste.
-  O número oficial é decidido na hora de juntar à `main`.
+- Versão: publicada como `0.10.0` / `versionCode` 22 (escolha do Rafael, 12/11/2026).
 
 ## Riscos
 - A gravação de save mudou de "apagar e copiar" para "gravar e renomear". É mais segura, mas é o caminho de todo

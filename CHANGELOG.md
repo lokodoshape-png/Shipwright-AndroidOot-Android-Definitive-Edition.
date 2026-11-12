@@ -12,11 +12,15 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
-## [0.9.1-expansao] — Definitive Expansion (versão de teste)
+## [0.10.0] — Definitive Expansion
 
-Build de teste da branch `feature/ootde-definitive-expansion`. O número é provisório, só para o APK instalar por
-cima das builds de teste anteriores; a versão oficial é definida quando a expansão entrar na `main`.
+Dez sistemas novos, todos opcionais: a aventura original continua igual sem ligar nenhum deles. Ficam no menu
+principal em **Definitive Features** e no menu do jogo, em **Definitive**. Os dados da expansão ficam em
+`OOT-DE/ootde/`, separados dos saves.
 
+- **Menus nítidos.** O texto dos menus era desenhado pequeno e esticado (2x no Android), por isso saía borrado.
+  Agora as fontes são geradas no tamanho real da tela, tanto no menu principal quanto no menu do jogo.
+  Se você mudar a escala do menu nas configurações, ela vale na hora e fica nítida ao abrir o app de novo.
 - **Saves mais seguros.** O jogo agora grava o save novo por completo e só então troca o arquivo antigo por ele.
   Antes o arquivo antigo era apagado primeiro, e fechar o app ou ficar sem espaço nesse instante perdia o save.
 - **Gerenciador de saves** (menu do jogo > Definitive > Saves): estado de cada slot (válido, inválido ou vazio),
@@ -52,8 +56,8 @@ cima das builds de teste anteriores; a versão oficial é definida quando a expa
   modificadores de dificuldade que o jogo já tem. Pode ser desligado a qualquer momento.
 - Formato dos saves inalterado. Backups e exportações ficam em `OOT-DE/ootde/`.
 
-Pendências: os outros sistemas da expansão (Fases 2 a 9). Plano e auditoria em
-[docs/DEFINITIVE-EXPANSION.md](docs/DEFINITIVE-EXPANSION.md).
+Ainda não: modelo 3D girando no Museu, tamanho e transparência por elemento no HUD e desafio de tempo no Boss Rush.
+Detalhes, testes e riscos em [docs/DEFINITIVE-EXPANSION.md](docs/DEFINITIVE-EXPANSION.md).
 
 ## [0.9] — Interface Definitive Edition: menu principal
 

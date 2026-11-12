@@ -30,6 +30,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include <resource/ResourceType.h>
 #include "window/gui/resource/Font.h"
+#include <SDL2/SDL.h>
 #include "soh/cvar_prefixes.h"
 #include "soh/SohGui/ModsMenu.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
@@ -135,12 +136,24 @@ static ImFont* AddFont(int slot, const char* path, float size) {
                                                       &cfg);
 }
 
+// The menu is laid out for a 1080 pixel tall screen and scales with the real height. The fonts are rasterized for the
+// real screen so the text is drawn at (or below) its native size: stretching a small font atlas makes it blurry.
+static float ScreenFontScale() {
+    SDL_DisplayMode mode;
+    if (SDL_GetCurrentDisplayMode(0, &mode) != 0 || mode.w <= 0 || mode.h <= 0) {
+        return 1.0f;
+    }
+    const float shortSide = (float)ImMin(mode.w, mode.h);
+    return ImClamp(shortSide / 1080.0f, 1.0f, 3.0f);
+}
+
 void LoadFonts() {
     Fonts& f = GetFonts();
-    // One size each; the menu scales them to the screen. Latin-1 covers every Portuguese letter.
-    f.display = AddFont(0, "fonts/Cinzel-Bold.ttf", 48.0f);
-    f.displayRegular = AddFont(1, "fonts/Cinzel-Regular.ttf", 28.0f);
-    f.body = AddFont(2, "fonts/EBGaramond-Medium.ttf", 36.0f);
+    // One size each, at the largest size the menu usually draws them. Latin-1 covers every Portuguese letter.
+    const float k = ScreenFontScale();
+    f.display = AddFont(0, "fonts/Cinzel-Bold.ttf", 64.0f * k);
+    f.displayRegular = AddFont(1, "fonts/Cinzel-Regular.ttf", 28.0f * k);
+    f.body = AddFont(2, "fonts/EBGaramond-Medium.ttf", 36.0f * k);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
