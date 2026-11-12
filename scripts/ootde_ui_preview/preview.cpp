@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
     }
     static char modsLine[200], versionLine[300];
     snprintf(modsLine, sizeof(modsLine), Strings::kExtrasMods, 2, 3);
-    snprintf(versionLine, sizeof(versionLine), Strings::kExtrasVersion, "0.9-menu", "9.0.2");
+    snprintf(versionLine, sizeof(versionLine), Strings::kExtrasVersion, "0.9", "9.0.2");
     TitleMenuItem extrasItems[EXTRAS_COUNT] = {
         { Strings::kExtrasLabels[EXTRAS_MODS], modsLine, true },
         { Strings::kExtrasLabels[EXTRAS_VERSION], versionLine, true },
@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
             view.count = st->extras ? (int)EXTRAS_COUNT : (int)MAIN_COUNT;
             view.title = st->extras ? Strings::kExtrasTitle : nullptr;
             view.showBack = st->extras;
-            view.footer = "OOT D.E. 0.9-menu · Ship of Harkinian 9.0.2 · © Nintendo";
+            view.footer = "OOT D.E. 0.9 · Ship of Harkinian 9.0.2 · © Nintendo";
             view.selected = st->selected;
             view.pressed = (st->press && t - st->at < 0.17f) ? st->selected : -1;
             if (!st->extras && (st->selected == MAIN_CONTINUE || st->selected == MAIN_JOURNAL)) {
@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
         view.count = sc.extras ? (int)EXTRAS_COUNT : (int)MAIN_COUNT;
         view.title = sc.extras ? Strings::kExtrasTitle : nullptr;
         view.showBack = sc.extras;
-        view.footer = "OOT D.E. 0.9-menu · Ship of Harkinian 9.0.2 · © Nintendo";
+        view.footer = "OOT D.E. 0.9 · Ship of Harkinian 9.0.2 · © Nintendo";
         if (!sc.extras && (sc.selected == MAIN_CONTINUE || sc.selected == MAIN_JOURNAL)) {
             view.showSave = true;
             snprintf(view.saveTitle, sizeof(view.saveTitle), Strings::kSaveTitle, 1, "Link");

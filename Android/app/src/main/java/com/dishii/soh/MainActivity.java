@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.os.Environment;
 import android.provider.Settings;
 import java.io.File;
@@ -14,7 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
-import java.util.concurrent.CountDownLatch;
+import java.lang.ref.WeakReference;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -52,8 +53,29 @@ public class MainActivity extends SDLActivity{
     static File getDataFolder() {
         return new File(Environment.getExternalStorageDirectory(), DATA_FOLDER);
     }
-    private static final CountDownLatch setupLatch = new CountDownLatch(1);
+    // State of the preparation of the data folder. The native side (SDL_main) waits in waitForSetupFromNative()
+    // and starts the game only on SUCCESS. Every change goes through setSetupState(), which wakes the waiting thread.
+    //   PENDING   nothing started yet, or waiting for the storage permission;
+    //   PREPARING the preparation was started (confirmation dialog shown or files being copied);
+    //   SUCCESS   every needed file is in place and was checked;
+    //   FAILED    the preparation failed; the user can try again or leave.
+    enum SetupState { PENDING, PREPARING, SUCCESS, FAILED }
+
+    private static final Object sSetupLock = new Object();
+    private static SetupState sSetupState = SetupState.PENDING;
+    // Set when the user leaves without finishing the preparation (or the activity is destroyed): the native wait
+    // returns false and SDL_main ends instead of waiting forever. SDLActivity.onDestroy() joins the SDL thread, so a
+    // wait that never returns would freeze the app.
+    private static boolean sSetupAbandoned = false;
+    // True while setupFilesInBackground() runs.
+    private static boolean sSetupWorkerRunning = false;
+    // The activity on screen, for the background preparation to report to.
+    private static WeakReference<MainActivity> sCurrentActivity = new WeakReference<>(null);
+
     private ProgressDialog setupProgressDialog;
+    private AlertDialog permissionDialog;
+    // True between asking for the storage permission and getting the answer, so it is never asked twice at once.
+    private boolean permissionRequestInFlight = false;
     // True when this install is newer than the one that created the SOH folder: the files the app ships
     // (soh.otr and the extractor's assets/) are then replaced, while saves, mods and oot.otr are kept.
     private boolean refreshPortFiles = false;
@@ -65,12 +87,20 @@ public class MainActivity extends SDLActivity{
 
         preferences = getSharedPreferences("com.dishii.soh.prefs",Context.MODE_PRIVATE);
 
-        // Check if storage permissions are granted
-        if (hasStoragePermission()) {
-            checkAndSetupFiles();
-        } else {
-            requestStoragePermission();
+        sCurrentActivity = new WeakReference<>(this);
+        synchronized (sSetupLock) {
+            // A new activity gets a new SDL thread, which must wait again. A failed or abandoned preparation of an
+            // earlier activity of this process starts over.
+            sSetupAbandoned = false;
+            // FAILED, or PREPARING left by an activity closed before its preparation started (the confirmation
+            // dialog was on screen): start over. A preparation still copying files reports to this activity.
+            if (sSetupState == SetupState.FAILED
+                    || (sSetupState == SetupState.PREPARING && !sSetupWorkerRunning)) {
+                sSetupState = SetupState.PENDING;
+            }
         }
+
+        startSetupFlow();
 
         super.onCreate(savedInstanceState);
 
@@ -78,11 +108,134 @@ public class MainActivity extends SDLActivity{
         attachController();
     }
 
-    public static void waitForSetupFromNative() {
-        try {
-            setupLatch.await();  // Block until setup is complete
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // The permission may have been granted in the system settings while the app was in the background.
+        if (getSetupState() == SetupState.PENDING && !permissionRequestInFlight && hasStoragePermission()) {
+            if (permissionDialog != null && permissionDialog.isShowing()) {
+                permissionDialog.dismiss();
+            }
+            permissionDialog = null;
+            checkAndSetupFiles();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        // SDLActivity.onDestroy() waits for the SDL thread to end; release it if it is still waiting for the setup.
+        if (getSetupState() != SetupState.SUCCESS) {
+            abandonSetup();
+        }
+        if (sCurrentActivity.get() == this) {
+            sCurrentActivity = new WeakReference<>(null);
+        }
+        super.onDestroy();
+    }
+
+    static SetupState getSetupState() {
+        synchronized (sSetupLock) {
+            return sSetupState;
+        }
+    }
+
+    static void setSetupState(SetupState state) {
+        synchronized (sSetupLock) {
+            sSetupState = state;
+            sSetupLock.notifyAll();
+        }
+    }
+
+    // Ends the native wait without starting the game.
+    static void abandonSetup() {
+        synchronized (sSetupLock) {
+            sSetupAbandoned = true;
+            sSetupLock.notifyAll();
+        }
+    }
+
+    /**
+     * Called by SDL_main (soh/src/code/main.c) on the SDL thread before the game starts.
+     *
+     * Returns true when the data folder is ready (SUCCESS), false when the user left without finishing it; SDL_main
+     * then ends instead of starting the game on missing files. While the app waits for the user (the permission
+     * screen, a confirmation or an error dialog), the UI thread stays free and every dialog offers a way on, so the
+     * wait always ends with SUCCESS or with the user leaving.
+     */
+    public static boolean waitForSetupFromNative() {
+        long lastLog = SystemClock.elapsedRealtime();
+        synchronized (sSetupLock) {
+            while (sSetupState != SetupState.SUCCESS && !sSetupAbandoned) {
+                try {
+                    sSetupLock.wait(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    Log.w("OOTDE_SETUP", "Interrupted while waiting for the setup");
+                    return false;
+                }
+                long now = SystemClock.elapsedRealtime();
+                if (now - lastLog >= 30000) {
+                    Log.i("OOTDE_SETUP", "Native start still waiting for the setup, state " + sSetupState);
+                    lastLog = now;
+                }
+            }
+            Log.i("OOTDE_SETUP", "Native start: state " + sSetupState + (sSetupAbandoned ? " (abandoned)" : ""));
+            return sSetupState == SetupState.SUCCESS;
+        }
+    }
+
+    // Starts (or resumes) the preparation: asks for the permission first when it is missing. Safe to call again.
+    private void startSetupFlow() {
+        SetupState state = getSetupState();
+        if (state == SetupState.SUCCESS || state == SetupState.PREPARING) {
+            return;
+        }
+        if (hasStoragePermission()) {
+            checkAndSetupFiles();
+        } else {
+            requestStoragePermission();
+        }
+    }
+
+    // Shown when the permission was not granted: the game cannot start, but the user can try again or leave.
+    private void showPermissionDeniedDialog() {
+        if (isFinishing() || (permissionDialog != null && permissionDialog.isShowing())) {
+            return;
+        }
+        permissionDialog = new AlertDialog.Builder(this)
+                .setTitle("Permissão necessária")
+                .setMessage("O OOT D.E. guarda os saves, os mods e os arquivos do jogo na pasta " + DATA_FOLDER
+                        + " do armazenamento do celular. Sem a permissão de acesso aos arquivos o jogo não pode iniciar.\n\n"
+                        + "Toque em \"Conceder permissão\" e ative \"Permitir acesso para gerenciar todos os arquivos\".")
+                .setCancelable(false)
+                .setPositiveButton("Conceder permissão", (dialog, which) -> {
+                    permissionDialog = null;
+                    requestStoragePermission();
+                })
+                .setNegativeButton("Sair", (dialog, which) -> {
+                    permissionDialog = null;
+                    abandonSetup();
+                    finish();
+                })
+                .show();
+    }
+
+    private void onStoragePermissionResult() {
+        permissionRequestInFlight = false;
+        if (hasStoragePermission()) {
+            checkAndSetupFiles();
+        } else {
+            Log.w("OOTDE_SETUP", "Storage permission not granted");
+            showPermissionDeniedDialog();
+        }
+    }
+
+    // Android 6 to 10: answer of the runtime permission dialog.
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+            onStoragePermissionResult();
         }
     }
 
@@ -126,18 +279,35 @@ public class MainActivity extends SDLActivity{
     private static final int MOD_PICKER_REQUEST_CODE = 4;
 
     private void requestStoragePermission() {
+        if (permissionRequestInFlight) {
+            return;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Android 11+ → MANAGE_EXTERNAL_STORAGE
             if (!Environment.isExternalStorageManager()) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivityForResult(intent, STORAGE_PERMISSION_REQUEST_CODE);
+                try {
+                    permissionRequestInFlight = true;
+                    startActivityForResult(intent, STORAGE_PERMISSION_REQUEST_CODE);
+                } catch (android.content.ActivityNotFoundException e) {
+                    // Some systems have no per-app screen: open the general one.
+                    try {
+                        startActivityForResult(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+                                STORAGE_PERMISSION_REQUEST_CODE);
+                    } catch (android.content.ActivityNotFoundException e2) {
+                        permissionRequestInFlight = false;
+                        Log.e("OOTDE_SETUP", "No settings screen for the storage permission", e2);
+                        showPermissionDeniedDialog();
+                    }
+                }
             } else {
                 // Already granted
                 checkAndSetupFiles();
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Android 6–10 → request READ/WRITE at runtime
+            permissionRequestInFlight = true;
             ActivityCompat.requestPermissions(this,
                     new String[]{
                             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -151,38 +321,92 @@ public class MainActivity extends SDLActivity{
     }
 
     public void checkAndSetupFiles() {
+        // Guard against a second start (permission answer and onResume can both get here).
+        synchronized (sSetupLock) {
+            if (sSetupState == SetupState.PREPARING || sSetupState == SetupState.SUCCESS) {
+                return;
+            }
+            sSetupState = SetupState.PREPARING;
+        }
         doVersionCheck();
         File targetRootFolder = getDataFolder();
         File assetsFolder = new File(targetRootFolder, "assets");
         File sohOtrFile = new File(targetRootFolder, "soh.otr");
 
-        boolean isMissingAssets = !assetsFolder.exists() || assetsFolder.listFiles() == null || assetsFolder.listFiles().length == 0;
-        boolean isMissingSohOtr = !sohOtrFile.exists();
+        File[] assetFiles = assetsFolder.listFiles();
+        boolean isMissingAssets = !assetsFolder.isDirectory() || assetFiles == null || assetFiles.length == 0;
+        String otrProblem = SafeFiles.checkOtrFile(sohOtrFile, -1);
+        boolean isMissingSohOtr = otrProblem != null;
+        // Set while a preparation runs: if the app was closed in the middle of it, some files may be incomplete, so
+        // everything is copied again.
+        boolean interrupted = preferences.getBoolean(PREF_SETUP_IN_PROGRESS, false);
+        if (interrupted) {
+            refreshPortFiles = true;
+        }
+        if (isMissingSohOtr && sohOtrFile.exists()) {
+            Log.w("OOTDE_SETUP", "soh.otr is not valid (" + otrProblem + "), it will be copied again");
+        }
 
         if (!targetRootFolder.exists() || isMissingAssets || isMissingSohOtr || refreshPortFiles) {
-            String message = refreshPortFiles && targetRootFolder.exists()
-                    ? "O aplicativo foi atualizado. Os arquivos do jogo serão atualizados (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar."
-                    : "Alguns arquivos necessários estão faltando. O aplicativo vai criá-los (cerca de 1 minuto). Toque em OK para começar.";
+            String message;
+            if (interrupted) {
+                message = "A preparação anterior não terminou. Os arquivos do jogo serão copiados de novo (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar.";
+            } else if (refreshPortFiles && targetRootFolder.exists()) {
+                message = "O aplicativo foi atualizado. Os arquivos do jogo serão atualizados (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar.";
+            } else {
+                message = "Alguns arquivos necessários estão faltando. O aplicativo vai criá-los (cerca de 1 minuto). Toque em OK para começar.";
+            }
             new AlertDialog.Builder(this)
                     .setTitle("Preparação necessária")
                     .setMessage(message)
                     .setCancelable(false)
                     .setPositiveButton("OK", (dialog, which) -> {
-                        Executors.newSingleThreadExecutor().execute(() -> {
-                            runOnUiThread(() -> { setupProgressDialog = new ProgressDialog(this); setupProgressDialog.setTitle("Preparando Ocarina of Time"); setupProgressDialog.setMessage("Criando arquivos necessários..."); setupProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL); setupProgressDialog.setMax(100); setupProgressDialog.setProgress(0); setupProgressDialog.setCancelable(false); setupProgressDialog.show(); });
-                            setupFilesInBackground(targetRootFolder);
-                        });
+                        synchronized (sSetupLock) {
+                            sSetupWorkerRunning = true;
+                        }
+                        showSetupProgressDialog();
+                        Executors.newSingleThreadExecutor().execute(() -> setupFilesInBackground(targetRootFolder));
                     })
                     .show();
         } else {
-            // No setup needed, still need to count down
-            setupLatch.countDown();
+            // Every file is in place and soh.otr was checked: the game can start.
+            setSetupState(SetupState.SUCCESS);
         }
     }
 
+    private static final String PREF_SETUP_IN_PROGRESS = "setupInProgress";
+
+    private void showSetupProgressDialog() {
+        if (isFinishing()) {
+            return;
+        }
+        setupProgressDialog = new ProgressDialog(this);
+        setupProgressDialog.setTitle("Preparando Ocarina of Time");
+        setupProgressDialog.setMessage("Criando arquivos necessários...");
+        setupProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        setupProgressDialog.setMax(100);
+        setupProgressDialog.setProgress(0);
+        setupProgressDialog.setCancelable(false);
+        setupProgressDialog.show();
+    }
+
+    // The checks after the copy: the game starts only when they all pass.
+    private static String verifyPreparedFiles(File root) {
+        File assets = new File(root, "assets");
+        File[] assetFiles = assets.listFiles();
+        if (!assets.isDirectory() || assetFiles == null || assetFiles.length == 0) {
+            return "a pasta assets está vazia";
+        }
+        String otrProblem = SafeFiles.checkOtrFile(new File(root, "soh.otr"), -1);
+        if (otrProblem != null) {
+            return "soh.otr: " + otrProblem;
+        }
+        return null;
+    }
 
     private void setupFilesInBackground(File targetRootFolder) {
-        boolean setupOk = true;
+        // Recorded at once (commit), so a preparation cut by closing the app is redone on the next start.
+        preferences.edit().putBoolean(PREF_SETUP_IN_PROGRESS, true).commit();
 
         File sourceOldRoot = getExternalFilesDir(null);
         File sourceSavesDir = new File(sourceOldRoot, "Save"); // how to tell if there's anything to migrate
@@ -220,17 +444,15 @@ public class MainActivity extends SDLActivity{
 
         updateSetupProgress(5, "Criando pasta principal...");
         // Ensure root folder exists
-        if (!targetRootFolder.exists()) {
-            if (!targetRootFolder.mkdirs()) {
-                Log.e("setupFiles", "Failed to create root folder");
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Não foi possível criar a pasta " + DATA_FOLDER, Toast.LENGTH_LONG).show();
-                    if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
-                });
-                setupLatch.countDown();
-                return;
-            }
+        if (!targetRootFolder.isDirectory() && !targetRootFolder.mkdirs()) {
+            Log.e("setupFiles", "Failed to create root folder");
+            finishSetup("Não foi possível criar a pasta " + targetRootFolder.getAbsolutePath()
+                    + ". Verifique se há espaço livre e se a permissão de acesso aos arquivos está ativa.");
+            return;
         }
+        // Leftovers of an import or a copy cut in the middle; never valid files.
+        SafeFiles.deleteQuietly(new File(targetRootFolder, "soh.otr.tmp"));
+        SafeFiles.deleteQuietly(new File(targetRootFolder, "OOT.z64.tmp"));
 
         // From 0.5 on the app has its own folder. The first time, saves, mods, oot.otr and settings are copied from
         // the old SOH folder, which stays as it is (the original Ship of Harkinian app may still use it).
@@ -267,22 +489,27 @@ public class MainActivity extends SDLActivity{
                 preferences.edit().putBoolean("copiedFromSohFolder", true).apply();
                 runOnUiThread(() -> Toast.makeText(this, "Saves, mods e oot.otr copiados para a pasta " + DATA_FOLDER,
                         Toast.LENGTH_LONG).show());
+            } else {
+                // Not needed to start the game; it is tried again on the next preparation.
+                runOnUiThread(() -> Toast.makeText(this, "Alguns arquivos da pasta SOH não foram copiados. "
+                        + "Eles serão copiados na próxima vez.", Toast.LENGTH_LONG).show());
             }
         }
 
         updateSetupProgress(15, "Preparando pastas do jogo...");
         // Always ensure mods folder exists
         File targetModsDir = new File(targetRootFolder, "mods");
-        if (!targetModsDir.exists()) {
-            targetModsDir.mkdirs();
+        if (!targetModsDir.isDirectory() && !targetModsDir.mkdirs()) {
+            // The game runs without mods; installing one tries to create the folder again.
+            Log.w("setupFiles", "Could not create the mods folder");
         }
 
         updateSetupProgress(25, "Copiando recursos do jogo...");
         // Copy assets/ from internal
         File targetAssetsDir = new File(targetRootFolder, "assets");
         try {
-            if (!targetAssetsDir.exists()) {
-                targetAssetsDir.mkdirs();
+            if (!targetAssetsDir.isDirectory() && !targetAssetsDir.mkdirs()) {
+                throw new IOException("Não foi possível criar a pasta " + targetAssetsDir.getAbsolutePath());
             }
             AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath(), refreshPortFiles,
                     (copied, total, currentFile) -> {
@@ -293,23 +520,23 @@ public class MainActivity extends SDLActivity{
                     });
             updateSetupProgress(80, "Recursos copiados. Preparando dados principais...");
         } catch (IOException e) {
-            setupOk = false;
             Log.e("setupFiles", "Failed to copy assets", e);
-            runOnUiThread(() -> Toast.makeText(this, "Erro ao copiar os recursos do jogo", Toast.LENGTH_LONG).show());
+            finishSetup("Erro ao copiar os recursos do jogo: " + e.getMessage());
+            return;
         }
 
-        // Copy soh.otr from internal assets. It is written to a temporary file first, so an interrupted
-        // copy never leaves a truncated soh.otr behind.
+        // Copy soh.otr from internal assets. It is written to a temporary file first, checked, and only then put in
+        // place of the old one, so an interrupted copy never leaves a truncated soh.otr behind.
         File targetOtrFile = new File(targetRootFolder, "soh.otr");
         File tempOtrFile = new File(targetRootFolder, "soh.otr.tmp");
         try {
+            long copiedOtrBytes = 0;
             try (InputStream in = getAssets().open("soh.otr");
-                 OutputStream out = new FileOutputStream(tempOtrFile)) {
+                 FileOutputStream out = new FileOutputStream(tempOtrFile)) {
 
                 byte[] buffer = new byte[256 * 1024];
                 int read;
                 long totalOtrBytes = in.available();
-                long copiedOtrBytes = 0;
                 while ((read = in.read(buffer)) != -1) {
                     out.write(buffer, 0, read);
                     copiedOtrBytes += read;
@@ -318,37 +545,84 @@ public class MainActivity extends SDLActivity{
                         updateSetupProgress(percent, "Preparando dados principais: " + percent + "%");
                     }
                 }
+                out.flush();
+                SafeFiles.syncToDisk(out);
             }
-            if (targetOtrFile.exists() && !targetOtrFile.delete()) {
-                throw new IOException("Não foi possível substituir " + targetOtrFile.getAbsolutePath());
+            String problem = SafeFiles.checkOtrFile(tempOtrFile, copiedOtrBytes);
+            if (problem != null) {
+                throw new IOException("a cópia do soh.otr não ficou completa (" + problem + ")");
             }
-            if (!tempOtrFile.renameTo(targetOtrFile)) {
-                throw new IOException("Não foi possível gravar " + targetOtrFile.getAbsolutePath());
-            }
+            SafeFiles.replaceFileSafely(tempOtrFile, targetOtrFile);
             updateSetupProgress(95, "Finalizando preparação...");
         } catch (IOException e) {
-            setupOk = false;
             tempOtrFile.delete();
             Log.e("setupFiles", "Failed to copy soh.otr", e);
-            runOnUiThread(() -> Toast.makeText(this, "Erro ao copiar o soh.otr", Toast.LENGTH_LONG).show());
+            finishSetup("Erro ao copiar o soh.otr: " + e.getMessage());
+            return;
         }
 
-        if (setupOk) {
-            // Only now is this version's set of files complete; a failed copy is retried on the next start.
-            preferences.edit().putInt("appVersion", BuildConfig.VERSION_CODE).apply();
-            refreshPortFiles = false;
+        String problem = verifyPreparedFiles(targetRootFolder);
+        if (problem != null) {
+            Log.e("setupFiles", "Setup check failed: " + problem);
+            finishSetup("A verificação dos arquivos falhou: " + problem);
+            return;
         }
-        updateSetupProgress(100, "Configuração concluída.");
-        runOnUiThread(() -> {
+        finishSetup(null);
+    }
+
+    // End of the preparation, on the background thread. error == null: success, the game may start. Otherwise the
+    // state becomes FAILED and the user is asked to try again; the files are not treated as valid.
+    private void finishSetup(String error) {
+        synchronized (sSetupLock) {
+            sSetupWorkerRunning = false;
+        }
+        if (error == null) {
+            // Only now is this version's set of files complete; a failed copy is retried on the next start.
+            preferences.edit().putInt("appVersion", BuildConfig.VERSION_CODE)
+                    .putBoolean(PREF_SETUP_IN_PROGRESS, false).commit();
+            refreshPortFiles = false;
+            updateSetupProgress(100, "Configuração concluída.");
+        }
+        MainActivity activity = sCurrentActivity.get();
+        MainActivity ui = (activity != null) ? activity : this;
+        ui.runOnUiThread(() -> {
             if (setupProgressDialog != null && setupProgressDialog.isShowing()) {
                 setupProgressDialog.dismiss();
             }
+            setupProgressDialog = null;
+            if (error == null) {
+                setSetupState(SetupState.SUCCESS);
+            } else {
+                setSetupState(SetupState.FAILED);
+                ui.showSetupFailedDialog(error);
+            }
         });
-        setupLatch.countDown();
     }
 
-
-
+    private void showSetupFailedDialog(String error) {
+        if (isFinishing()) {
+            abandonSetup();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Falha na preparação")
+                .setMessage("Os arquivos do jogo não foram preparados, então o jogo não foi iniciado.\n\n" + error
+                        + "\n\nSeus saves, mods e o oot.otr não foram apagados.")
+                .setCancelable(false)
+                .setPositiveButton("Tentar novamente", (dialog, which) -> {
+                    synchronized (sSetupLock) {
+                        if (sSetupState == SetupState.FAILED) {
+                            sSetupState = SetupState.PENDING;
+                        }
+                    }
+                    startSetupFlow();
+                })
+                .setNegativeButton("Sair", (dialog, which) -> {
+                    abandonSetup();
+                    finish();
+                })
+                .show();
+    }
 
     private void updateSetupProgress(int progress, String message) { runOnUiThread(() -> { if (setupProgressDialog != null && setupProgressDialog.isShowing()) { setupProgressDialog.setMessage(message); setupProgressDialog.setProgress(progress); } }); }
 
@@ -386,14 +660,9 @@ public class MainActivity extends SDLActivity{
             }
 
         } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            // Handle MANAGE_EXTERNAL_STORAGE result
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (Environment.isExternalStorageManager()) {
-                    checkAndSetupFiles();
-                } else {
-                    Toast.makeText(this, "A permissão de acesso aos arquivos é necessária para jogar.", Toast.LENGTH_LONG).show();
-                }
-            }
+            // Answer of the MANAGE_EXTERNAL_STORAGE settings screen (Android 11+). The result code says nothing:
+            // the permission itself is checked.
+            onStoragePermissionResult();
         }
     }
 
@@ -426,6 +695,14 @@ public class MainActivity extends SDLActivity{
         });
     }
 
+    /**
+     * Imports the ROM chosen in the file picker as OOT-DE/OOT.z64 without putting a good ROM at risk:
+     * 1. the bytes go to OOT.z64.tmp (synced to the storage);
+     * 2. the number of bytes is compared with the size the picker reported;
+     * 3. the copy is checked like the extractor does (size, not compressed, CRC32C in its list of known ROMs);
+     * 4. only then does it replace OOT.z64 (the previous one is kept as .bak until the new one is in place).
+     * On any error only the temporary file is deleted; the previous OOT.z64 stays as it was.
+     */
     private void importRomWithProgress(Uri sourceUri) {
         ProgressDialog dialog = new ProgressDialog(this);
         dialog.setTitle("Importando ROM");
@@ -440,9 +717,14 @@ public class MainActivity extends SDLActivity{
         Executors.newSingleThreadExecutor().execute(() -> {
             File destinationDirectory = getDataFolder();
             File destinationFile = new File(destinationDirectory, "OOT.z64");
+            File tempFile = new File(destinationDirectory, "OOT.z64.tmp");
+            boolean hadRom = destinationFile.isFile();
             try {
                 if (!destinationDirectory.exists() && !destinationDirectory.mkdirs()) {
                     throw new IOException("Não foi possível criar a pasta " + DATA_FOLDER + ".");
+                }
+                if (tempFile.exists() && !tempFile.delete()) {
+                    throw new IOException("Não foi possível apagar a importação anterior (" + tempFile.getName() + ").");
                 }
 
                 long totalBytes = -1;
@@ -453,7 +735,7 @@ public class MainActivity extends SDLActivity{
 
                 long copied = 0;
                 try (InputStream in = getContentResolver().openInputStream(sourceUri);
-                     OutputStream out = new FileOutputStream(destinationFile)) {
+                     FileOutputStream out = new FileOutputStream(tempFile)) {
                     if (in == null) throw new IOException("Não foi possível abrir a ROM selecionada.");
                     byte[] buffer = new byte[256 * 1024];
                     int count;
@@ -472,21 +754,51 @@ public class MainActivity extends SDLActivity{
                         }
                     }
                     out.flush();
+                    SafeFiles.syncToDisk(out);
                 }
+                // AssetFileDescriptor.UNKNOWN_LENGTH is -1; some providers report 0.
+                if (totalBytes > 0 && copied != totalBytes) {
+                    throw new IOException("a transferência foi interrompida (" + copied + " de " + totalBytes + " bytes).");
+                }
+
+                runOnUiThread(() -> {
+                    dialog.setIndeterminate(true);
+                    dialog.setMessage("Verificando a ROM...");
+                });
+                String problem = SafeFiles.checkRomFile(tempFile, copied);
+                if (problem != null) {
+                    throw new IOException("ROM recusada: " + problem + ".");
+                }
+                SafeFiles.replaceFileSafely(tempFile, destinationFile);
 
                 runOnUiThread(() -> {
                     dialog.setProgress(100);
                     dialog.dismiss();
-                    Toast.makeText(this, "ROM importada com sucesso.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "ROM importada e verificada com sucesso.", Toast.LENGTH_LONG).show();
                     nativeHandleSelectedFile(destinationFile.getAbsolutePath());
                 });
-            } catch (IOException e) {
+            } catch (IOException | RuntimeException e) {
                 Log.e("OOTDE_IMPORT", "Falha ao importar ROM", e);
-                destinationFile.delete();
+                // Only the temporary copy is removed; an OOT.z64 imported before is kept.
+                if (tempFile.exists() && !tempFile.delete()) {
+                    Log.w("OOTDE_IMPORT", "Could not delete " + tempFile);
+                }
+                String reason = (e.getMessage() != null) ? e.getMessage() : e.toString();
                 runOnUiThread(() -> {
                     dialog.dismiss();
-                    Toast.makeText(this, "Falha ao importar ROM: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    nativeHandleSelectedFile("");
+                    if (isFinishing()) {
+                        nativeHandleSelectedFile("");
+                        return;
+                    }
+                    new AlertDialog.Builder(this)
+                            .setTitle("Falha ao importar a ROM")
+                            .setMessage(reason + (hadRom
+                                    ? "\n\nA ROM que já estava na pasta " + DATA_FOLDER + " foi mantida."
+                                    : ""))
+                            .setCancelable(false)
+                            // The native extractor waits for an answer; an empty path tells it nothing was imported.
+                            .setPositiveButton("OK", (d, which) -> nativeHandleSelectedFile(""))
+                            .show();
                 });
             }
         });
@@ -520,8 +832,100 @@ public class MainActivity extends SDLActivity{
         runOnUiThread(() -> Toast.makeText(this, text, Toast.LENGTH_LONG).show());
     }
 
+    // Suffix the mods menu (ModsMenu.cpp) adds to a mod it switched off.
+    private static final String MOD_DISABLED_SUFFIX = ".desativado";
+
+    private enum DuplicateChoice { REPLACE, KEEP_BOTH, CANCEL }
+
+    // Asks, from the background thread, what to do with a mod whose name is already in the mods folder.
+    private DuplicateChoice askDuplicateMod(String name) {
+        final java.util.concurrent.CountDownLatch answered = new java.util.concurrent.CountDownLatch(1);
+        final DuplicateChoice[] choice = { DuplicateChoice.CANCEL };
+        runOnUiThread(() -> {
+            if (isFinishing()) {
+                answered.countDown();
+                return;
+            }
+            new AlertDialog.Builder(this)
+                    .setTitle("Mod já instalado")
+                    .setMessage("Já existe um mod chamado \"" + name + "\" com conteúdo diferente.\n\n"
+                            + "Substituir: troca o mod instalado pelo novo.\n"
+                            + "Manter os dois: instala o novo com outro nome.\n"
+                            + "Cancelar: não instala o novo.")
+                    .setCancelable(false)
+                    .setPositiveButton("Substituir", (d, w) -> { choice[0] = DuplicateChoice.REPLACE; answered.countDown(); })
+                    .setNeutralButton("Manter os dois", (d, w) -> { choice[0] = DuplicateChoice.KEEP_BOTH; answered.countDown(); })
+                    .setNegativeButton("Cancelar", (d, w) -> { choice[0] = DuplicateChoice.CANCEL; answered.countDown(); })
+                    .show();
+        });
+        try {
+            answered.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return DuplicateChoice.CANCEL;
+        }
+        return choice[0];
+    }
+
+    /**
+     * Moves a complete, checked temporary copy of a mod into the mods folder under `name`.
+     * A mod with the same name (switched on, or off with the ".desativado" suffix) is never overwritten by accident:
+     * the same content is reported as already installed; different content asks the user.
+     * Returns the text for the final message, or null when nothing was installed.
+     */
+    private String placeMod(File temp, File folder, String name) throws IOException {
+        File enabled = new File(folder, name);
+        File disabled = new File(folder, name + MOD_DISABLED_SUFFIX);
+        File existing = enabled.exists() ? enabled : (disabled.exists() ? disabled : null);
+        if (existing == null) {
+            SafeFiles.replaceFileSafely(temp, enabled);
+            return name;
+        }
+        if (SafeFiles.sameContent(temp, existing)) {
+            SafeFiles.deleteQuietly(temp);
+            return name + " (já estava instalado)";
+        }
+        switch (askDuplicateMod(name)) {
+            case REPLACE:
+                // Keeps the on/off state the mod had in the menu.
+                SafeFiles.replaceFileSafely(temp, existing);
+                return name + " (substituído)";
+            case KEEP_BOTH: {
+                String unique = SafeFiles.uniqueModName(folder, name, MOD_DISABLED_SUFFIX);
+                SafeFiles.replaceFileSafely(temp, new File(folder, unique));
+                return unique;
+            }
+            default:
+                SafeFiles.deleteQuietly(temp);
+                return null;
+        }
+    }
+
+    // Copies a stream into a temporary file of the mods folder, checks it and puts it in place. Returns as placeMod.
+    private String installModStream(InputStream in, File folder, String name) throws IOException {
+        // ".tmp" is not a mod extension, so neither the game nor the mods menu loads a copy in progress.
+        File temp = new File(folder, name + ".tmp");
+        SafeFiles.deleteQuietly(temp);
+        try {
+            try (FileOutputStream out = new FileOutputStream(temp)) {
+                copyStream(in, out);
+                out.flush();
+                SafeFiles.syncToDisk(out);
+            }
+            String problem = SafeFiles.checkModFile(temp, name);
+            if (problem != null) {
+                throw new IOException(name + ": " + problem);
+            }
+            return placeMod(temp, folder, name);
+        } finally {
+            // Gone after a successful install; removed here after any error so no partial file stays.
+            SafeFiles.deleteQuietly(temp);
+        }
+    }
+
     // Copies a mod into the mods folder. A .zip that only wraps .otr/.o2r files (how mods are often downloaded)
-    // has those files taken out; any other .zip is a mod archive itself and is copied as it is. Runs off the UI thread.
+    // has those files taken out; any other .zip is a mod archive itself and is copied as it is. Every file is
+    // copied to a temporary name and checked before it takes its place. Runs off the UI thread.
     private void installMod(Uri uri) {
         File folder = new File(getDataFolder(), "mods");
 
@@ -550,6 +954,7 @@ public class MainActivity extends SDLActivity{
         }
 
         java.util.List<String> installed = new java.util.ArrayList<>();
+        boolean handled = false;
         try {
             if (name.toLowerCase().endsWith(".zip")) {
                 // First pass: does the zip only wrap mod archives (plus readme files)?
@@ -572,34 +977,47 @@ public class MainActivity extends SDLActivity{
                     }
                 }
                 if (hasArchives && !hasOther) {
+                    handled = true;
                     try (java.util.zip.ZipInputStream zip =
                              new java.util.zip.ZipInputStream(getContentResolver().openInputStream(uri))) {
                         java.util.zip.ZipEntry entry;
                         while ((entry = zip.getNextEntry()) != null) {
+                            // Only the file name: a path inside the zip can never point out of the mods folder.
                             String entryName = new File(entry.getName()).getName();
                             String lower = entryName.toLowerCase();
                             if (entry.isDirectory() || !(lower.endsWith(".otr") || lower.endsWith(".o2r"))) {
                                 continue;
                             }
-                            try (OutputStream out = new FileOutputStream(new File(folder, entryName))) {
-                                copyStream(zip, out);
+                            // The zip stream must stay open for the next entries.
+                            InputStream entryStream = new java.io.FilterInputStream(zip) {
+                                @Override
+                                public void close() { }
+                            };
+                            String result = installModStream(entryStream, folder, entryName);
+                            if (result != null) {
+                                installed.add(result);
                             }
-                            installed.add(entryName);
                         }
                     }
                 }
             }
-            if (installed.isEmpty()) {
-                try (InputStream in = getContentResolver().openInputStream(uri);
-                     OutputStream out = new FileOutputStream(new File(folder, name))) {
+            if (!handled) {
+                try (InputStream in = getContentResolver().openInputStream(uri)) {
                     if (in == null) throw new IOException("Não foi possível abrir o arquivo.");
-                    copyStream(in, out);
+                    String result = installModStream(in, folder, name);
+                    if (result != null) {
+                        installed.add(result);
+                    }
                 }
-                installed.add(name);
             }
         } catch (Exception e) {
             Log.e("mods", "Failed to install the mod", e);
-            showToast("Erro ao instalar o mod: " + e.getMessage());
+            showToast("Erro ao instalar o mod: " + e.getMessage()
+                    + (installed.isEmpty() ? "" : "\nInstalados antes do erro: " + android.text.TextUtils.join(", ", installed)));
+            return;
+        }
+        if (installed.isEmpty()) {
+            showToast("Nenhum mod foi instalado.");
             return;
         }
         showToast("Mod instalado: " + android.text.TextUtils.join(", ", installed) + ". Feche e abra o jogo para usar.");
@@ -608,6 +1026,8 @@ public class MainActivity extends SDLActivity{
     public void openFilePicker() {
         // Create an Intent to open the file picker dialog
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        // Storage Access Framework: only files that can be opened as a stream.
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
 
         // Start the file picker dialog

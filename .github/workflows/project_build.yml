@@ -10,9 +10,7 @@ name: Build Android APK (OOT D.E.)
 # download link, without opening the zip of the workflow artifact.
 on:
   push:
-    # feature/* branches publish a test pre-release, so a new interface can be tried on the phone before it reaches
-    # main.
-    branches: [main, "feature/**"]
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -68,9 +66,17 @@ jobs:
           echo "name=$gradle_name" >> "$GITHUB_OUTPUT"
           echo "code=$gradle_code" >> "$GITHUB_OUTPUT"
 
-      # soh.otr is committed (the build does not generate it): every PNG of soh/assets/custom must be in it.
-      - name: Check that soh.otr has every custom texture
-        run: python3 scripts/otr_add_custom.py --check
+      # soh.otr is committed (the build does not generate it). Before building: it must be a complete archive, with
+      # the resources the game needs, the portVersion of this source tree and every PNG of soh/assets/custom.
+      - name: Verify soh.otr
+        run: python3 scripts/otr_add_custom.py --verify
+
+      # Computer-side tests of the code changed for 0.8 (file checks of MainActivity, QM_Encode, the soh.otr check).
+      - name: Run host tests
+        run: |
+          scripts/tests/run_java_tests.sh
+          scripts/tests/run_qm_encode_test.sh
+          scripts/tests/run_otr_verify_test.sh
 
       - name: Setup and build the project
         run: |
@@ -88,7 +94,7 @@ jobs:
 
       # The release holds only the app; the game data (oot.otr) is generated on the phone from the user's own ROM.
       - name: Publish release
-        # main publishes the release, feature/* branches a test pre-release; PR builds only check that it compiles.
+        # Only main publishes: PR builds just check that the code compiles (no more test pre-releases).
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,7 +107,7 @@ jobs:
           target_sha="${PR_HEAD_SHA:-$GITHUB_SHA}"
           branch="${PR_HEAD_REF:-$GITHUB_REF_NAME}"
           short_sha="${target_sha::7}"
-          if [ -n "$PR_HEAD_SHA" ] || [ "$branch" != "main" ]; then
+          if [ -n "$PR_HEAD_SHA" ]; then
             tag="android-${VERSION_NAME}-teste-build-${GITHUB_RUN_NUMBER}"
             apk="ootde-${VERSION_NAME}-teste-build-${GITHUB_RUN_NUMBER}.apk"
           else
@@ -129,7 +135,7 @@ jobs:
             echo "## Mudanças desta versão"
             cat changes.md
             echo
-            if [ -n "$PR_HEAD_SHA" ] || [ "$branch" != "main" ]; then echo "Versão de teste (ainda não está na main)."; echo; fi
+            if [ -n "$PR_HEAD_SHA" ]; then echo "Versão de teste (ainda não está na main)."; echo; fi
             echo "Commit: ${target_sha} (branch ${branch})"
           } > notes.md
 

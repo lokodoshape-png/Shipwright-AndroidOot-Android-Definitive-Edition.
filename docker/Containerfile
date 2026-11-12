@@ -7,8 +7,8 @@ FROM ubuntu:24.04
 # Java JDK Setup
 ARG JDK_VERSION="17"
 
-# Gradle Setup
-ARG GRADLE_VERSION="8.4"
+# Gradle Setup (the build itself runs ./gradlew, which downloads the wrapper version: 8.11.1)
+ARG GRADLE_VERSION="8.11.1"
 ARG GRADLE_INSTALL_PATH="/opt/gradle"
 
 # CMake Setup (https://github.com/Kitware/CMake)
@@ -18,7 +18,7 @@ ARG CMAKE_REPO_URL="https://github.com/Kitware/CMake/releases/download"
 ARG CMAKE_PKG_URL="${CMAKE_REPO_URL}/v${CMAKE_VERSION}/${CMAKE_PKG}"
 
 # Android Setup
-ARG ANDROID_SDK_VERSION="31"
+ARG ANDROID_SDK_VERSION="33"
 ARG ANDROID_NDK_VERSION="26.0.10792818"
 ARG ANDROID_BUILD_TOOLS_VERSION="30.0.2"
 ARG ANDROID_INSTALL_PATH="/opt/android-studio"

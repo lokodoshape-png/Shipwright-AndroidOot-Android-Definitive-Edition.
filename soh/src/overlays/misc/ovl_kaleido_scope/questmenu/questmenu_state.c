@@ -89,6 +89,22 @@ static bool QuestMenu_CanUseInput(PauseContext* pauseCtx) {
            ((pauseCtx->unk_1E4 == 0) || (pauseCtx->unk_1E4 == 5) || (pauseCtx->unk_1E4 == 8));
 }
 
+// A (or touching the card) on the Ganondorf line, once it is unlocked: mark it done, or take the mark back.
+static void QuestMenu_ToggleManualDone(void) {
+    const QuestMenuRow* row;
+
+    if (gQuestMenu.rowCount <= 0) {
+        return;
+    }
+    row = &gQuestMenu.rows[CLAMP(gQuestMenu.cursor[gQuestMenu.category], 0, gQuestMenu.rowCount - 1)];
+    if (!QuestMenu_IsManualRow(row) || (row->state == QM_STATE_LOCKED) || !QuestMenu_CanMarkGanon()) {
+        return;
+    }
+    QuestMenu_SetGanonMark(!QuestMenu_GetGanonMark());
+    Audio_PlaySoundGeneral(NA_SE_SY_DECIDE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+}
+
 // Up/down (stick or D-pad, held to repeat) choose the line. L/R, Z, left/right and C-Left/C-Right choose the list.
 // B closes the journal (see the pause menu update). The keyboard reaches these through the controller mapping.
 static void QuestMenu_HandleController(PlayState* play) {
@@ -97,6 +113,10 @@ static void QuestMenu_HandleController(PlayState* play) {
     s8 dirX;
     s8 dirY;
 
+    if (CHECK_BTN_ALL(input->press.button, BTN_A)) {
+        QuestMenu_ToggleManualDone();
+        return;
+    }
     if (CHECK_BTN_ALL(input->press.button, BTN_R) || CHECK_BTN_ALL(input->press.button, BTN_CRIGHT)) {
         QuestMenu_SetCategory(gQuestMenu.category + 1);
         return;
@@ -168,6 +188,9 @@ static void QuestMenu_DoHit(PlayState* play, const QuestMenuHit* hit) {
             break;
         case QM_HIT_CLOSE:
             KaleidoScope_CloseQuestLog(play);
+            break;
+        case QM_HIT_MANUAL_DONE:
+            QuestMenu_ToggleManualDone();
             break;
     }
 }
