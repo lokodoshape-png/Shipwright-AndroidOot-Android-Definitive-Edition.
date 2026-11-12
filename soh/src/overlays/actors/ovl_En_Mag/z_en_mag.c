@@ -495,9 +495,7 @@ bool EnMag_ShouldDrawPressStart(Font* font, Gfx** gfxP, bool isActualText) {
 // #endregion
 
 // Title logo is shifted to the left in Master Quest
-// OOT D.E.: moved further left while the Definitive Edition main menu is on (DefinitiveUI_TitleLogoShiftX).
-#define DE_SHIFT DefinitiveUI_TitleLogoShiftX()
-#define LOGO_X_SHIFT ((isMQ ? 0 : -8) + DE_SHIFT)
+#define LOGO_X_SHIFT (isMQ ? 0 : -8)
 #define LOGO_TEX (isMQ ? gTitleZeldaShieldLogoMQTex : gTitleZeldaShieldLogoTex)
 // Copyright texture is different depending on the version
 // JPN CE displays two slightly different 2004 copyrights when lang is jpn or not
@@ -511,7 +509,7 @@ bool EnMag_ShouldDrawPressStart(Font* font, Gfx** gfxP, bool isActualText) {
                  : gTitleCopyright1998Tex))
 // Copyright texture is larger on GC
 #define COPYRIGHT_TEX_WIDTH (isGC ? 160 : 128)
-#define COPYRIGHT_TEX_LEFT ((isGC ? 78 : 94) + DE_SHIFT)
+#define COPYRIGHT_TEX_LEFT (isGC ? 78 : 94)
 
 void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
     static s16 textAlpha = 0;
@@ -618,9 +616,9 @@ void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
             gDPSetPrimColor(gfx++, 0, 0, 255, 255, 255, (s16)this->subAlpha);
 
             if (gSaveContext.language == LANGUAGE_JPN || ResourceMgr_GetGameVersion(0) == OOT_NTSC_JP_MQ) {
-                EnMag_DrawImageRGBA32(&gfx, 235 + DE_SHIFT, 149, (u8*)gTitleUraLogoTex, 40, 40);
+                EnMag_DrawImageRGBA32(&gfx, 235, 149, (u8*)gTitleUraLogoTex, 40, 40);
             } else {
-                EnMag_DrawImageRGBA32(&gfx, 174 + DE_SHIFT, 145, (u8*)gTitleMasterQuestSubtitleTex, 128, 32);
+                EnMag_DrawImageRGBA32(&gfx, 174, 145, (u8*)gTitleMasterQuestSubtitleTex, 128, 32);
             }
         }
     }
@@ -652,7 +650,7 @@ void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
                               G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, 5, 5, 2, 1);
             gDPSetTileSize(gfx++, 1, this->unk_E30C & 0x7F, this->effectScroll & 0x7F,
                            (this->unk_E30C & 0x7F) + ((32 - 1) << 2), (this->effectScroll & 0x7F) + ((32 - 1) << 2));
-            gSPTextureRectangle(gfx++, (106 + DE_SHIFT) << 2, 144 << 2, (106 + DE_SHIFT + 128) << 2, (144 + 16) << 2, G_TX_RENDERTILE, 0, 0,
+            gSPTextureRectangle(gfx++, 106 << 2, 144 << 2, (106 + 128) << 2, (144 + 16) << 2, G_TX_RENDERTILE, 0, 0,
                                 1 << 10, 1 << 10);
         }
     }
