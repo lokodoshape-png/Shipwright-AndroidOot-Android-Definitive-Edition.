@@ -53,6 +53,12 @@
     <!-- Allow access to the vibrator -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Storage. The game (libultraship) reads and writes saves, mods, soh.otr and oot.otr with plain file paths in
+         /storage/emulated/0/OOT-DE, so it needs real file access; the ROM and mods themselves are picked with the
+         Storage Access Framework (ACTION_OPEN_DOCUMENT) and copied in by MainActivity.
+         Android 11+ (API 30-36): "all files access" (MANAGE_EXTERNAL_STORAGE), asked in MainActivity.
+         Android 7-10: READ/WRITE_EXTERNAL_STORAGE; requestLegacyExternalStorage keeps paths working on Android 10.
+         Android 13+ ignores READ/WRITE_EXTERNAL_STORAGE, hence maxSdkVersion 32. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
@@ -71,6 +77,7 @@
     <application android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
+        android:requestLegacyExternalStorage="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
         android:hardwareAccelerated="true"
         android:appCategory="game" >
