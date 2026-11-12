@@ -701,6 +701,14 @@ public class MainActivity extends SDLActivity{
         });
     }
 
+    /**
+     * Imports the ROM chosen in the file picker as OOT-DE/OOT.z64 without putting a good ROM at risk:
+     * 1. the bytes go to OOT.z64.tmp (synced to the storage);
+     * 2. the number of bytes is compared with the size the picker reported;
+     * 3. the copy is checked like the extractor does (size, not compressed, CRC32C in its list of known ROMs);
+     * 4. only then does it replace OOT.z64 (the previous one is kept as .bak until the new one is in place).
+     * On any error only the temporary file is deleted; the previous OOT.z64 stays as it was.
+     */
     private void importRomWithProgress(Uri sourceUri) {
         ProgressDialog dialog = new ProgressDialog(this);
         dialog.setTitle("Importando ROM");
@@ -715,9 +723,14 @@ public class MainActivity extends SDLActivity{
         Executors.newSingleThreadExecutor().execute(() -> {
             File destinationDirectory = getDataFolder();
             File destinationFile = new File(destinationDirectory, "OOT.z64");
+            File tempFile = new File(destinationDirectory, "OOT.z64.tmp");
+            boolean hadRom = destinationFile.isFile();
             try {
                 if (!destinationDirectory.exists() && !destinationDirectory.mkdirs()) {
                     throw new IOException("Não foi possível criar a pasta " + DATA_FOLDER + ".");
+                }
+                if (tempFile.exists() && !tempFile.delete()) {
+                    throw new IOException("Não foi possível apagar a importação anterior (" + tempFile.getName() + ").");
                 }
 
                 long totalBytes = -1;
@@ -728,7 +741,7 @@ public class MainActivity extends SDLActivity{
 
                 long copied = 0;
                 try (InputStream in = getContentResolver().openInputStream(sourceUri);
-                     OutputStream out = new FileOutputStream(destinationFile)) {
+                     FileOutputStream out = new FileOutputStream(tempFile)) {
                     if (in == null) throw new IOException("Não foi possível abrir a ROM selecionada.");
                     byte[] buffer = new byte[256 * 1024];
                     int count;
@@ -747,21 +760,51 @@ public class MainActivity extends SDLActivity{
                         }
                     }
                     out.flush();
+                    SafeFiles.syncToDisk(out);
                 }
+                // AssetFileDescriptor.UNKNOWN_LENGTH is -1; some providers report 0.
+                if (totalBytes > 0 && copied != totalBytes) {
+                    throw new IOException("a transferência foi interrompida (" + copied + " de " + totalBytes + " bytes).");
+                }
+
+                runOnUiThread(() -> {
+                    dialog.setIndeterminate(true);
+                    dialog.setMessage("Verificando a ROM...");
+                });
+                String problem = SafeFiles.checkRomFile(tempFile, copied);
+                if (problem != null) {
+                    throw new IOException("ROM recusada: " + problem + ".");
+                }
+                SafeFiles.replaceFileSafely(tempFile, destinationFile);
 
                 runOnUiThread(() -> {
                     dialog.setProgress(100);
                     dialog.dismiss();
-                    Toast.makeText(this, "ROM importada com sucesso.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "ROM importada e verificada com sucesso.", Toast.LENGTH_LONG).show();
                     nativeHandleSelectedFile(destinationFile.getAbsolutePath());
                 });
-            } catch (IOException e) {
+            } catch (IOException | RuntimeException e) {
                 Log.e("OOTDE_IMPORT", "Falha ao importar ROM", e);
-                destinationFile.delete();
+                // Only the temporary copy is removed; an OOT.z64 imported before is kept.
+                if (tempFile.exists() && !tempFile.delete()) {
+                    Log.w("OOTDE_IMPORT", "Could not delete " + tempFile);
+                }
+                String reason = (e.getMessage() != null) ? e.getMessage() : e.toString();
                 runOnUiThread(() -> {
                     dialog.dismiss();
-                    Toast.makeText(this, "Falha ao importar ROM: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    nativeHandleSelectedFile("");
+                    if (isFinishing()) {
+                        nativeHandleSelectedFile("");
+                        return;
+                    }
+                    new AlertDialog.Builder(this)
+                            .setTitle("Falha ao importar a ROM")
+                            .setMessage(reason + (hadRom
+                                    ? "\n\nA ROM que já estava na pasta " + DATA_FOLDER + " foi mantida."
+                                    : ""))
+                            .setCancelable(false)
+                            // The native extractor waits for an answer; an empty path tells it nothing was imported.
+                            .setPositiveButton("OK", (d, which) -> nativeHandleSelectedFile(""))
+                            .show();
                 });
             }
         });
@@ -883,6 +926,8 @@ public class MainActivity extends SDLActivity{
     public void openFilePicker() {
         // Create an Intent to open the file picker dialog
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        // Storage Access Framework: only files that can be opened as a stream.
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
 
         // Start the file picker dialog
