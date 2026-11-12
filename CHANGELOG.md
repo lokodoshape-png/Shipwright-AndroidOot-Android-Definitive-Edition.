@@ -12,7 +12,7 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
-## [0.9.1-expansao] — Definitive Expansion, Fases 1 e 2 (versão de teste)
+## [0.9.1-expansao] — Definitive Expansion (versão de teste)
 
 Build de teste da branch `feature/ootde-definitive-expansion`. O número é provisório, só para o APK instalar por
 cima das builds de teste anteriores; a versão oficial é definida quando a expansão entrar na `main`.
@@ -31,6 +31,14 @@ cima das builds de teste anteriores; a versão oficial é definida quando a expa
   usam o giroscópio. O analógico continua funcionando junto.
 - **HUD** (Definitive > HUD): perfis Clássico, Minimalista, Definitive e Personalizado; posição e visibilidade de
   cada elemento. Tamanho e transparência por elemento ainda não.
+- **Conquistas** (Definitive > Conquistas): 42 conquistas em 7 categorias, conferidas pelo que o jogo registra de
+  verdade (itens, chefes derrotados, contadores). Progresso, data, percentual, histórico e aviso na tela. Ficam
+  num arquivo próprio, fora dos saves.
+- **Boss Rush com recordes** (Definitive > Boss Rush): cada corrida terminada do Boss Rush guarda tempo, mortes,
+  vida restante e pontuação. Ranking por conjunto de chefes e dificuldade (Normal, Difícil, Sobrevivência) e
+  histórico.
+- **Master Mode** (Definitive > Master Mode): presets Clássico, Herói, Mestre e Lendário, feitos dos
+  modificadores de dificuldade que o jogo já tem. Pode ser desligado a qualquer momento.
 - Formato dos saves inalterado. Backups e exportações ficam em `OOT-DE/ootde/`.
 
 Pendências: os outros sistemas da expansão (Fases 2 a 9). Plano e auditoria em

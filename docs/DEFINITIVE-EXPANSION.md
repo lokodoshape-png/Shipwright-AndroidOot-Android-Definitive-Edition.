@@ -124,6 +124,66 @@ giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/t
 - Não testado no computador: `TouchLayoutEditor.java` (precisa do SDK Android; é compilado no GitHub Actions) e o
   comportamento no aparelho.
 
+## Fases 5 e 6 — Conquistas, recordes do Boss Rush e Master Mode (feitas; falta testar no aparelho)
+
+### Conquistas (Definitive > Conquistas)
+
+- 42 conquistas em 7 categorias (História, Exploração, Combate, Colecionáveis, Masmorras, Desafios, Segredos),
+  com descrição, progresso, data de desbloqueio, percentual, histórico e aviso na tela.
+- Cada uma é conferida contra o que o próprio jogo registra: inventário e itens de missão do save em memória,
+  flags de evento, estatísticas do Ship of Harkinian (chefes derrotados, contadores) ou um evento do jogo
+  (inimigo derrotado, ovo chocado, Boss Rush concluído). Abrir uma tela não desbloqueia nada.
+- As de campanha só contam em saves normais ou Master Quest dos slots 1 a 3. Randomizer fica de fora (o
+  inventário inicial é uma opção) e tem a conquista própria. A demo da tela de título e o save de depuração usam o
+  arquivo 0xFF e nunca contam.
+- Progresso em `ootde/achievements.json`, versionado, gravação atômica, separado dos saves. O progresso só sobe.
+  Um save importado com progresso real desbloqueia as conquistas correspondentes: é o estado do save que vale.
+- Ícones: ainda não (o campo existe na definição). Fica como pendência.
+- "Lugares visitados": o save já tem um conjunto de bits `scenesDiscovered` nas estatísticas do Ship of Harkinian,
+  que o jogo só preenchia no Randomizer de entradas. A expansão marca o bit ao entrar numa cena. Isso não grava o
+  save: vai para o disco quando o jogador salva, junto com o resto das estatísticas. O formato não muda.
+
+### Boss Rush (Definitive > Boss Rush)
+
+- O modo é o Boss Rush do Ship of Harkinian, intocado: seleção de chefes, sequência, estado próprio que nunca é
+  gravado (arquivo 0xFE/0xFF), então a campanha e o inventário dela não são tocados.
+- Novo: ao terminar uma corrida (o jogo marca `gameComplete`), o resultado vai para `ootde/records.json`: tempo,
+  mortes, vida restante, pontuação, data e opções usadas. Telas de ranking (por conjunto de chefes e dificuldade),
+  histórico e regras.
+- Tempo: relógio monotônico (`steady_clock`), somado quadro a quadro só enquanto o cronômetro do Boss Rush está
+  andando (a sala entre chefes não conta). Não depende da taxa de quadros; um intervalo maior que 0,5 s entre
+  quadros (app em segundo plano) é descartado.
+- Dificuldades do ranking, tiradas das opções reais do modo: Normal; Difícil (Hyper Bosses); Sobrevivência (cura:
+  nunca); Difícil + Sobrevivência. "Desafio de tempo" não é oferecido: o jogo não tem regra de limite de tempo
+  durante a luta.
+- Pontuação: 10000 − 5 por segundo − 500 por morte + até 2000 pela vida restante, mínimo 100; Difícil +50%,
+  Sobrevivência +25%.
+
+### Master Mode (Definitive > Master Mode)
+
+- Presets Clássico, Herói, Mestre e Lendário, feitos só de modificadores que o jogo já tem (Aprimoramentos >
+  Dificuldade): multiplicadores de dano, de queda e de abismo, sem corações, sem itens aleatórios, Hyper Enemies e
+  Hyper Bosses. A tela mostra exatamente o que cada preset liga e o que está ligado agora.
+- Não cria comportamento novo de inimigo. Nada vai para o save; "Clássico" desliga tudo. Se o jogador tinha uma
+  combinação própria, ela é guardada e pode ser restaurada.
+- Master Quest continua sendo escolhido ao criar o arquivo (progressão própria no save dele).
+- Desafios com resultado registrado: corridas do Boss Rush e conquistas de desafio (história sem morrer, com três
+  corações, no Master Quest; Boss Rush sem cura, sem morrer, com Hyper Bosses). Desafios com regra imposta durante
+  o jogo (tempo limite, equipamento obrigatório) ainda não existem.
+
+### Arquivos
+
+- Novos: `DEAchievementsCore.{h,cpp}`, `DEAchievements.cpp`, `DERecords.{h,cpp}`, `DEChallenges.cpp`.
+- Alterados: `DefinitiveExpansion.{h,cpp}`, `SohMenuDefinitive.cpp`, testes.
+
+### Testes feitos
+
+- Testes de computador (`scripts/tests/run_de_expansion_tests.sh`): conquistas (progresso só sobe, desbloqueio no
+  alvo, arquivo corrompido e de versão mais nova, chaves desconhecidas preservadas) e recordes (pontuação,
+  ordenação do ranking, histórico, limite de 200 corridas).
+- Conferência de sintaxe dos arquivos de integração contra os cabeçalhos do jogo.
+- Não testado: em jogo real (depende do APK no aparelho).
+
 ## Matriz de validação (preenchida a cada fase)
 
 | Área | Item | Estado |

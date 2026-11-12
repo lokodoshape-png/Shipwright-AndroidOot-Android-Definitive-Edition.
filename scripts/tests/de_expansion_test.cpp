@@ -1,4 +1,6 @@
 // OOT D.E. Definitive Expansion: host tests of the expansion core. Run with scripts/tests/run_de_expansion_tests.sh.
+#include "DEAchievementsCore.h"
+#include "DERecords.h"
 #include "DESaveManager.h"
 #include "DEStorage.h"
 #include "OOTDEConfig.h"
@@ -236,6 +238,110 @@ static void TestSaves(const fs::path& dir) {
     CHECK(vault.ListBackups(0).size() == list.size() - 1);
 }
 
+static void TestAchievements(const fs::path& dir) {
+    const fs::path path = dir / "ach" / "achievements.json";
+    std::vector<DE::AchievementDef> defs = {
+        { "first", DE::AchievementCategory::Story, "Primeiro passo", "", 1, false, "" },
+        { "skulls", DE::AchievementCategory::Collectibles, "Caçador", "", 100, false, "" },
+        { "kills", DE::AchievementCategory::Combat, "Guerreiro", "", 3, true, "" },
+    };
+    {
+        DE::AchievementStore store(defs);
+        CHECK(store.Load(path));
+        CHECK(store.Percent() == 0);
+        CHECK(!store.Report("skulls", 40, 1000));
+        CHECK(store.State("skulls").progress == 40);
+        CHECK(!store.Report("skulls", 10, 1001)); // progress never goes down
+        CHECK(store.State("skulls").progress == 40);
+        CHECK(store.Report("first", 1, 2000));
+        CHECK(!store.Report("first", 1, 3000)); // only unlocks once
+        CHECK(store.State("first").unlockedAt == 2000);
+        CHECK(!store.Report("nao-existe", 1, 1));
+        CHECK(!store.Add("kills", 1, 10));
+        CHECK(!store.Add("kills", 1, 11));
+        CHECK(store.Add("kills", 5, 2500)); // clamps at the target and unlocks
+        CHECK(store.State("kills").progress == 3);
+        CHECK(store.UnlockedCount() == 2);
+        CHECK(store.Percent() == 66);
+        CHECK(store.History().size() == 2 && store.History().front()->id == "kills");
+        CHECK(store.Dirty());
+        CHECK(store.Save());
+        CHECK(!store.Dirty());
+    }
+    {
+        DE::AchievementStore store(defs);
+        CHECK(store.Load(path));
+        CHECK(store.State("skulls").progress == 40 && !store.State("skulls").Unlocked());
+        CHECK(store.State("first").unlockedAt == 2000);
+    }
+    // A hand-edited file cannot unlock without progress; unknown ids are kept.
+    Write(path, R"({ "schemaVersion": 1, "achievements": { "skulls": { "progress": 5, "unlockedAt": 99 },
+                     "futuro": { "progress": 2, "unlockedAt": 0 } } })");
+    {
+        DE::AchievementStore store(defs);
+        CHECK(store.Load(path));
+        CHECK(!store.State("skulls").Unlocked());
+        CHECK(store.Report("first", 1, 5));
+        CHECK(store.Save());
+        CHECK(json::parse(Read(path))["achievements"]["futuro"]["progress"] == 2);
+    }
+    Write(path, "quebrado");
+    {
+        DE::AchievementStore store(defs);
+        CHECK(!store.Load(path));
+        CHECK(!fs::exists(path));
+        CHECK(store.Percent() == 0);
+    }
+}
+
+static void TestRecords(const fs::path& dir) {
+    const fs::path path = dir / "rec" / "records.json";
+    CHECK(DE::FormatRunTime(0) == "0:00.0");
+    CHECK(DE::FormatRunTime(83450) == "1:23.4");
+    CHECK(DE::FormatRunTime(3723900) == "1:02:03.9");
+    CHECK(DE::ComputeRunScore(600000, 0, 160, 160, 100) == 9000);
+    CHECK(DE::ComputeRunScore(600000, 2, 80, 160, 100) == 7000);
+    CHECK(DE::ComputeRunScore(600000, 0, 160, 160, 150) == 13500);
+    CHECK(DE::ComputeRunScore(99999999, 50, 0, 160, 100) == 100);
+    {
+        DE::RecordBook book;
+        CHECK(book.Load(path));
+        DE::RunRecord a{ "bossrush/normal/all", 500000, 1, 100, 160, 1, 1000, "" };
+        DE::RunRecord b{ "bossrush/normal/all", 400000, 0, 100, 160, 1, 2000, "" };
+        DE::RunRecord c{ "bossrush/normal/all", 450000, 0, 100, 160, 1, 3000, "" };
+        DE::RunRecord d{ "bossrush/dificil/all", 900000, 0, 100, 160, 1, 4000, "x" };
+        CHECK(book.Add(a) == 1);
+        CHECK(book.Add(b) == 1);
+        CHECK(book.Add(c) == 2);
+        CHECK(book.Add(d) == 1); // its own board
+        CHECK(book.Ranking("bossrush/normal/all").size() == 3);
+        CHECK(book.Ranking("bossrush/normal/all").front().timeMs == 400000);
+        CHECK(book.History().front().date == 4000);
+        CHECK(book.Boards().size() == 2);
+        CHECK(book.Save());
+    }
+    {
+        DE::RecordBook book;
+        CHECK(book.Load(path));
+        DE::RunRecord best;
+        CHECK(book.Best("bossrush/dificil/all", best) && best.details == "x");
+        CHECK(!book.Best("nada", best));
+        // The history is capped but the record of a board survives.
+        for (int i = 0; i < 300; i++) {
+            book.Add(DE::RunRecord{ "lotado", 100000 + i, 0, 0, 0, 0, 10000 + i, "" });
+        }
+        CHECK(book.History().size() == DE::RecordBook::kMaxHistory);
+        CHECK(book.Best("lotado", best) && best.timeMs == 100000);
+        CHECK(book.Best("bossrush/normal/all", best) && best.timeMs == 400000);
+    }
+    Write(path, "[]");
+    {
+        DE::RecordBook book;
+        CHECK(!book.Load(path));
+        CHECK(book.History().empty());
+    }
+}
+
 int main(int argc, char** argv) {
     const fs::path dir = argc > 1 ? fs::path(argv[1]) : fs::temp_directory_path() / "de_expansion_test";
     fs::remove_all(dir);
@@ -243,6 +349,8 @@ int main(int argc, char** argv) {
     TestStorage(dir);
     TestConfig(dir);
     TestSaves(dir);
+    TestAchievements(dir);
+    TestRecords(dir);
     std::printf("%d verificações, %d falhas\n", sChecks, sFailures);
     return sFailures == 0 ? 0 : 1;
 }

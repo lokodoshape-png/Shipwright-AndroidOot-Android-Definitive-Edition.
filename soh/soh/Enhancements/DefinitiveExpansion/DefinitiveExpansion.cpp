@@ -35,7 +35,7 @@ static std::unique_ptr<DE::Config> sConfig;
 static std::unique_ptr<DE::SaveVault> sVault;
 static DE::Config::LoadResult sLoadResult = DE::Config::LoadResult::Loaded;
 
-static fs::path DataDir() {
+fs::path DataDir() {
     return fs::path(Ship::Context::GetPathRelativeToAppDirectory("ootde"));
 }
 
@@ -49,6 +49,8 @@ static void InitOnce() {
         sConfig->RegisterSetting(kBackupBeforeDelete, true,
                                  "Guarda uma cópia antes de apagar um save ou copiar outro por cima.");
         RegisterControlSettings(*sConfig);
+        RegisterAchievementSettings(*sConfig);
+        RegisterChallengeSettings(*sConfig);
         sLoadResult = sConfig->Load(DataDir() / "config.json");
         if (sLoadResult == DE::Config::LoadResult::RecoveredBroken) {
             SPDLOG_WARN("OOT D.E.: ootde/config.json estava corrompido; foi guardado à parte e os padrões foram usados");
@@ -337,9 +339,10 @@ static const SystemStatus kSystems[] = {
     { "3D Museum", "Fase 3" },
     { "Link Customization", "Fase 3. Cores de túnica já existem no Editor de personalização" },
     { "Hyrule Explorer", "Fase 4" },
-    { "Achievements", "Fase 5" },
-    { "Boss Rush", "Fase 6. O Boss Rush do Ship of Harkinian já funciona: Seleção de arquivos > Modo Boss Rush" },
-    { "Master Mode", "Fase 6. Master Quest e multiplicador de dano já existem (Aprimoramentos > Dificuldade)" },
+    { "Achievements", "Disponível (Definitive > Conquistas)" },
+    { "Boss Rush", "Disponível (Definitive > Boss Rush): recordes, ranking e histórico das corridas do Boss Rush "
+                   "do Ship of Harkinian. Desafio de tempo ainda não" },
+    { "Master Mode", "Disponível (Definitive > Master Mode): presets feitos dos modificadores que o jogo já tem" },
     { "Randomizer", "Fase 7. O Randomizer completo do Ship of Harkinian já funciona (menu Aleatorizador)" },
 };
 

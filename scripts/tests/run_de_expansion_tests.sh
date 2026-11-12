@@ -20,5 +20,6 @@ if [ -z "$INC" ]; then
 fi
 g++ -std=c++17 -Wall -Wextra -fsanitize=address,undefined -g -I"$INC" -I"$DE" \
     "$ROOT/scripts/tests/de_expansion_test.cpp" "$DE/DEStorage.cpp" "$DE/OOTDEConfig.cpp" "$DE/DESaveManager.cpp" \
+    "$DE/DEAchievementsCore.cpp" "$DE/DERecords.cpp" \
     -o "$OUT/de_expansion_test" 2>&1
 "$OUT/de_expansion_test" "$OUT/work"
