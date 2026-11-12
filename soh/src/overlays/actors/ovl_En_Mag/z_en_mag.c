@@ -176,12 +176,18 @@ void EnMag_Update(Actor* thisx, PlayState* play) {
 
     if (gSaveContext.fileNum != 0xFEDC) {
         if (this->globalState < MAG_STATE_DISPLAY) {
-            if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
+            // OOT D.E.: the Definitive Edition menu does not wait for the logo of the opening: it comes right away
+            // (as if a button had been pressed, without its sound).
+            bool deMenu = DefinitiveUI_TitleMenuEnabled();
+
+            if (deMenu || CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
                 CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
                 CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
 
-                Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                if (!deMenu) {
+                    Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                }
 
                 this->mainAlpha = 210;
                 this->subAlpha = 255;
@@ -206,7 +212,7 @@ void EnMag_Update(Actor* thisx, PlayState* play) {
                 }
 
                 this->globalState = MAG_STATE_DISPLAY;
-                sDelayTimer = 20;
+                sDelayTimer = deMenu ? 2 : 20;
                 gSaveContext.transFadeDuration = 1;
                 gSaveContext.transWipeSpeed = 255;
             }
