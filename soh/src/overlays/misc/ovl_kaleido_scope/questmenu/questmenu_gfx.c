@@ -74,6 +74,7 @@ s32 QM_Encode(const char* text, u8* out, s32 max) {
             case 0x05: QM_EMIT1(0xA0); // B
             case 0x06: QM_EMIT1(0xA2); // L
             case 0x07: QM_EMIT1(0xA3); // R
+            case 0x08: QM_EMIT1(0x9F); // A
             case 0xC0: QM_EMIT1(0x80); // À
             case 0xC1: QM_EMIT2('A', QM_ACUTE); // Á
             case 0xC2: QM_EMIT1(0x82); // Â

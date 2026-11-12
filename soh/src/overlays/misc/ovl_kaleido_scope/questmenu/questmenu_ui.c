@@ -404,6 +404,11 @@ static void QuestMenu_DrawCard(QuestMenuDraw* d, PlayState* play, s32 cursor, f3
     }
     if (row->state == QM_STATE_LOCKED) {
         snprintf(text, sizeof(text), "Próximo: conclua a etapa anterior.");
+    } else if (QuestMenu_IsManualRow(row) && QuestMenu_CanMarkGanon()) {
+        // The save cannot tell: the player marks it. The whole line can be touched.
+        snprintf(text, sizeof(text), "%s", row->done ? QM_GLYPH_A " Desmarcar (marcada por você)"
+                                                     : QM_GLYPH_A " Marcar como concluída");
+        QuestMenu_AddHit(QM_CARD_X0 + 8, y - 6, QM_CARD_X1 - 8, y + 18, QM_HIT_MANUAL_DONE, 0);
     } else if (row->done) {
         bool last = (gQuestMenu.category == QM_CAT_MAIN) && (cursor == gQuestMenu.rowCount - 1);
 

@@ -37,6 +37,7 @@ typedef enum {
     QM_CHK_AREA,          // flag = world map area visited (the clouds of the pause map)
     QM_CHK_VISITED,       // scene visited (rooms of its dungeon map)
     QM_CHK_BOSS_KEY,      // boss key of a dungeon (scene)
+    QM_CHK_GANON,         // Ganon defeated: Ship of Harkinian's own record of it, or the player's mark (see below)
 } QuestMenuCheckType;
 
 #define QM_EQUIP(type, inv) (((type) << 4) | (inv))
@@ -174,6 +175,14 @@ extern const char* gQuestMenuCategoryIcons[QM_CAT_COUNT];
 s32 QuestMenu_BuildRows(PlayState* play, s32 category, QuestMenuRow* rows, s32 max);
 s32 QuestMenu_GetGoals(PlayState* play, const QuestMenuRow* row, QuestMenuGoal* goals, s32 max);
 const char* QuestMenu_StateName(u8 state);
+
+// Beating Ganon ends the game with the credits, so the save normally never records it. The line can be marked done by
+// the player (A, or touching the card). The mark is kept in the settings for this save file only, never in the save.
+bool QuestMenu_IsManualRow(const QuestMenuRow* row);
+bool QuestMenu_GanonDetected(void);
+bool QuestMenu_GetGanonMark(void);
+bool QuestMenu_CanMarkGanon(void);
+void QuestMenu_SetGanonMark(bool done);
 bool QuestMenu_IsDungeonIcon(const char* icon);
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -189,6 +198,7 @@ typedef enum {
     QM_HIT_SCROLL_DOWN,
     QM_HIT_LIST,     // the list area, for dragging
     QM_HIT_CLOSE,
+    QM_HIT_MANUAL_DONE, // mark / unmark a line the save does not record (Ganondorf)
 } QuestMenuHitType;
 
 typedef struct {
@@ -243,6 +253,7 @@ void QuestMenu_AddHit(f32 x0, f32 y0, f32 x1, f32 y1, u8 type, s16 value);
 #define QM_GLYPH_B "\x05"
 #define QM_GLYPH_L "\x06"
 #define QM_GLYPH_R "\x07"
+#define QM_GLYPH_A "\x08"
 
 typedef struct {
     Gfx* gfx;

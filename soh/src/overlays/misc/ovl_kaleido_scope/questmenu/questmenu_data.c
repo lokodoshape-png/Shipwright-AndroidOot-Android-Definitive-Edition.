@@ -1,13 +1,16 @@
 // OOT D.E.: QuestMenu data: the quests, how each one is checked against the save, and its state.
 //
-// Every line reads the real progress from the save. A quest the game does not record (like beating Ganondorf) is never
-// marked done. To add a quest, add a line to a table below and, where the table has them, to its parallel tables
+// Every line reads the real progress from the save. The only exception is beating Ganon, which the game does not save
+// (the credits play and the game ends): it is shown done when Ship of Harkinian recorded it, or when the player marked it
+// by hand (QuestMenu_SetGanonMark). No other line can be marked by hand. To add a quest, add a line to a table below and, where the table has them, to its parallel tables
 // (world map points); the build fails if their lengths differ.
 #include "questmenu.h"
 #include "textures/icon_item_static/icon_item_static.h"
 #include "textures/icon_item_24_static/icon_item_24_static.h"
 #include "soh_assets.h"
 #include <string.h>
+#include <stdio.h>
+#include <libultraship/bridge.h>
 
 // ---------------------------------------------------------------------------------------------------------------------
 // World map
@@ -83,7 +86,7 @@ static const QuestMenuObjective sQuestMenuGoalsGanon[] = {
     { "Flechas de Luz", gItemIconArrowLightTex, 0, QM_CHK_ITEM, 0, ITEM_ARROW_LIGHT },
     { "Luvas de Ouro", gItemIconGoldenGauntletsTex, 0, QM_CHK_UPGRADE, 0, QM_UPGRADE(UPG_STRENGTH, 3) },
     { "Chave da Torre de Ganon", gQuestIconDungeonBossKeyTex, 1, QM_CHK_BOSS_KEY, SCENE_GANONS_TOWER, 0 },
-    { "Derrotar Ganondorf", gItemIconSwordMasterTex, 0, QM_CHK_NONE, 0, 0 },
+    { "Derrotar Ganondorf", gItemIconSwordMasterTex, 0, QM_CHK_GANON, 0, 0 },
     { NULL },
 };
 
@@ -96,7 +99,7 @@ static const QuestMenuEntry sQuestMenuMain[] = {
     { "Espada Mestra", "No Templo do Tempo, toque a Canção do Tempo diante do altar e puxe a Espada Mestra. Link acorda sete anos depois.", gItemIconSwordMasterTex, 0, QM_AGE_ANY, QM_NEED_OCARINA, QM_CHK_MASTER_SWORD, 0, 0, sQuestMenuGoalsSword },
     { "Desperte os Sábios", "Purifique os templos e desperte os Sábios. Com o Medalhão da Luz são seis medalhões para selar Ganondorf.", gQuestIconMedallionLightTex, 1, QM_AGE_ADULT, 0, QM_CHK_MEDALLIONS, 0, 0, sQuestMenuGoalsSages },
     { "Flechas de Luz", "Com os seis medalhões, volte ao Templo do Tempo. Sheik revela quem é e entrega as Flechas de Luz.", gItemIconArrowLightTex, 0, QM_AGE_ADULT, 0, QM_CHK_ITEM, 0, ITEM_ARROW_LIGHT, sQuestMenuGoalsLightArrows },
-    { "Derrote Ganondorf", "Atravesse o Castelo de Ganon, desfaça as seis barreiras dos Sábios e derrote Ganondorf no alto da torre. O jogo não guarda essa vitória no save, então ela nunca aparece como concluída aqui.", gQuestIconDungeonBossKeyTex, 1, QM_AGE_ADULT, QM_NEED_BOW, QM_CHK_NONE, 0, 0, sQuestMenuGoalsGanon },
+    { "Derrote Ganondorf", "Atravesse o Castelo de Ganon, desfaça as seis barreiras dos Sábios e derrote Ganondorf no alto da torre. O jogo não guarda essa vitória no save: depois de vencer, marque-a aqui com A.", gQuestIconDungeonBossKeyTex, 1, QM_AGE_ADULT, QM_NEED_BOW, QM_CHK_GANON, 0, 0, sQuestMenuGoalsGanon },
 };
 static const s8 sQuestMenuMainPoints[] = {
     QM_PT_KOKIRI, QM_PT_MARKET, QM_PT_DEATH_MOUNTAIN, QM_PT_ZORA, QM_PT_MARKET,
@@ -499,6 +502,55 @@ static bool QuestMenu_HasNeed(s32 need) {
 }
 
 
+// --- Ganon ---------------------------------------------------------------------------------------------------------
+
+// Ship of Harkinian records the time Ganon was beaten (gameplaystats, z_boss_ganon2.c). It reaches the save only when
+// the game is saved after it, which the credits normally prevent, so it is rarely there; when it is, it counts.
+bool QuestMenu_GanonDetected(void) {
+    return gSaveContext.ship.stats.itemTimestamp[TIMESTAMP_DEFEAT_GANON] != 0;
+}
+
+// The mark belongs to one save file: its slot and the time the file was created (saved with the file), so a new game
+// in the same slot starts unmarked. 0 means the file has no creation time yet: it cannot be marked.
+static bool QuestMenu_GanonMarkName(char* name, size_t size) {
+    if (gSaveContext.ship.stats.fileCreatedAt == 0) {
+        return false;
+    }
+    snprintf(name, size, "gOOTDE.QuestMenu.GanonDone.S%d_%llu", (int)gSaveContext.fileNum,
+             (unsigned long long)gSaveContext.ship.stats.fileCreatedAt);
+    return true;
+}
+
+bool QuestMenu_CanMarkGanon(void) {
+    char name[96];
+
+    return !QuestMenu_GanonDetected() && QuestMenu_GanonMarkName(name, sizeof(name));
+}
+
+bool QuestMenu_GetGanonMark(void) {
+    char name[96];
+
+    return QuestMenu_GanonMarkName(name, sizeof(name)) && (CVarGetInteger(name, 0) != 0);
+}
+
+void QuestMenu_SetGanonMark(bool done) {
+    char name[96];
+
+    if (!QuestMenu_GanonMarkName(name, sizeof(name))) {
+        return;
+    }
+    if (done) {
+        CVarSetInteger(name, 1);
+    } else {
+        CVarClear(name);
+    }
+    CVarSave();
+}
+
+bool QuestMenu_IsManualRow(const QuestMenuRow* row) {
+    return (row != NULL) && (row->entry != NULL) && (row->entry->check == QM_CHK_GANON);
+}
+
 static bool QuestMenu_Check(PlayState* play, u8 check, s16 scene, u16 flag) {
     u8 item;
 
@@ -549,6 +601,8 @@ static bool QuestMenu_Check(PlayState* play, u8 check, s16 scene, u16 flag) {
             return (play->sceneNum == scene) || (gSaveContext.sceneFlags[scene].rooms != 0);
         case QM_CHK_BOSS_KEY:
             return CHECK_DUNGEON_ITEM(DUNGEON_KEY_BOSS, scene) != 0;
+        case QM_CHK_GANON:
+            return QuestMenu_GanonDetected() || QuestMenu_GetGanonMark();
     }
     return false;
 }
