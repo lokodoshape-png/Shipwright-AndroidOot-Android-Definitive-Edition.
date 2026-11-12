@@ -11,6 +11,7 @@
 #include "DeTheme.h"
 #include "DeTitleMenuText.h"
 #include "DeTitleMenuView.h"
+#include "DeMusic.h"
 
 #include <libultraship/libultraship.h>
 #include <Window.h>
@@ -150,6 +151,7 @@ static Screen sScreen = SCREEN_MAIN;
 static int sCursor[2] = { 0, 0 };
 static int sPressed = -1;
 static int sPressTimer = 0;
+static bool sBgmMuted = false;  // the game's title music is muted while the menu music plays
 static int sOpenSfxTimer = -1; // frames until the sound of the panel sliding in (opening animation)
 static int sPendingTouch = -1;    // item tapped in the view, handled at the next update
 static int sInputCooldown = 0;    // frames to ignore the controller (after the port menu closes)
@@ -508,6 +510,20 @@ extern "C" bool DefinitiveUI_TitleMenuEnabled(void) {
     return CVarGetInteger(CVAR_TITLE_MENU, 1) != 0;
 }
 
+// The menu music (DeMusic) plays while the menu is on the title screen and fades out when it goes to file select.
+// Meanwhile the game's own title music is muted with a volume scale that nothing else in the game uses.
+static constexpr u8 kBgmVolScale = 3;
+static void UpdateMusic() {
+    MusicLoad();
+    const bool playing = !sClosing && MusicAvailable() &&
+                         CVarGetInteger(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"), 80) > 0;
+    MusicSetPlaying(playing);
+    if (playing != sBgmMuted) {
+        Audio_SetVolScale(SEQ_PLAYER_BGM_MAIN, kBgmVolScale, playing ? 0 : 0x7F, 20);
+        sBgmMuted = playing;
+    }
+}
+
 extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
     if (!sActive) {
         sActive = true;
@@ -523,6 +539,7 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
         sAutoConfirm = false;
         sJournalWait = 0;
     }
+    UpdateMusic();
     if (sClosing) {
         return false;
     }
@@ -597,6 +614,12 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
 extern "C" void DefinitiveUI_TitleMenuClose(void) {
     sActive = false;
     sClosing = false;
+    MusicSetPlaying(false);
+    if (sBgmMuted) {
+        // Back to normal for the music of the next screen (file select).
+        Audio_SetVolScale(SEQ_PLAYER_BGM_MAIN, kBgmVolScale, 0x7F, 0);
+        sBgmMuted = false;
+    }
 }
 
 extern "C" bool DefinitiveUI_TitleMenuVisible(void) {

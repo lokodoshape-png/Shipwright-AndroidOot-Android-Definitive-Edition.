@@ -133,6 +133,7 @@ Sail* Sail::Instance;
 #include "soh/config/ConfigUpdaters.h"
 #include "soh/ShipInit.hpp"
 #include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
+#include "soh/Enhancements/DefinitiveUI/DeMusic.h"
 
 extern "C" {
 #include "src/overlays/actors/ovl_En_Dns/z_en_dns.h"
@@ -588,6 +589,9 @@ void OTRAudio_Thread() {
             AudioMgr_CreateNextAudioBuffer(audio_buffer + i * (num_audio_samples * NUM_AUDIO_CHANNELS),
                                            num_audio_samples);
         }
+
+        // OOT D.E.: music of the Definitive Edition main menu, mixed over the game's sound (DeMusic.h).
+        DefinitiveUI_MusicMix(audio_buffer, num_audio_samples * AUDIO_FRAMES_PER_UPDATE);
 
         AudioPlayer_Play((u8*)audio_buffer,
                          num_audio_samples * (sizeof(int16_t) * NUM_AUDIO_CHANNELS * AUDIO_FRAMES_PER_UPDATE));

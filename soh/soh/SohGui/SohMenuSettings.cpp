@@ -123,6 +123,18 @@ void SohMenu::AddMenuSettings() {
         .Options(CheckboxOptions().DefaultValue(true).Tooltip(
             "Mostra o novo menu principal na tela de título (Continuar, Novo Jogo, Selecionar Arquivo, Diário de "
             "Quests, Mods, Configurações e Extras). Desligado, volta o \"PRESS START\" original."));
+    AddWidget(path, "Música do menu: %d %%", WIDGET_CVAR_SLIDER_INT)
+        .CVar(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"))
+        .RaceDisable(false)
+        .Options(IntSliderOptions()
+                     .Tooltip("Volume da música orquestrada do menu principal (acompanha o volume geral). Em 0, toca "
+                              "a música original da tela de título. Para usar outra música, coloque um arquivo "
+                              "ootde-menu.ogg na pasta mods.")
+                     .Min(0)
+                     .Max(100)
+                     .DefaultValue(80)
+                     .ShowButtons(true)
+                     .Format(""));
     AddWidget(path, "General Settings", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Cursor Always Visible", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SETTING("CursorVisibility"))

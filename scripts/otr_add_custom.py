@@ -190,8 +190,8 @@ def missing_textures(files):
         for fn in sorted(names):
             parts = fn.split(".")
             rel = os.path.relpath(os.path.join(folder, fn), CUSTOM).replace(os.sep, "/")
-            # OOT D.E.: fonts are stored as they are (the game loads them by their file name).
-            if parts[-1] in ("ttf", "otf"):
+            # OOT D.E.: fonts and music are stored as they are (the game loads them by their file name).
+            if parts[-1] in ("ttf", "otf", "ogg"):
                 if rel not in files:
                     missing.append((rel, os.path.join(folder, fn)))
                 continue
@@ -221,7 +221,7 @@ def main():
         print("soh.otr already has every custom texture.")
         return
     for name, png in missing:
-        if png.endswith((".ttf", ".otf")):
+        if png.endswith((".ttf", ".otf", ".ogg")):
             with open(png, "rb") as f:
                 res = f.read()
         else:
