@@ -347,7 +347,8 @@ static const SystemStatus kSystems[] = {
     { "Boss Rush", "Disponível (Definitive > Boss Rush): recordes, ranking e histórico das corridas do Boss Rush "
                    "do Ship of Harkinian. Desafio de tempo ainda não" },
     { "Master Mode", "Disponível (Definitive > Master Mode): presets feitos dos modificadores que o jogo já tem" },
-    { "Randomizer", "Fase 7. O Randomizer completo do Ship of Harkinian já funciona (menu Aleatorizador)" },
+    { "Randomizer", "Disponível (Definitive > Randomizer): o Randomizer do Ship of Harkinian com geração por semente, "
+                    "código para compartilhar e histórico de partidas" },
 };
 
 static char sProfileName[48] = "";

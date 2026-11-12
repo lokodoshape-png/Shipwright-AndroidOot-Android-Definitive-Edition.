@@ -124,6 +124,22 @@ giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/t
 - Não testado no computador: `TouchLayoutEditor.java` (precisa do SDK Android; é compilado no GitHub Actions) e o
   comportamento no aparelho.
 
+## Fase 7 — Randomizer (feita)
+
+- A auditoria confirmou: o Randomizer completo do Ship of Harkinian já existe (gerador, lógica de acesso,
+  configurações de dificuldade, itens e progressão, truques, spoiler log, assinatura de 5 ícones na seleção de
+  arquivos, saves separados e identificados). Nada disso foi reescrito; não há algoritmo novo.
+- Novo em Definitive > Randomizer: semente pronta (código e assinatura), botão para copiar e compartilhar, campo
+  de semente e botão Gerar (chama a mesma função `GenerateRandomizer` da janela de configurações, com as mesmas
+  restrições: só na seleção de arquivos, sem save carregado), atalho para as configurações do Randomizer e
+  histórico de partidas.
+- Reprodutível: mesma semente + mesmas configurações = mesmo jogo; a assinatura confirma. O texto copiado avisa
+  que as configurações precisam ser as mesmas.
+- Histórico em `ootde/randomizer_history.json` (versionado, gravação atômica): slot, semente, assinatura, datas e
+  se a partida foi concluída (com o tempo de jogo), gravado ao carregar um save do Randomizer e ao concluí-lo.
+- Arquivo novo: `DERandomizer.cpp`.
+- Testes: conferência de sintaxe. Não testado em jogo real.
+
 ## Fases 3 e 4 — Museu, aparência do Link, Hyrule Explorer e Álbum (feitas, com o Museu parcial)
 
 ### 3D Museum (Definitive > 3D Museum) — parcial

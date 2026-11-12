@@ -31,6 +31,8 @@ cima das builds de teste anteriores; a versão oficial é definida quando a expa
   usam o giroscópio. O analógico continua funcionando junto.
 - **HUD** (Definitive > HUD): perfis Clássico, Minimalista, Definitive e Personalizado; posição e visibilidade de
   cada elemento. Tamanho e transparência por elemento ainda não.
+- **Randomizer** (Definitive > Randomizer): o Randomizer do Ship of Harkinian com semente pronta, código para
+  copiar e compartilhar, geração por semente digitada e histórico das partidas (concluídas e em andamento).
 - **Hyrule Explorer** (Definitive > Hyrule Explorer): mapa de Hyrule com as áreas já visitadas (as mesmas
   que somem as nuvens no mapa de pausa), progresso por região (Skulltulas e Pedaços de Coração) e o Álbum:
   personagens, chefes, inimigos, itens, eventos e lugares, tudo lido do save.

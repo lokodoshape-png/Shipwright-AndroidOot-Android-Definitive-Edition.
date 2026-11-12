@@ -31,6 +31,7 @@ void DrawMasterMode();
 void DrawExplorer();
 void DrawMuseum();
 void DrawLinkCustomization();
+void DrawRandomizer();
 
 // Settings of each phase are registered before the settings file is read.
 void RegisterControlSettings(DE::Config& config);

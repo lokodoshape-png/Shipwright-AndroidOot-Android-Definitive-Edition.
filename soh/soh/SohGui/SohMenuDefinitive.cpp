@@ -74,6 +74,13 @@ void SohMenu::AddMenuDefinitive() {
         DefinitiveExpansion::DrawMasterMode();
     });
 
+    path.sidebarName = "Randomizer";
+    AddSidebarEntry("Definitive", path.sidebarName, 1);
+    AddWidget(path, "Randomizer: sementes e histórico", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "DefinitiveRandomizer", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        DefinitiveExpansion::DrawRandomizer();
+    });
+
     path.sidebarName = "Recursos";
     AddSidebarEntry("Definitive", path.sidebarName, 1);
     AddWidget(path, "Configurações Definitive", WIDGET_SEPARATOR_TEXT);
