@@ -17,7 +17,7 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 Primeira etapa da nova interface, publicada junto com as correções de estabilidade da 0.8.0 (seção abaixo), que
 ainda não tinham saído numa versão própria.
 
-- **Novo menu principal na tela de título**, no lugar do "PRESS START", feito com a arte da imagem de referência
+- **Novo menu principal no lugar da tela de título e da seleção de arquivos**, feito com a arte da imagem de referência
   (`docs/interface-de/referencia.png`), ampliada 4x com a rede de super-resolução EDSR (`scripts/ootde_ui_art.py`):
   fundo de Hyrule ao entardecer com o castelo, Link com o Escudo Hylian e Navi (com zoom lento), logo com
   "DEFINITIVE EDITION", painel com a moldura dourada e os botões azul e ouro (normal, selecionado e pressionado).
@@ -30,21 +30,32 @@ ainda não tinham saído numa versão própria.
   batendo e Navi voando do cenário até o cursor.
 - **Sons do jogo no menu**: cursor, confirmar, erro (opção indisponível) e voltar com os sons da seleção de
   arquivos; som de janela abrindo quando o painel entra e ao abrir Extras.
-- **Música orquestrada no menu**: "Tema do Menu", composição original do OOT D.E. (orquestra com harpa, cordas,
-  flauta, trompas, trompetes, coro e tímpanos; cerca de 82 s em loop contínuo). Entra em fade com o menu, a música
-  original da tela de título fica muda enquanto ela toca e volta ao sair. Volume em Configurações > Interface >
-  "Música do menu" (0 volta a música original). Para usar outra música, basta colocar `ootde-menu.ogg` na pasta
-  `mods`. Prévia em vídeo: `scripts/ootde_ui_preview/build.sh ... video`.
-- **Todos os botões fazem a função real**, pelo caminho original do jogo:
-  - *Continuar* carrega o último arquivo jogado (passa pela seleção de arquivos e confirma sozinho).
-  - *Novo Jogo* abre a criação de arquivo no primeiro espaço livre (escolha de missão, nome etc. originais).
-  - *Selecionar Arquivo* abre a seleção de arquivos original (copiar e apagar continuam lá).
+- **Imagem de abertura "Definitive Edition"** antes do menu, ao abrir o jogo (como no projeto de Majora's Mask):
+  o logo aparece sobre o preto, fica alguns segundos e some. Um toque ou um botão pula. Liga/desliga em
+  Configurações > Geral > *Imagem de abertura Definitive Edition*.
+- **O menu substitui as telas originais.** O logo do N64 e o "PRESS START" não aparecem mais, e a seleção de
+  arquivos original deu lugar às telas do próprio menu:
+  - *Arquivos de Jogo*: os três arquivos com nome e corações; cada um abre *Jogar*, *Copiar* (para um arquivo
+    vazio) e *Apagar* (com confirmação). Copiar e apagar usam as mesmas funções do jogo.
+  - *Novo Jogo*: escolha entre Aventura original e Master Quest (esta só aparece se a sua ROM tiver a Master
+    Quest) e teclado próprio para o nome do herói (até 8 letras). O arquivo é criado pela função do jogo.
+  - Enquanto o jogo cria ou carrega o arquivo, uma tela "Carregando" cobre tudo.
+  - *Randomizer e Boss Rush* continuam na tela clássica de arquivos, aberta por um botão em *Novo Jogo* (as
+    opções deles ainda não têm tela nova).
+- **Música original do jogo no menu** (padrão). A composição orquestrada "Tema do Menu" continua disponível:
+  basta subir *Música orquestrada do menu* em Configurações > Geral (0 = música original). Para usar outra música,
+  coloque `ootde-menu.ogg` na pasta `mods`.
+- **Toque refeito**: o toque vale ao soltar o dedo em cima do botão (arrastar não aciona nada), os botões ficaram
+  mais altos e a linha inteira aceita o toque; as dicas da tela mudam para "Toque para escolher" quando se usa o
+  dedo.
+- **Todos os botões fazem a função real**:
+  - *Continuar* carrega o último arquivo jogado.
   - *Diário de Quests* carrega o último arquivo e abre o pause já no Diário, assim que o jogo permite pausar.
   - *Mods* e *Configurações* abrem o menu do port na página certa.
   - *Extras*: mods instalados, informações da versão; Créditos aparece como "em breve".
 - Funciona com controle (D-pad/analógico, A, Start, B), teclado (pelo mapeamento do controle) e toque. Os controles
-  de toque somem enquanto o menu está na tela. Sons de cursor, confirmação e erro do próprio jogo.
-- Dá para voltar ao "PRESS START" original em Configurações > Geral > *Menu principal Definitive Edition*.
+  de toque somem enquanto o menu está na tela.
+- Dá para voltar às telas originais em Configurações > Geral > *Menu principal Definitive Edition*.
 - Fontes novas Cinzel e EB Garamond (licença OFL) e texturas geradas por `scripts/ootde_ui_assets.py`
   (`soh/assets/custom/ootde/ui/`), já incluídas no `soh.otr`. `scripts/otr_add_custom.py` agora também adiciona
   fontes.

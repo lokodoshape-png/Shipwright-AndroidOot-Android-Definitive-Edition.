@@ -162,11 +162,81 @@ static void WritePPM(const Canvas& cv, const std::string& path) {
 
 // ---- Scenes
 
+enum SceneKind { SCENE_MAIN, SCENE_EXTRAS, SCENE_FILES, SCENE_FILE, SCENE_QUEST, SCENE_NAME, SCENE_SPLASH, SCENE_LOADING };
+
 struct Scene {
     const char* name;
-    bool extras;
+    SceneKind kind;
     int selected;
 };
+
+static const char* const kFooter = "OOT D.E. 0.9 · Ship of Harkinian 9.0.2 · © Nintendo";
+
+static TitleMenuItem sMainItems[MAIN_COUNT];
+static TitleMenuItem sExtrasItems[EXTRAS_COUNT];
+static TitleMenuItem sFilesItems[4];
+static TitleMenuItem sFileItems[4];
+static TitleMenuItem sQuestItems[4];
+static KeyCell sKeys[KEY_COUNT];
+static char sKeyLabels[KEY_CHARS][2];
+static char sTitle[64];
+
+// Fills the view as the game does for each screen (texts of DeTitleMenuText.h, made-up save data).
+static void FillView(TitleMenuView& view, SceneKind kind, int selected, bool touch) {
+    view = TitleMenuView();
+    view.screen = (int)kind;
+    view.selected = selected;
+    view.footer = kFooter;
+    view.touchMode = touch;
+    view.showBack = kind != SCENE_MAIN;
+    bool save = false;
+    switch (kind) {
+        case SCENE_EXTRAS:
+            view.items = sExtrasItems;
+            view.count = EXTRAS_COUNT;
+            view.title = Strings::kExtrasTitle;
+            break;
+        case SCENE_FILES:
+            view.items = sFilesItems;
+            view.count = 4;
+            view.title = Strings::kFilesTitle;
+            save = selected < 2;
+            break;
+        case SCENE_FILE:
+            view.items = sFileItems;
+            view.count = 4;
+            snprintf(sTitle, sizeof(sTitle), Strings::kFileLabel, 1, "Link");
+            view.title = sTitle;
+            save = true;
+            break;
+        case SCENE_QUEST:
+            view.items = sQuestItems;
+            view.count = 4;
+            snprintf(sTitle, sizeof(sTitle), Strings::kNewTitle, 3);
+            view.title = sTitle;
+            break;
+        case SCENE_NAME:
+            view.title = Strings::kNameTitle;
+            view.keys = sKeys;
+            view.keyCount = KEY_COUNT;
+            view.keySelected = selected;
+            view.nameText = "Rafael";
+            view.nameMax = 8;
+            view.nameHint = Strings::kNameHint;
+            break;
+        default:
+            view.items = sMainItems;
+            view.count = MAIN_COUNT;
+            save = selected == MAIN_CONTINUE || selected == MAIN_JOURNAL;
+            break;
+    }
+    if (save) {
+        view.showSave = true;
+        snprintf(view.saveTitle, sizeof(view.saveTitle), Strings::kSaveTitle, 1, "Link");
+        view.heartsCapacity = 13;
+        view.health = 13 * 16 - 6;
+    }
+}
 
 int main(int argc, char** argv) {
     if (argc < 4) {
@@ -207,55 +277,83 @@ int main(int argc, char** argv) {
     }
     SetTextureLookup(LookupTex);
 
-    TitleMenuItem mainItems[MAIN_COUNT];
-    const char* mainDetails[MAIN_COUNT] = { Strings::kContinue, nullptr,         Strings::kFileSelect, Strings::kJournal,
+    const char* mainDetails[MAIN_COUNT] = { Strings::kContinue, nullptr,            Strings::kFiles, Strings::kJournal,
                                             Strings::kMods,     Strings::kSettings, Strings::kExtras };
     static char newGame[160];
     snprintf(newGame, sizeof(newGame), Strings::kNewGame, 3);
     mainDetails[MAIN_NEW_GAME] = newGame;
     for (int i = 0; i < MAIN_COUNT; i++) {
-        mainItems[i] = { Strings::kMainLabels[i], mainDetails[i], true };
+        sMainItems[i] = { Strings::kMainLabels[i], mainDetails[i], true };
     }
     static char modsLine[200], versionLine[300];
     snprintf(modsLine, sizeof(modsLine), Strings::kExtrasMods, 2, 3);
     snprintf(versionLine, sizeof(versionLine), Strings::kExtrasVersion, "0.9", "9.0.2");
-    TitleMenuItem extrasItems[EXTRAS_COUNT] = {
-        { Strings::kExtrasLabels[EXTRAS_MODS], modsLine, true },
-        { Strings::kExtrasLabels[EXTRAS_VERSION], versionLine, true },
-        { Strings::kExtrasLabels[EXTRAS_CREDITS], Strings::kExtrasCredits, false },
-        { Strings::kExtrasLabels[EXTRAS_BACK], Strings::kExtrasBack, true },
-    };
+    sExtrasItems[EXTRAS_MODS] = { Strings::kExtrasLabels[EXTRAS_MODS], modsLine, true };
+    sExtrasItems[EXTRAS_VERSION] = { Strings::kExtrasLabels[EXTRAS_VERSION], versionLine, true };
+    sExtrasItems[EXTRAS_CREDITS] = { Strings::kExtrasLabels[EXTRAS_CREDITS], Strings::kExtrasCredits, false };
+    sExtrasItems[EXTRAS_BACK] = { Strings::kExtrasLabels[EXTRAS_BACK], Strings::kExtrasBack, true };
+
+    static char fileLabels[3][64], fileDetails[3][200];
+    snprintf(fileLabels[0], 64, Strings::kFileLabel, 1, "Link");
+    snprintf(fileDetails[0], 200, Strings::kFileInfo, Strings::kQuestNormal, 4);
+    snprintf(fileLabels[1], 64, Strings::kFileLabel, 2, "Zelda");
+    snprintf(fileDetails[1], 200, Strings::kFileInfo, Strings::kQuestMaster, 0);
+    snprintf(fileLabels[2], 64, Strings::kFileEmptyLabel, 3);
+    snprintf(fileDetails[2], 200, "%s", Strings::kFileEmpty);
+    for (int i = 0; i < 3; i++) {
+        sFilesItems[i] = { fileLabels[i], fileDetails[i], true };
+    }
+    sFilesItems[3] = { Strings::kBack, Strings::kBackDetail, true };
+    sFileItems[0] = { Strings::kPlay, Strings::kPlayDetail, true };
+    sFileItems[1] = { Strings::kCopy, Strings::kCopyDetail, true };
+    sFileItems[2] = { Strings::kErase, Strings::kEraseDetail, true };
+    sFileItems[3] = { Strings::kBack, Strings::kBackDetail, true };
+    sQuestItems[0] = { Strings::kQuestNormal, Strings::kQuestNormalDetail, true };
+    sQuestItems[1] = { Strings::kQuestMaster, Strings::kQuestMasterDetail, true };
+    sQuestItems[2] = { Strings::kClassic, Strings::kClassicDetail, true };
+    sQuestItems[3] = { Strings::kBack, Strings::kBackDetail, true };
+    BuildNameKeys(false, sKeys, sKeyLabels);
 
     const Scene scenes[] = {
-        { "menu-principal-continuar", false, MAIN_CONTINUE },
-        { "menu-principal-configuracoes", false, MAIN_SETTINGS },
-        { "menu-extras-versao", true, EXTRAS_VERSION },
+        { "abertura-definitive-edition", SCENE_SPLASH, 0 },
+        { "menu-principal-continuar", SCENE_MAIN, MAIN_CONTINUE },
+        { "menu-principal-configuracoes", SCENE_MAIN, MAIN_SETTINGS },
+        { "menu-extras-versao", SCENE_EXTRAS, EXTRAS_VERSION },
+        { "arquivos-de-jogo", SCENE_FILES, 0 },
+        { "arquivo-opcoes", SCENE_FILE, 0 },
+        { "novo-jogo-aventura", SCENE_QUEST, 0 },
+        { "novo-jogo-nome", SCENE_NAME, 5 },
+        { "carregando", SCENE_LOADING, 0 },
     };
 
     if (video) {
-        // A scripted visit, 30 frames per second: the menu opens, the cursor goes down to Extras, Extras opens,
-        // the cursor goes to Voltar and the main menu comes back.
+        // A scripted visit, 30 frames per second: the opening image, the menu, Arquivos de Jogo, back, Novo Jogo,
+        // the name of the hero and the loading screen.
         struct Step {
             float at;
-            bool extras;
+            SceneKind kind;
             int selected;
             bool press;
         };
         const Step steps[] = {
-            { 0.0f, false, MAIN_CONTINUE, false },  { 3.2f, false, MAIN_NEW_GAME, false },
-            { 3.6f, false, MAIN_FILE_SELECT, false }, { 4.0f, false, MAIN_JOURNAL, false },
-            { 5.0f, false, MAIN_MODS, false },      { 5.4f, false, MAIN_SETTINGS, false },
-            { 5.8f, false, MAIN_EXTRAS, false },    { 7.0f, false, MAIN_EXTRAS, true },
-            { 7.25f, true, EXTRAS_MODS, false },    { 8.6f, true, EXTRAS_VERSION, false },
-            { 10.0f, true, EXTRAS_CREDITS, false }, { 10.4f, true, EXTRAS_BACK, false },
-            { 11.4f, true, EXTRAS_BACK, true },     { 11.65f, false, MAIN_EXTRAS, false },
-            { 13.0f, false, MAIN_EXTRAS, false },
+            { 0.0f, SCENE_SPLASH, 0, false },          { 4.5f, SCENE_MAIN, MAIN_CONTINUE, false },
+            { 7.2f, SCENE_MAIN, MAIN_NEW_GAME, false }, { 7.6f, SCENE_MAIN, MAIN_FILES, false },
+            { 8.6f, SCENE_MAIN, MAIN_FILES, true },    { 8.85f, SCENE_FILES, 0, false },
+            { 10.0f, SCENE_FILES, 1, false },          { 10.6f, SCENE_FILES, 2, false },
+            { 11.4f, SCENE_FILES, 3, false },          { 12.0f, SCENE_FILES, 3, true },
+            { 12.25f, SCENE_MAIN, MAIN_FILES, false }, { 12.9f, SCENE_MAIN, MAIN_NEW_GAME, false },
+            { 13.5f, SCENE_MAIN, MAIN_NEW_GAME, true }, { 13.75f, SCENE_QUEST, 0, false },
+            { 15.0f, SCENE_QUEST, 0, true },           { 15.25f, SCENE_NAME, 0, false },
+            { 16.0f, SCENE_NAME, 11, false },          { 16.5f, SCENE_NAME, 5, false },
+            { 17.0f, SCENE_NAME, KEY_DONE, false },    { 18.0f, SCENE_LOADING, 0, false },
+            { 20.0f, SCENE_LOADING, 0, false },
         };
         const int nSteps = (int)(sizeof(steps) / sizeof(steps[0]));
         const float fps = 30.0f;
         const int frames = (int)(steps[nSteps - 1].at * fps);
         TitleMenuRenderer renderer;
         int fileNo = 0;
+        float menuStart = -1.0f;
         for (int fr = 0; fr < frames; fr++) {
             const float t = fr / fps;
             const Step* st = &steps[0];
@@ -264,25 +362,29 @@ int main(int argc, char** argv) {
                     st = &steps[i];
                 }
             }
-            TitleMenuView view;
-            view.screen = st->extras ? 1 : 0;
-            view.items = st->extras ? extrasItems : mainItems;
-            view.count = st->extras ? (int)EXTRAS_COUNT : (int)MAIN_COUNT;
-            view.title = st->extras ? Strings::kExtrasTitle : nullptr;
-            view.showBack = st->extras;
-            view.footer = "OOT D.E. 0.9 · Ship of Harkinian 9.0.2 · © Nintendo";
-            view.selected = st->selected;
-            view.pressed = (st->press && t - st->at < 0.17f) ? st->selected : -1;
-            if (!st->extras && (st->selected == MAIN_CONTINUE || st->selected == MAIN_JOURNAL)) {
-                view.showSave = true;
-                snprintf(view.saveTitle, sizeof(view.saveTitle), Strings::kSaveTitle, 1, "Link");
-                view.heartsCapacity = 13;
-                view.health = 13 * 16 - 6;
-            }
             io.DeltaTime = 1.0f / fps;
             ImGui::NewFrame();
-            renderer.Draw(ImGui::GetBackgroundDrawList(), ImVec2(0, 0), io.DisplaySize, view, io.DeltaTime, t,
-                          PointerState());
+            ImDrawList* dl = ImGui::GetBackgroundDrawList();
+            if (st->kind == SCENE_SPLASH) {
+                // As in the game: 1.5 s in, then out in the last second.
+                const float alpha = ImMin(1.0f, ImMin(t / 1.5f, (steps[1].at - t) / 1.0f));
+                renderer.DrawSplash(dl, ImVec2(0, 0), io.DisplaySize, io.DeltaTime, t, ImMax(0.0f, alpha));
+            } else {
+                if (menuStart < 0.0f) {
+                    menuStart = t;
+                    renderer.Reset();
+                }
+                TitleMenuView view;
+                const SceneKind kind = st->kind == SCENE_LOADING ? SCENE_NAME : st->kind;
+                FillView(view, kind, st->kind == SCENE_LOADING ? (int)KEY_DONE : st->selected, false);
+                view.pressed = (st->press && t - st->at < 0.17f) ? st->selected : -1;
+                view.alpha = ImMin(1.0f, (t - menuStart) / 0.4f);
+                renderer.Draw(dl, ImVec2(0, 0), io.DisplaySize, view, io.DeltaTime, t - menuStart, PointerState());
+                if (st->kind == SCENE_LOADING) {
+                    renderer.DrawLoading(dl, ImVec2(0, 0), io.DisplaySize, t, ImMin(1.0f, (t - st->at) / 0.3f),
+                                         Strings::kCreating);
+                }
+            }
             ImGui::Render();
             Canvas cv{ W, H, std::vector<float>((size_t)W * H * 3, 0.0f) };
             Render(cv, ImGui::GetDrawData());
@@ -298,28 +400,30 @@ int main(int argc, char** argv) {
     for (const Scene& sc : scenes) {
         TitleMenuRenderer renderer;
         TitleMenuView view;
-        view.items = sc.extras ? extrasItems : mainItems;
-        view.count = sc.extras ? (int)EXTRAS_COUNT : (int)MAIN_COUNT;
-        view.title = sc.extras ? Strings::kExtrasTitle : nullptr;
-        view.showBack = sc.extras;
-        view.footer = "OOT D.E. 0.9 · Ship of Harkinian 9.0.2 · © Nintendo";
-        if (!sc.extras && (sc.selected == MAIN_CONTINUE || sc.selected == MAIN_JOURNAL)) {
-            view.showSave = true;
-            snprintf(view.saveTitle, sizeof(view.saveTitle), Strings::kSaveTitle, 1, "Link");
-            view.heartsCapacity = 13;
-            view.health = 13 * 16 - 6;
-        }
+        // The screens a phone shows are drawn with the touch hints.
+        FillView(view, sc.kind == SCENE_LOADING || sc.kind == SCENE_SPLASH ? SCENE_MAIN : sc.kind, sc.selected,
+                 sc.kind == SCENE_FILES || sc.kind == SCENE_NAME);
+        const int target = view.selected;
         const int frames = 150;
         for (int fr = 0; fr < frames; fr++) {
             const float t = fr / 60.0f;
             io.DeltaTime = 1.0f / 60.0f;
             ImGui::NewFrame();
             ImDrawList* dl = ImGui::GetBackgroundDrawList();
-            view.selected = (fr < 40) ? 0 : sc.selected; // let Navi fly from the first button
-            view.alpha = ImMin(1.0f, t / 0.4f);
-            view.slide = ImMax(0.0f, 1.0f - t / 0.35f);
-            view.slide = view.slide * view.slide;
-            renderer.Draw(dl, ImVec2(0, 0), io.DisplaySize, view, io.DeltaTime, t, PointerState());
+            if (sc.kind == SCENE_SPLASH) {
+                renderer.DrawSplash(dl, ImVec2(0, 0), io.DisplaySize, io.DeltaTime, t, ImMin(1.0f, t / 1.5f));
+            } else {
+                if (view.keys == nullptr) {
+                    view.selected = (fr < 40) ? 0 : target; // let Navi fly from the first button
+                }
+                view.alpha = ImMin(1.0f, t / 0.4f);
+                view.slide = ImMax(0.0f, 1.0f - t / 0.35f);
+                view.slide = view.slide * view.slide;
+                renderer.Draw(dl, ImVec2(0, 0), io.DisplaySize, view, io.DeltaTime, t, PointerState());
+                if (sc.kind == SCENE_LOADING) {
+                    renderer.DrawLoading(dl, ImVec2(0, 0), io.DisplaySize, t, 1.0f, Strings::kLoading);
+                }
+            }
             ImGui::Render();
             if (fr == frames - 1) {
                 Canvas cv{ W, H, std::vector<float>((size_t)W * H * 3, 0.0f) };
