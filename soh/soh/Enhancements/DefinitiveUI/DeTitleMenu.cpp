@@ -150,6 +150,7 @@ static Screen sScreen = SCREEN_MAIN;
 static int sCursor[2] = { 0, 0 };
 static int sPressed = -1;
 static int sPressTimer = 0;
+static int sOpenSfxTimer = -1; // frames until the sound of the panel sliding in (opening animation)
 static int sPendingTouch = -1;    // item tapped in the view, handled at the next update
 static int sInputCooldown = 0;    // frames to ignore the controller (after the port menu closes)
 static int sHoldDir = 0;
@@ -309,7 +310,7 @@ static bool Activate(int item) {
         return false;
     }
     if (!sItems[item].enabled) {
-        PlaySfx(NA_SE_SY_ERROR);
+        PlaySfx(NA_SE_SY_FSEL_ERROR);
         return false;
     }
     sPressed = item;
@@ -333,15 +334,15 @@ static bool Activate(int item) {
             case MAIN_FILE_SELECT:
                 return true;
             case MAIN_MODS:
-                PlaySfx(NA_SE_SY_DECIDE);
+                PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                 OpenPortMenu("Mods");
                 return false;
             case MAIN_SETTINGS:
-                PlaySfx(NA_SE_SY_DECIDE);
+                PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                 OpenPortMenu("General");
                 return false;
             case MAIN_EXTRAS:
-                PlaySfx(NA_SE_SY_DECIDE);
+                PlaySfx(NA_SE_SY_WIN_OPEN);
                 CountMods();
                 sScreen = SCREEN_EXTRAS;
                 sCursor[SCREEN_EXTRAS] = 0;
@@ -351,15 +352,15 @@ static bool Activate(int item) {
     } else {
         switch (item) {
             case EXTRAS_MODS:
-                PlaySfx(NA_SE_SY_DECIDE);
+                PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                 OpenPortMenu("Mods");
                 return false;
             case EXTRAS_VERSION:
                 // Its text is the card itself.
-                PlaySfx(NA_SE_SY_DECIDE);
+                PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
                 return false;
             case EXTRAS_BACK:
-                PlaySfx(NA_SE_SY_CANCEL);
+                PlaySfx(NA_SE_SY_FSEL_CLOSE);
                 sScreen = SCREEN_MAIN;
                 sPressed = -1;
                 return false;
@@ -372,7 +373,7 @@ static void MoveCursor(int step) {
     const int count = ItemCount();
     int& cursor = sCursor[sScreen];
     cursor = (cursor + step + count) % count;
-    PlaySfx(NA_SE_SY_CURSOR);
+    PlaySfx(NA_SE_SY_FSEL_CURSOR);
 }
 
 static void OnLoadGame(int32_t fileNum) {
@@ -478,7 +479,7 @@ void TitleMenuWindow::Draw() {
             sPendingTouch = input.activated;
         } else if (input.hovered >= 0 && input.hovered != sCursor[sScreen]) {
             sCursor[sScreen] = input.hovered;
-            PlaySfx(NA_SE_SY_CURSOR);
+            PlaySfx(NA_SE_SY_FSEL_CURSOR);
         }
     }
 }
@@ -511,6 +512,7 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
     if (!sActive) {
         sActive = true;
         sClosing = false;
+        sOpenSfxTimer = 9; // the game runs at 20 frames per second: with the panel (0.45 s)
         sScreen = SCREEN_MAIN;
         // Start on Continuar when there is a file, otherwise on Novo Jogo.
         sCursor[SCREEN_MAIN] = ContinueFile() >= 0 ? MAIN_CONTINUE : MAIN_NEW_GAME;
@@ -523,6 +525,9 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
     }
     if (sClosing) {
         return false;
+    }
+    if (sOpenSfxTimer >= 0 && sOpenSfxTimer-- == 0) {
+        PlaySfx(NA_SE_SY_WIN_OPEN);
     }
     if (sPressTimer > 0) {
         sPressTimer--;
@@ -583,7 +588,7 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
             return true;
         }
     } else if (CHECK_BTN_ALL(input->press.button, BTN_B) && sScreen == SCREEN_EXTRAS) {
-        PlaySfx(NA_SE_SY_CANCEL);
+        PlaySfx(NA_SE_SY_FSEL_CLOSE);
         sScreen = SCREEN_MAIN;
     }
     return false;

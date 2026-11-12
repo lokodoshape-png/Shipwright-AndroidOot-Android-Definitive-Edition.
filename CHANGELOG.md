@@ -26,7 +26,9 @@ Primeira etapa da nova interface (branch `feature/ootde-menu-definitivo`, ainda 
   deslizando um após o outro), raios de sol e vaga-lumes sobre a paisagem, luz passando pelo logo e pelo botão
   escolhido, estrelas piscando no logo, brilhos correndo pela moldura, botão escolhido maior e flutuando, faíscas e
   salto ao confirmar, troca de telas deslizando para o lado certo, descrição e corações entrando, último coração
-  batendo e Navi voando do cenário até o cursor. Prévia em vídeo: `scripts/ootde_ui_preview/build.sh ... video`.
+  batendo e Navi voando do cenário até o cursor.
+- **Sons do jogo no menu**: cursor, confirmar, erro (opção indisponível) e voltar com os sons da seleção de
+  arquivos; som de janela abrindo quando o painel entra e ao abrir Extras. Prévia em vídeo: `scripts/ootde_ui_preview/build.sh ... video`.
 - **Todos os botões fazem a função real**, pelo caminho original do jogo:
   - *Continuar* carrega o último arquivo jogado (passa pela seleção de arquivos e confirma sozinho).
   - *Novo Jogo* abre a criação de arquivo no primeiro espaço livre (escolha de missão, nome etc. originais).
