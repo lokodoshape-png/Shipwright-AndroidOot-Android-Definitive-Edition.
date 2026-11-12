@@ -67,6 +67,8 @@ public class MainActivity extends SDLActivity{
     // returns false and SDL_main ends instead of waiting forever. SDLActivity.onDestroy() joins the SDL thread, so a
     // wait that never returns would freeze the app.
     private static boolean sSetupAbandoned = false;
+    // True while setupFilesInBackground() runs.
+    private static boolean sSetupWorkerRunning = false;
     // The activity on screen, for the background preparation to report to.
     private static WeakReference<MainActivity> sCurrentActivity = new WeakReference<>(null);
 
@@ -90,7 +92,10 @@ public class MainActivity extends SDLActivity{
             // A new activity gets a new SDL thread, which must wait again. A failed or abandoned preparation of an
             // earlier activity of this process starts over.
             sSetupAbandoned = false;
-            if (sSetupState == SetupState.FAILED) {
+            // FAILED, or PREPARING left by an activity closed before its preparation started (the confirmation
+            // dialog was on screen): start over. A preparation still copying files reports to this activity.
+            if (sSetupState == SetupState.FAILED
+                    || (sSetupState == SetupState.PREPARING && !sSetupWorkerRunning)) {
                 sSetupState = SetupState.PENDING;
             }
         }
@@ -328,33 +333,80 @@ public class MainActivity extends SDLActivity{
         File assetsFolder = new File(targetRootFolder, "assets");
         File sohOtrFile = new File(targetRootFolder, "soh.otr");
 
-        boolean isMissingAssets = !assetsFolder.exists() || assetsFolder.listFiles() == null || assetsFolder.listFiles().length == 0;
-        boolean isMissingSohOtr = !sohOtrFile.exists();
+        File[] assetFiles = assetsFolder.listFiles();
+        boolean isMissingAssets = !assetsFolder.isDirectory() || assetFiles == null || assetFiles.length == 0;
+        String otrProblem = SafeFiles.checkOtrFile(sohOtrFile, -1);
+        boolean isMissingSohOtr = otrProblem != null;
+        // Set while a preparation runs: if the app was closed in the middle of it, some files may be incomplete, so
+        // everything is copied again.
+        boolean interrupted = preferences.getBoolean(PREF_SETUP_IN_PROGRESS, false);
+        if (interrupted) {
+            refreshPortFiles = true;
+        }
+        if (isMissingSohOtr && sohOtrFile.exists()) {
+            Log.w("OOTDE_SETUP", "soh.otr is not valid (" + otrProblem + "), it will be copied again");
+        }
 
         if (!targetRootFolder.exists() || isMissingAssets || isMissingSohOtr || refreshPortFiles) {
-            String message = refreshPortFiles && targetRootFolder.exists()
-                    ? "O aplicativo foi atualizado. Os arquivos do jogo serão atualizados (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar."
-                    : "Alguns arquivos necessários estão faltando. O aplicativo vai criá-los (cerca de 1 minuto). Toque em OK para começar.";
+            String message;
+            if (interrupted) {
+                message = "A preparação anterior não terminou. Os arquivos do jogo serão copiados de novo (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar.";
+            } else if (refreshPortFiles && targetRootFolder.exists()) {
+                message = "O aplicativo foi atualizado. Os arquivos do jogo serão atualizados (cerca de 1 minuto). Seus saves, mods e o oot.otr serão mantidos. Toque em OK para começar.";
+            } else {
+                message = "Alguns arquivos necessários estão faltando. O aplicativo vai criá-los (cerca de 1 minuto). Toque em OK para começar.";
+            }
             new AlertDialog.Builder(this)
                     .setTitle("Preparação necessária")
                     .setMessage(message)
                     .setCancelable(false)
                     .setPositiveButton("OK", (dialog, which) -> {
-                        Executors.newSingleThreadExecutor().execute(() -> {
-                            runOnUiThread(() -> { setupProgressDialog = new ProgressDialog(this); setupProgressDialog.setTitle("Preparando Ocarina of Time"); setupProgressDialog.setMessage("Criando arquivos necessários..."); setupProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL); setupProgressDialog.setMax(100); setupProgressDialog.setProgress(0); setupProgressDialog.setCancelable(false); setupProgressDialog.show(); });
-                            setupFilesInBackground(targetRootFolder);
-                        });
+                        synchronized (sSetupLock) {
+                            sSetupWorkerRunning = true;
+                        }
+                        showSetupProgressDialog();
+                        Executors.newSingleThreadExecutor().execute(() -> setupFilesInBackground(targetRootFolder));
                     })
                     .show();
         } else {
-            // No setup needed, still need to count down
+            // Every file is in place and soh.otr was checked: the game can start.
             setSetupState(SetupState.SUCCESS);
         }
     }
 
+    private static final String PREF_SETUP_IN_PROGRESS = "setupInProgress";
+
+    private void showSetupProgressDialog() {
+        if (isFinishing()) {
+            return;
+        }
+        setupProgressDialog = new ProgressDialog(this);
+        setupProgressDialog.setTitle("Preparando Ocarina of Time");
+        setupProgressDialog.setMessage("Criando arquivos necessários...");
+        setupProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        setupProgressDialog.setMax(100);
+        setupProgressDialog.setProgress(0);
+        setupProgressDialog.setCancelable(false);
+        setupProgressDialog.show();
+    }
+
+    // The checks after the copy: the game starts only when they all pass.
+    private static String verifyPreparedFiles(File root) {
+        File assets = new File(root, "assets");
+        File[] assetFiles = assets.listFiles();
+        if (!assets.isDirectory() || assetFiles == null || assetFiles.length == 0) {
+            return "a pasta assets está vazia";
+        }
+        String otrProblem = SafeFiles.checkOtrFile(new File(root, "soh.otr"), -1);
+        if (otrProblem != null) {
+            return "soh.otr: " + otrProblem;
+        }
+        return null;
+    }
 
     private void setupFilesInBackground(File targetRootFolder) {
-        boolean setupOk = true;
+        // Recorded at once (commit), so a preparation cut by closing the app is redone on the next start.
+        preferences.edit().putBoolean(PREF_SETUP_IN_PROGRESS, true).commit();
 
         File sourceOldRoot = getExternalFilesDir(null);
         File sourceSavesDir = new File(sourceOldRoot, "Save"); // how to tell if there's anything to migrate
@@ -392,17 +444,15 @@ public class MainActivity extends SDLActivity{
 
         updateSetupProgress(5, "Criando pasta principal...");
         // Ensure root folder exists
-        if (!targetRootFolder.exists()) {
-            if (!targetRootFolder.mkdirs()) {
-                Log.e("setupFiles", "Failed to create root folder");
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Não foi possível criar a pasta " + DATA_FOLDER, Toast.LENGTH_LONG).show();
-                    if (setupProgressDialog != null && setupProgressDialog.isShowing()) setupProgressDialog.dismiss();
-                });
-                setSetupState(SetupState.SUCCESS);
-                return;
-            }
+        if (!targetRootFolder.isDirectory() && !targetRootFolder.mkdirs()) {
+            Log.e("setupFiles", "Failed to create root folder");
+            finishSetup("Não foi possível criar a pasta " + targetRootFolder.getAbsolutePath()
+                    + ". Verifique se há espaço livre e se a permissão de acesso aos arquivos está ativa.");
+            return;
         }
+        // Leftovers of an import or a copy cut in the middle; never valid files.
+        deleteQuietly(new File(targetRootFolder, "soh.otr.tmp"));
+        deleteQuietly(new File(targetRootFolder, "OOT.z64.tmp"));
 
         // From 0.5 on the app has its own folder. The first time, saves, mods, oot.otr and settings are copied from
         // the old SOH folder, which stays as it is (the original Ship of Harkinian app may still use it).
@@ -439,22 +489,27 @@ public class MainActivity extends SDLActivity{
                 preferences.edit().putBoolean("copiedFromSohFolder", true).apply();
                 runOnUiThread(() -> Toast.makeText(this, "Saves, mods e oot.otr copiados para a pasta " + DATA_FOLDER,
                         Toast.LENGTH_LONG).show());
+            } else {
+                // Not needed to start the game; it is tried again on the next preparation.
+                runOnUiThread(() -> Toast.makeText(this, "Alguns arquivos da pasta SOH não foram copiados. "
+                        + "Eles serão copiados na próxima vez.", Toast.LENGTH_LONG).show());
             }
         }
 
         updateSetupProgress(15, "Preparando pastas do jogo...");
         // Always ensure mods folder exists
         File targetModsDir = new File(targetRootFolder, "mods");
-        if (!targetModsDir.exists()) {
-            targetModsDir.mkdirs();
+        if (!targetModsDir.isDirectory() && !targetModsDir.mkdirs()) {
+            // The game runs without mods; installing one tries to create the folder again.
+            Log.w("setupFiles", "Could not create the mods folder");
         }
 
         updateSetupProgress(25, "Copiando recursos do jogo...");
         // Copy assets/ from internal
         File targetAssetsDir = new File(targetRootFolder, "assets");
         try {
-            if (!targetAssetsDir.exists()) {
-                targetAssetsDir.mkdirs();
+            if (!targetAssetsDir.isDirectory() && !targetAssetsDir.mkdirs()) {
+                throw new IOException("Não foi possível criar a pasta " + targetAssetsDir.getAbsolutePath());
             }
             AssetCopyUtil.copyAssetsToExternal(this, "assets", targetAssetsDir.getAbsolutePath(), refreshPortFiles,
                     (copied, total, currentFile) -> {
@@ -465,23 +520,23 @@ public class MainActivity extends SDLActivity{
                     });
             updateSetupProgress(80, "Recursos copiados. Preparando dados principais...");
         } catch (IOException e) {
-            setupOk = false;
             Log.e("setupFiles", "Failed to copy assets", e);
-            runOnUiThread(() -> Toast.makeText(this, "Erro ao copiar os recursos do jogo", Toast.LENGTH_LONG).show());
+            finishSetup("Erro ao copiar os recursos do jogo: " + e.getMessage());
+            return;
         }
 
-        // Copy soh.otr from internal assets. It is written to a temporary file first, so an interrupted
-        // copy never leaves a truncated soh.otr behind.
+        // Copy soh.otr from internal assets. It is written to a temporary file first, checked, and only then put in
+        // place of the old one, so an interrupted copy never leaves a truncated soh.otr behind.
         File targetOtrFile = new File(targetRootFolder, "soh.otr");
         File tempOtrFile = new File(targetRootFolder, "soh.otr.tmp");
         try {
+            long copiedOtrBytes = 0;
             try (InputStream in = getAssets().open("soh.otr");
-                 OutputStream out = new FileOutputStream(tempOtrFile)) {
+                 FileOutputStream out = new FileOutputStream(tempOtrFile)) {
 
                 byte[] buffer = new byte[256 * 1024];
                 int read;
                 long totalOtrBytes = in.available();
-                long copiedOtrBytes = 0;
                 while ((read = in.read(buffer)) != -1) {
                     out.write(buffer, 0, read);
                     copiedOtrBytes += read;
@@ -490,37 +545,90 @@ public class MainActivity extends SDLActivity{
                         updateSetupProgress(percent, "Preparando dados principais: " + percent + "%");
                     }
                 }
+                out.flush();
+                SafeFiles.syncToDisk(out);
             }
-            if (targetOtrFile.exists() && !targetOtrFile.delete()) {
-                throw new IOException("Não foi possível substituir " + targetOtrFile.getAbsolutePath());
+            String problem = SafeFiles.checkOtrFile(tempOtrFile, copiedOtrBytes);
+            if (problem != null) {
+                throw new IOException("a cópia do soh.otr não ficou completa (" + problem + ")");
             }
-            if (!tempOtrFile.renameTo(targetOtrFile)) {
-                throw new IOException("Não foi possível gravar " + targetOtrFile.getAbsolutePath());
-            }
+            SafeFiles.replaceFileSafely(tempOtrFile, targetOtrFile);
             updateSetupProgress(95, "Finalizando preparação...");
         } catch (IOException e) {
-            setupOk = false;
             tempOtrFile.delete();
             Log.e("setupFiles", "Failed to copy soh.otr", e);
-            runOnUiThread(() -> Toast.makeText(this, "Erro ao copiar o soh.otr", Toast.LENGTH_LONG).show());
+            finishSetup("Erro ao copiar o soh.otr: " + e.getMessage());
+            return;
         }
 
-        if (setupOk) {
-            // Only now is this version's set of files complete; a failed copy is retried on the next start.
-            preferences.edit().putInt("appVersion", BuildConfig.VERSION_CODE).apply();
-            refreshPortFiles = false;
+        String problem = verifyPreparedFiles(targetRootFolder);
+        if (problem != null) {
+            Log.e("setupFiles", "Setup check failed: " + problem);
+            finishSetup("A verificação dos arquivos falhou: " + problem);
+            return;
         }
-        updateSetupProgress(100, "Configuração concluída.");
-        runOnUiThread(() -> {
+        finishSetup(null);
+    }
+
+    private static void deleteQuietly(File file) {
+        if (file.exists() && !file.delete()) {
+            Log.w("OOTDE_FILES", "Could not delete " + file);
+        }
+    }
+
+    // End of the preparation, on the background thread. error == null: success, the game may start. Otherwise the
+    // state becomes FAILED and the user is asked to try again; the files are not treated as valid.
+    private void finishSetup(String error) {
+        synchronized (sSetupLock) {
+            sSetupWorkerRunning = false;
+        }
+        if (error == null) {
+            // Only now is this version's set of files complete; a failed copy is retried on the next start.
+            preferences.edit().putInt("appVersion", BuildConfig.VERSION_CODE)
+                    .putBoolean(PREF_SETUP_IN_PROGRESS, false).commit();
+            refreshPortFiles = false;
+            updateSetupProgress(100, "Configuração concluída.");
+        }
+        MainActivity activity = sCurrentActivity.get();
+        MainActivity ui = (activity != null) ? activity : this;
+        ui.runOnUiThread(() -> {
             if (setupProgressDialog != null && setupProgressDialog.isShowing()) {
                 setupProgressDialog.dismiss();
             }
+            setupProgressDialog = null;
+            if (error == null) {
+                setSetupState(SetupState.SUCCESS);
+            } else {
+                setSetupState(SetupState.FAILED);
+                ui.showSetupFailedDialog(error);
+            }
         });
-        setSetupState(SetupState.SUCCESS);
     }
 
-
-
+    private void showSetupFailedDialog(String error) {
+        if (isFinishing()) {
+            abandonSetup();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Falha na preparação")
+                .setMessage("Os arquivos do jogo não foram preparados, então o jogo não foi iniciado.\n\n" + error
+                        + "\n\nSeus saves, mods e o oot.otr não foram apagados.")
+                .setCancelable(false)
+                .setPositiveButton("Tentar novamente", (dialog, which) -> {
+                    synchronized (sSetupLock) {
+                        if (sSetupState == SetupState.FAILED) {
+                            sSetupState = SetupState.PENDING;
+                        }
+                    }
+                    startSetupFlow();
+                })
+                .setNegativeButton("Sair", (dialog, which) -> {
+                    abandonSetup();
+                    finish();
+                })
+                .show();
+    }
 
     private void updateSetupProgress(int progress, String message) { runOnUiThread(() -> { if (setupProgressDialog != null && setupProgressDialog.isShowing()) { setupProgressDialog.setMessage(message); setupProgressDialog.setProgress(progress); } }); }
 
