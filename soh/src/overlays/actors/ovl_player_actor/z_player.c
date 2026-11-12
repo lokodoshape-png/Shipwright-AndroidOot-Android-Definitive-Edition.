@@ -12752,6 +12752,8 @@ void Player_Destroy(Actor* thisx, PlayState* play) {
 }
 
 // first person manipulate player actor
+void DefinitiveExpansion_FilterGyro(Player* player, s32 withoutWeapon, f32* gyroX, f32* gyroY);
+
 s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
     s32 temp1 = 0;
     s16 temp2 = 0;
@@ -12768,6 +12770,12 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
 
     GameInteractor_ExecuteOnPlayerFirstPersonControl(this);
 
+    // OOT D.E.: the player's motion aiming choices (which items, axes, inversion, smoothing) are applied to the gyro
+    // values before they are used below (soh/Enhancements/DefinitiveExpansion/DEControls.cpp).
+    f32 gyroX = sControlInput->cur.gyro_x;
+    f32 gyroY = sControlInput->cur.gyro_y;
+    DefinitiveExpansion_FilterGyro(this, !func_8002DD78(this) && !func_808334B4(this) && (arg2 == 0), &gyroX, &gyroY);
+
     if (!func_8002DD78(this) && !func_808334B4(this) && (arg2 == 0)) { // First person without weapon
         // Y Axis
         if (!CVarGetInteger(CVAR_SETTING("MoveInFirstPerson"), 0)) {
@@ -12776,8 +12784,8 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
         if (CVarGetInteger(CVAR_SETTING("Controls.RightStickAim"), 0)) {
             temp2 += sControlInput->rel.right_stick_y * 240.0f * invertYAxisMulti * yAxisMulti;
         }
-        if (fabsf(sControlInput->cur.gyro_x) > 0.01f) {
-            temp2 += (-sControlInput->cur.gyro_x) * 750.0f;
+        if (fabsf(gyroX) > 0.01f) {
+            temp2 += (-gyroX) * 750.0f;
         }
         if (CVarGetInteger(CVAR_SETTING("DisableFirstPersonAutoCenterView"), 0)) {
             this->actor.focus.rot.x += temp2 * 0.1f;
@@ -12794,8 +12802,8 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
         if (CVarGetInteger(CVAR_SETTING("Controls.RightStickAim"), 0)) {
             temp2 += sControlInput->rel.right_stick_x * -16.0f * invertXAxisMulti * xAxisMulti;
         }
-        if (fabsf(sControlInput->cur.gyro_y) > 0.01f) {
-            temp2 += (sControlInput->cur.gyro_y) * 750.0f * invertXAxisMulti;
+        if (fabsf(gyroY) > 0.01f) {
+            temp2 += (gyroY) * 750.0f * invertXAxisMulti;
         }
         temp2 = CLAMP(temp2, -3000, 3000);
         this->actor.focus.rot.y += temp2;
@@ -12813,8 +12821,8 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
                      (s32)((1.0f - Math_CosS(sControlInput->rel.right_stick_y * 200)) * 1500.0f) * invertYAxisMulti *
                      yAxisMulti;
         }
-        if (fabsf(sControlInput->cur.gyro_x) > 0.01f) {
-            temp3 += (-sControlInput->cur.gyro_x) * 750.0f;
+        if (fabsf(gyroX) > 0.01f) {
+            temp3 += (-gyroX) * 750.0f;
         }
         this->actor.focus.rot.x += temp3;
         this->actor.focus.rot.x = CLAMP(this->actor.focus.rot.x, -temp1, temp1);
@@ -12833,8 +12841,8 @@ s16 func_8084ABD8(PlayState* play, Player* this, s32 arg2, s16 arg3) {
                      (s32)((1.0f - Math_CosS(sControlInput->rel.right_stick_x * 200)) * -1500.0f) * invertXAxisMulti *
                      xAxisMulti;
         }
-        if (fabsf(sControlInput->cur.gyro_y) > 0.01f) {
-            temp3 += (sControlInput->cur.gyro_y) * 750.0f * invertXAxisMulti;
+        if (fabsf(gyroY) > 0.01f) {
+            temp3 += (gyroY) * 750.0f * invertXAxisMulti;
         }
         temp2 += temp3;
         this->actor.focus.rot.y = CLAMP(temp2, -temp1, temp1) + this->actor.shape.rot.y;

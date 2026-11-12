@@ -48,6 +48,7 @@ static void InitOnce() {
         sConfig->RegisterSetting(kAutoBackupKeep, 10, "Quantos backups automáticos manter por slot.");
         sConfig->RegisterSetting(kBackupBeforeDelete, true,
                                  "Guarda uma cópia antes de apagar um save ou copiar outro por cima.");
+        RegisterControlSettings(*sConfig);
         sLoadResult = sConfig->Load(DataDir() / "config.json");
         if (sLoadResult == DE::Config::LoadResult::RecoveredBroken) {
             SPDLOG_WARN("OOT D.E.: ootde/config.json estava corrompido; foi guardado à parte e os padrões foram usados");
@@ -330,9 +331,9 @@ struct SystemStatus {
 static const SystemStatus kSystems[] = {
     { "Gerenciador de saves", "Disponível (Definitive > Saves)" },
     { "Configurações Definitive", "Disponível (esta página)" },
-    { "Touch & Motion", "Fase 2. O giroscópio do celular já funciona na mira em primeira pessoa: Configurações > "
-                        "Controles > Configurar controle > Giroscópio" },
-    { "HUD Editor", "Fase 2. Posições do HUD já existem em Aprimoramentos > Editor de personalização" },
+    { "Touch & Motion", "Disponível (Definitive > Touch & Motion)" },
+    { "HUD Editor", "Disponível (Definitive > HUD): perfis, posição e visibilidade. Tamanho e transparência por "
+                    "elemento ainda não" },
     { "3D Museum", "Fase 3" },
     { "Link Customization", "Fase 3. Cores de túnica já existem no Editor de personalização" },
     { "Hyrule Explorer", "Fase 4" },

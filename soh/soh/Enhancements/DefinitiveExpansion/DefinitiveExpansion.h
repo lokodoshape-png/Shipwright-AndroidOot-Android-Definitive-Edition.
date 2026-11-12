@@ -23,6 +23,11 @@ void BeforeSlotCopiedOver(int fileNum);
 // Menu pages (port menu > Definitive).
 void DrawSaveManager();
 void DrawFeatures();
+void DrawTouchAndMotion();
+void DrawHudEditor();
+
+// Settings of each phase are registered before the settings file is read.
+void RegisterControlSettings(DE::Config& config);
 
 } // namespace DefinitiveExpansion
 #endif

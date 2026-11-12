@@ -12,7 +12,7 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
-## [0.9.1-expansao] — Definitive Expansion, Fase 1 (versão de teste)
+## [0.9.1-expansao] — Definitive Expansion, Fases 1 e 2 (versão de teste)
 
 Build de teste da branch `feature/ootde-definitive-expansion`. O número é provisório, só para o APK instalar por
 cima das builds de teste anteriores; a versão oficial é definida quando a expansão entrar na `main`.
@@ -25,6 +25,12 @@ cima das builds de teste anteriores; a versão oficial é definida quando a expa
   de arquivos também guarda uma cópia antes.
 - **Configurações Definitive** (Definitive > Recursos): arquivo próprio e versionado (`OOT-DE/ootde/config.json`),
   separado dos saves; perfis e botão de restaurar padrões.
+- **Touch 2.0** (Definitive > Touch & Motion): editor dos controles de toque. Arraste para mover, mude o tamanho
+  de cada controle, a distância entre os botões e a transparência; 3 perfis e botão para voltar ao padrão.
+- **Mira por movimento**: ativar, sensibilidade, calibrar, suavização, eixos e inversão, e escolha dos itens que
+  usam o giroscópio. O analógico continua funcionando junto.
+- **HUD** (Definitive > HUD): perfis Clássico, Minimalista, Definitive e Personalizado; posição e visibilidade de
+  cada elemento. Tamanho e transparência por elemento ainda não.
 - Formato dos saves inalterado. Backups e exportações ficam em `OOT-DE/ootde/`.
 
 Pendências: os outros sistemas da expansão (Fases 2 a 9). Plano e auditoria em

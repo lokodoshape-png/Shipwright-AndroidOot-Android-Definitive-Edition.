@@ -10,3 +10,8 @@ javac -encoding UTF-8 -d "$OUT" "$ROOT/Android/app/src/main/java/com/dishii/soh/
 java -cp "$OUT" com.dishii.soh.SafeFilesTest --make-rom "$OUT/ref.z64"
 REF=$(python3 "$ROOT/scripts/tests/crc32c_reference.py" "$OUT/ref.z64")
 java -cp "$OUT" com.dishii.soh.SafeFilesTest "$REF" "$ROOT/Android/app/src/main/assets/soh.otr"
+# Touch 2.0: saved layouts of the on-screen controls.
+javac -encoding UTF-8 -d "$OUT" "$ROOT/Android/app/src/main/java/com/dishii/soh/SafeFiles.java" \
+    "$ROOT/Android/app/src/main/java/com/dishii/soh/TouchLayoutStore.java" \
+    "$ROOT/scripts/tests/java/TouchLayoutStoreTest.java"
+java -cp "$OUT" com.dishii.soh.TouchLayoutStoreTest

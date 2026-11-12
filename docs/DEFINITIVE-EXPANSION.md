@@ -83,6 +83,47 @@ Modificados: `soh/soh/SaveManager.cpp`, `soh/soh/SohGui/SohMenu.{cpp,h}`, `CHANG
 ### Ainda não testado
 - No aparelho: as telas novas, backup automático durante o jogo, restaurar e importar. Precisa do APK instalado.
 
+## Fase 2 — Touch 2.0, giroscópio e HUD (feita; falta testar no aparelho)
+
+A expansão foi trazida para cima da 0.9 (`main` em `ebfd06e`), que já inclui as correções da 0.8.
+
+### Touch 2.0
+- Menu do jogo > Definitive > Touch & Motion > "Editar controles de toque" abre o editor sobre o jogo.
+- Arrastar move cada controle (analógico, botões C, A, B, X, Y, L, R, Z, Start, Menu); tamanho individual (50% a
+  250%); distância entre A/B/X/Y; transparência; 3 perfis; "Padrão" volta ao layout original; "Cancelar" desfaz.
+- Os controles continuam sendo os mesmos botões do overlay, com os mesmos listeners e o mesmo controle virtual do
+  SDL: o layout só aplica translação, escala e alfa nas views. Controles Bluetooth e USB não são afetados.
+- Layouts em `OOT-DE/ootde/touch_layouts.properties` (versionado; posições em fração da tela, então valem em
+  qualquer resolução; arquivo corrompido é guardado à parte). Reaplicado quando a tela muda de tamanho.
+- Código: `TouchLayoutStore.java` (dados, testado no computador) e `TouchLayoutEditor.java` (views).
+- Orientação: o app é fixo em paisagem (`screenOrientation="landscape"`); o layout se adapta ao tamanho da tela,
+  mas não há modo retrato.
+
+### Giroscópio
+- O caminho de entrada é o que já existia (`SDLGyroMapping` do libultraship, sensor do aparelho, somado à mira em
+  `z_player.c`). Entre os dois entra `DefinitiveExpansion_FilterGyro` (`DEControls.cpp`).
+- Opções: ativar/desativar, sensibilidade, calibrar, suavização (0 a 90%), ligar e inverter cada eixo, e em quais
+  itens usar (estilingue, arco, gancho, bumerangue, olhar em primeira pessoa). O analógico continua valendo junto.
+
+### HUD
+- Definitive > HUD: perfis Clássico, Minimalista, Definitive e Personalizado (salva o HUD atual), e por elemento:
+  visível, tipo de posição, X/Y e margens. Escreve os mesmos CVars do Editor de personalização do SoH.
+- **Parcial:** tamanho e transparência por elemento não foram feitos; o HUD original não tem essas opções (o
+  controle de escala do SoH está desativado no código por estar incompleto).
+
+### Arquivos
+Novos: `Android/.../TouchLayoutStore.java`, `Android/.../TouchLayoutEditor.java`,
+`soh/soh/Enhancements/DefinitiveExpansion/DEControls.cpp`, `scripts/tests/java/TouchLayoutStoreTest.java`.
+Modificados: `MainActivity.java` (cria o editor, mantém os controles visíveis ao editar), `z_player.c` (filtro do
+giroscópio), `SohMenuDefinitive.cpp`, `DefinitiveExpansion.{h,cpp}`, `scripts/tests/run_java_tests.sh`.
+
+### Testes feitos
+- `scripts/tests/run_java_tests.sh`: testes do `TouchLayoutStore` (salvar, reabrir, limites, arquivo corrompido,
+  arquivo de versão mais nova), todos passando.
+- Checagem de sintaxe dos arquivos C++ novos contra os headers do libultraship.
+- Não testado no computador: `TouchLayoutEditor.java` (precisa do SDK Android; é compilado no GitHub Actions) e o
+  comportamento no aparelho.
+
 ## Matriz de validação (preenchida a cada fase)
 
 | Área | Item | Estado |
@@ -92,14 +133,13 @@ Modificados: `soh/soh/SaveManager.cpp`, `soh/soh/SohGui/SohMenu.{cpp,h}`, `CHANG
 | Saves | Backup, restauração, importação, exportação | Testes automáticos OK; aparelho a testar |
 | Saves | Recuperação após interrupção | Testes automáticos OK (origem inválida, sem arquivo temporário sobrando) |
 | Android | Inicialização | A testar no aparelho |
-| Android | Touch, giroscópio, Bluetooth, orientação | Fase 2 |
+| Android | Touch (editor de layout), giroscópio, Bluetooth | A testar no aparelho |
+| Android | Mudança de orientação | Não se aplica: app fixo em paisagem |
 | Gameplay | Campanha original | A testar no aparelho (gravação de save alterada) |
 | Gameplay | Boss Rush, Master Mode, Randomizer, Conquistas, HUD | Fases 2 a 7 |
 | Gráficos | Museu 3D | Fase 3 |
 
 ## Próximas fases e dependências
-- **Fase 2** (Touch 2.0, giroscópio, HUD): o overlay de toque mora no `MainActivity.java`, que a 0.8 reescreve. Fazer
-  depois de a 0.8 entrar na `main`, para não gerar conflito.
 - **Fase 8** (menu Definitive): a categoria "Definitive Features" entra no menu principal da branch
   `feature/ootde-menu-definitivo`. Até lá os sistemas ficam no menu do jogo, em "Definitive".
 - Versão: `0.9.1-expansao` / `versionCode` 22 é só para o APK de teste instalar por cima das outras builds de teste.

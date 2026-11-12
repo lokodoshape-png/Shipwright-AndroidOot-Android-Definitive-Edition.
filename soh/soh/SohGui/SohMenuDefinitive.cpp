@@ -18,6 +18,20 @@ void SohMenu::AddMenuDefinitive() {
         DefinitiveExpansion::DrawSaveManager();
     });
 
+    path.sidebarName = "Touch & Motion";
+    AddSidebarEntry("Definitive", path.sidebarName, 1);
+    AddWidget(path, "Touch & Motion", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "DefinitiveTouchMotion", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        DefinitiveExpansion::DrawTouchAndMotion();
+    });
+
+    path.sidebarName = "HUD";
+    AddSidebarEntry("Definitive", path.sidebarName, 1);
+    AddWidget(path, "HUD Editor", WIDGET_SEPARATOR_TEXT);
+    AddWidget(path, "DefinitiveHud", WIDGET_CUSTOM).RaceDisable(false).CustomFunction([](WidgetInfo& info) {
+        DefinitiveExpansion::DrawHudEditor();
+    });
+
     path.sidebarName = "Recursos";
     AddSidebarEntry("Definitive", path.sidebarName, 1);
     AddWidget(path, "Configurações Definitive", WIDGET_SEPARATOR_TEXT);
