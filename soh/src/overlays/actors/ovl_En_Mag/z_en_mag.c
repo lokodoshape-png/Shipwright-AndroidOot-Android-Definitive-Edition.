@@ -8,6 +8,7 @@
 #include "objects/object_mag/object_mag.h"
 #include <soh/GameVersions.h>
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 #include <string.h>
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
@@ -146,6 +147,26 @@ void EnMag_Init(Actor* thisx, PlayState* play) {
 }
 
 void EnMag_Destroy(Actor* thisx, PlayState* play) {
+    // OOT D.E.: the title screen is gone, so is its main menu.
+    DefinitiveUI_TitleMenuClose();
+}
+
+// Leaves the title screen for the file select screen (the original Start/A/B press).
+static void EnMag_GoToFileSelect(EnMag* this, PlayState* play) {
+    if (play->transitionTrigger != TRANS_TRIGGER_START) {
+        Audio_SetCutsceneFlag(0);
+
+        Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+
+        gSaveContext.gameMode = GAMEMODE_FILE_SELECT;
+        play->transitionTrigger = TRANS_TRIGGER_START;
+        play->transitionType = TRANS_TYPE_FADE_BLACK;
+    }
+
+    this->copyrightAlphaStep = 15;
+    this->fadeOutAlphaStep = 25;
+    this->globalState = MAG_STATE_FADE_OUT;
 }
 
 void EnMag_Update(Actor* thisx, PlayState* play) {
@@ -155,12 +176,18 @@ void EnMag_Update(Actor* thisx, PlayState* play) {
 
     if (gSaveContext.fileNum != 0xFEDC) {
         if (this->globalState < MAG_STATE_DISPLAY) {
-            if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
+            // OOT D.E.: the Definitive Edition menu does not wait for the logo of the opening: it comes right away
+            // (as if a button had been pressed, without its sound).
+            bool deMenu = DefinitiveUI_TitleMenuEnabled();
+
+            if (deMenu || CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
                 CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
                 CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
 
-                Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                       &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                if (!deMenu) {
+                    Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                           &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+                }
 
                 this->mainAlpha = 210;
                 this->subAlpha = 255;
@@ -185,30 +212,22 @@ void EnMag_Update(Actor* thisx, PlayState* play) {
                 }
 
                 this->globalState = MAG_STATE_DISPLAY;
-                sDelayTimer = 20;
+                sDelayTimer = deMenu ? 2 : 20;
                 gSaveContext.transFadeDuration = 1;
                 gSaveContext.transWipeSpeed = 255;
             }
         } else if (this->globalState >= MAG_STATE_DISPLAY) {
             if (sDelayTimer == 0) {
-                if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
-                    CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
-                    CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
-
-                    if (play->transitionTrigger != TRANS_TRIGGER_START) {
-                        Audio_SetCutsceneFlag(0);
-
-                        Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-
-                        gSaveContext.gameMode = GAMEMODE_FILE_SELECT;
-                        play->transitionTrigger = TRANS_TRIGGER_START;
-                        play->transitionType = TRANS_TYPE_FADE_BLACK;
+                if (DefinitiveUI_TitleMenuEnabled()) {
+                    // OOT D.E.: the Definitive Edition main menu takes the place of "PRESS START" and decides
+                    // when to go to file select.
+                    if (this->globalState == MAG_STATE_DISPLAY && DefinitiveUI_TitleMenuUpdate(play)) {
+                        EnMag_GoToFileSelect(this, play);
                     }
-
-                    this->copyrightAlphaStep = 15;
-                    this->fadeOutAlphaStep = 25;
-                    this->globalState = MAG_STATE_FADE_OUT;
+                } else if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
+                           CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
+                           CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
+                    EnMag_GoToFileSelect(this, play);
                 }
             } else {
                 sDelayTimer--;
@@ -699,8 +718,8 @@ void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
                 }
             }
         }
-    } else if (this->copyrightAlpha >= 200.0f) {
-        // Draw "PRESS START" Text
+    } else if (this->copyrightAlpha >= 200.0f && !DefinitiveUI_TitleMenuEnabled()) {
+        // Draw "PRESS START" Text (OOT D.E.: not with the main menu, which replaces it)
         textAlpha = textFadeTimer * 10;
         if (textAlpha >= 255) {
             textAlpha = 255;

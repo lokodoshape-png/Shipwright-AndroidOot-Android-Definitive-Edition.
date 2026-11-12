@@ -12,6 +12,83 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.9] — Interface Definitive Edition: menu principal
+
+Primeira etapa da nova interface, publicada junto com as correções de estabilidade da 0.8.0 (seção abaixo), que
+ainda não tinham saído numa versão própria.
+
+- **Novo menu principal no lugar da tela de título e da seleção de arquivos**, feito com a arte da imagem de referência
+  (`docs/interface-de/referencia.png`), ampliada 4x com a rede de super-resolução EDSR (`scripts/ootde_ui_art.py`):
+  fundo de Hyrule ao entardecer com o castelo, Link com o Escudo Hylian e Navi (com zoom lento), logo com
+  "DEFINITIVE EDITION", painel com a moldura dourada e os botões azul e ouro (normal, selecionado e pressionado).
+  O texto dos botões é escrito pelo jogo. Navi voa ao lado da opção escolhida, com partículas douradas.
+  O fundo cobre a abertura do jogo; o "© Nintendo" fica no rodapé.
+- **Menu animado**: abertura em sequência (cenário saindo do escuro, logo crescendo com um clarão, painel e botões
+  deslizando um após o outro), raios de sol e vaga-lumes sobre a paisagem, luz passando pelo logo e pelo botão
+  escolhido, estrelas piscando no logo, brilhos correndo pela moldura, botão escolhido maior e flutuando, faíscas e
+  salto ao confirmar, troca de telas deslizando para o lado certo, descrição e corações entrando, último coração
+  batendo e Navi voando do cenário até o cursor.
+- **Sons do jogo no menu**: cursor, confirmar, erro (opção indisponível) e voltar com os sons da seleção de
+  arquivos; som de janela abrindo quando o painel entra e ao abrir Extras.
+- **Imagem de abertura "Definitive Edition"** antes do menu, ao abrir o jogo (como no projeto de Majora's Mask):
+  o logo aparece sobre o preto, fica alguns segundos e some. Um toque ou um botão pula. Liga/desliga em
+  Configurações > Geral > *Imagem de abertura Definitive Edition*.
+- **O menu substitui as telas originais.** O logo do N64 e o "PRESS START" não aparecem mais, e a seleção de
+  arquivos original deu lugar às telas do próprio menu:
+  - *Arquivos de Jogo*: os três arquivos com nome e corações; cada um abre *Jogar*, *Copiar* (para um arquivo
+    vazio) e *Apagar* (com confirmação). Copiar e apagar usam as mesmas funções do jogo.
+  - *Novo Jogo*: escolha entre Aventura original e Master Quest (esta só aparece se a sua ROM tiver a Master
+    Quest) e teclado próprio para o nome do herói (até 8 letras). O arquivo é criado pela função do jogo.
+  - Enquanto o jogo cria ou carrega o arquivo, uma tela "Carregando" cobre tudo.
+  - *Randomizer e Boss Rush* continuam na tela clássica de arquivos, aberta por um botão em *Novo Jogo* (as
+    opções deles ainda não têm tela nova).
+- **Música original do jogo no menu** (padrão). A composição orquestrada "Tema do Menu" continua disponível:
+  basta subir *Música orquestrada do menu* em Configurações > Geral (0 = música original). Para usar outra música,
+  coloque `ootde-menu.ogg` na pasta `mods`.
+- **Toque refeito**: o toque vale ao soltar o dedo em cima do botão (arrastar não aciona nada), os botões ficaram
+  mais altos e a linha inteira aceita o toque; as dicas da tela mudam para "Toque para escolher" quando se usa o
+  dedo.
+- **Todos os botões fazem a função real**:
+  - *Continuar* carrega o último arquivo jogado.
+  - *Diário de Quests* carrega o último arquivo e abre o pause já no Diário, assim que o jogo permite pausar.
+  - *Mods* e *Configurações* abrem o menu do port na página certa.
+  - *Extras*: mods instalados, informações da versão; Créditos aparece como "em breve".
+- Funciona com controle (D-pad/analógico, A, Start, B), teclado (pelo mapeamento do controle) e toque. Os controles
+  de toque somem enquanto o menu está na tela.
+- Dá para voltar às telas originais em Configurações > Geral > *Menu principal Definitive Edition*.
+- Fontes novas Cinzel e EB Garamond (licença OFL) e texturas geradas por `scripts/ootde_ui_assets.py`
+  (`soh/assets/custom/ootde/ui/`), já incluídas no `soh.otr`. `scripts/otr_add_custom.py` agora também adiciona
+  fontes.
+- `scripts/ootde_ui_preview/`: desenha as telas no computador com o mesmo código do jogo, para conferir o visual.
+
+## [0.8.0] — Estabilidade e arquivos seguros
+
+- **O app não fica mais preso numa tela preta sem permissão.** Se a permissão de acesso aos arquivos for negada, ou
+  se você sair da tela de configurações sem ativá-la, aparece "Permissão necessária" com "Conceder permissão" e "Sair".
+  Se você ativar a permissão depois, pelas configurações do Android, o jogo continua sozinho ao voltar para o app.
+  Fechar o app nesse momento também não trava mais.
+- **O jogo só inicia com os arquivos completos.** Se a cópia dos arquivos do jogo falhar (falta de espaço, por
+  exemplo), aparece "Falha na preparação" com o motivo, "Tentar novamente" e "Sair", em vez de abrir o jogo com
+  arquivos faltando. O `soh.otr` é copiado para um arquivo temporário e conferido antes de substituir o antigo. Se o
+  app for fechado no meio da preparação, ela é refeita na próxima vez.
+- **Importar a ROM não apaga mais a ROM que já estava lá.** A ROM escolhida é copiada para `OOT.z64.tmp`, conferida
+  como o extrator confere (tamanho de 32, 54 ou 64 MB, não compactada e com o CRC32C numa das versões compatíveis) e
+  só então troca o `OOT.z64`. Se a cópia for interrompida ou a ROM for recusada, aparece o motivo e a ROM anterior
+  continua lá.
+- **Instalar mods ficou seguro.** Cada mod é copiado para um arquivo temporário e conferido (um `.otr` precisa estar
+  completo; um `.o2r` ou `.zip` precisa abrir como zip) antes de entrar na pasta `mods`. Se já existir um mod com o
+  mesmo nome e conteúdo diferente, o app pergunta: "Substituir", "Manter os dois" ou "Cancelar". Nada é sobrescrito
+  sem você escolher.
+- **Diário de Quests:** "Derrote Ganondorf" pode ser marcada como concluída. O jogo não salva essa vitória (os
+  créditos terminam o jogo), então, depois que a etapa anterior estiver concluída, aperte A ou toque na linha
+  "Marcar como concluída" do pergaminho. A marca vale só para aquele arquivo de save e pode ser desfeita.
+- Corrigido um erro do Diário que podia escrever um byte fora do lugar ao converter textos com acentos.
+- Android 10: o acesso à pasta `OOT-DE` funciona (modo de armazenamento legado).
+- Build: versões alinhadas (AGP 8.10.1, Gradle 8.11.1, compileSdk e targetSdk 33). O CMake percebe arquivos novos
+  sozinho. Antes de compilar, o GitHub Actions confere o `soh.otr` por inteiro (`scripts/otr_add_custom.py --verify`)
+  e roda os testes de `scripts/tests/`.
+- Os testes feitos e os que ainda precisam de um celular estão em [docs/TESTES-0.8.md](docs/TESTES-0.8.md).
+
 ## [0.7.1] — Diário de Quests corrigido
 
 - **As texturas do Diário não apareciam.** O `soh.otr` que vai dentro do APK não tinha as texturas novas (pedra,

@@ -43,3 +43,10 @@
     MicTheMicrophone | Gwonam / The King
     Amphibibro | Link
     AceHeart | Zelda
+
+## OOT D.E. — Interface Definitive Edition
+    Cinzel (fonte dos títulos e botões) | Natanael Gama / The Cinzel Project Authors, SIL Open Font License 1.1 (docs/licenses/OFL-Cinzel.txt)
+    EB Garamond (fonte dos textos) | Georg Duffner, Octavio Pardo / The EB Garamond Project Authors, SIL Open Font License 1.1 (docs/licenses/OFL-EBGaramond.txt)
+    Tema do Menu (música do menu principal) | composição original do OOT D.E. (scripts/ootde_menu_music.py), tocada com a SoundFont FluidR3 GM de Frank Wen, licença MIT (docs/licenses/MIT-FluidR3.txt)
+    stb_vorbis (leitura da música) | Sean Barrett, domínio público / MIT (licença no próprio arquivo)
+    Dear ImGui | Omar Cornut e colaboradores, licença MIT (já usada pelo libultraship)

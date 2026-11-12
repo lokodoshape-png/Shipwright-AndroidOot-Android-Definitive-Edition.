@@ -22,63 +22,97 @@
 #define QM_DIAERESIS 0x12
 #define QM_DOTLESS_I 0x13 // an "i" whose dot is covered by the accent: drawn as "i" with the accent a bit higher
 
-// Converts UTF-8 to the codes of the game font.
+// Writes one or two font codes. A letter that needs two codes (letter + accent) is written only when both fit, so the
+// output never goes past `max` and never ends with a letter whose accent was cut.
+#define QM_EMIT1(c0)        \
+    if (n + 1 > max) {      \
+        goto full;          \
+    }                       \
+    out[n++] = (u8)(c0);    \
+    continue
+#define QM_EMIT2(c0, c1)    \
+    if (n + 2 > max) {      \
+        goto full;          \
+    }                       \
+    out[n++] = (u8)(c0);    \
+    out[n++] = (u8)(c1);    \
+    continue
+
+// Converts UTF-8 to the codes of the game font. Writes at most `max` codes and returns how many were written; the
+// result is a counted buffer (the drawing functions take its length). When there is room left, a 0 is written after
+// the last code as well, without being counted. Unknown or broken UTF-8 sequences become '?'.
 s32 QM_Encode(const char* text, u8* out, s32 max) {
     const u8* s = (const u8*)text;
     s32 n = 0;
 
-    while ((*s != '\0') && (n < max)) {
+    if ((out == NULL) || (max <= 0)) {
+        return 0;
+    }
+    if (s == NULL) {
+        out[0] = '\0';
+        return 0;
+    }
+
+    while (*s != '\0') {
         u32 cp = *s++;
 
-        if ((cp >= 0xC0) && (cp < 0xE0) && ((*s & 0xC0) == 0x80)) {
+        if ((cp >= 0xC2) && (cp < 0xE0) && ((*s & 0xC0) == 0x80)) {
             cp = ((cp & 0x1F) << 6) | (*s++ & 0x3F);
         } else if (cp >= 0x80) {
-            // Longer sequences are not used by these texts.
-            while ((*s & 0xC0) == 0x80) {
+            // Longer sequences are not used by these texts; skip their continuation bytes (never past the end).
+            while ((*s != '\0') && ((*s & 0xC0) == 0x80)) {
                 s++;
             }
             cp = '?';
         }
 
         switch (cp) {
-            case 0x01: out[n++] = 0xA5; continue; // C-Up
-            case 0x02: out[n++] = 0xA6; continue; // C-Down
-            case 0x03: out[n++] = 0xA7; continue; // C-Left
-            case 0x04: out[n++] = 0xA8; continue; // C-Right
-            case 0x05: out[n++] = 0xA0; continue; // B
-            case 0x06: out[n++] = 0xA2; continue; // L
-            case 0x07: out[n++] = 0xA3; continue; // R
-            case 0xC0: out[n++] = 0x80; continue; // À
-            case 0xC1: out[n++] = 'A'; out[n++] = QM_ACUTE; continue; // Á
-            case 0xC2: out[n++] = 0x82; continue; // Â
-            case 0xC3: out[n++] = 'A'; out[n++] = QM_TILDE; continue; // Ã
-            case 0xC7: out[n++] = 0x84; continue; // Ç
-            case 0xC9: out[n++] = 0x86; continue; // É
-            case 0xCA: out[n++] = 0x87; continue; // Ê
-            case 0xCD: out[n++] = 'I'; out[n++] = QM_ACUTE; continue; // Í
-            case 0xD4: out[n++] = 0x8A; continue; // Ô
-            case 0xD5: out[n++] = 'O'; out[n++] = QM_TILDE; continue; // Õ
-            case 0xD3: out[n++] = 'O'; out[n++] = QM_ACUTE; continue; // Ó
-            case 0xDC: out[n++] = 'U'; out[n++] = QM_DIAERESIS; continue; // Ü
-            case 0xDA: out[n++] = 'U'; out[n++] = QM_ACUTE; continue; // Ú
-            case 0xE0: out[n++] = 0x90; continue; // à
-            case 0xE1: out[n++] = 0x91; continue; // á
-            case 0xE2: out[n++] = 0x92; continue; // â
-            case 0xE3: out[n++] = 'a'; out[n++] = QM_TILDE; continue; // ã
-            case 0xE7: out[n++] = 0x94; continue; // ç
-            case 0xE9: out[n++] = 0x96; continue; // é
-            case 0xEA: out[n++] = 0x97; continue; // ê
-            case 0xED: out[n++] = QM_DOTLESS_I; out[n++] = QM_ACUTE; continue; // í
-            case 0xF4: out[n++] = 0x9A; continue; // ô
-            case 0xF5: out[n++] = 'o'; out[n++] = QM_TILDE; continue; // õ
-            case 0xF3: out[n++] = 'o'; out[n++] = QM_ACUTE; continue; // ó
-            case 0xFC: out[n++] = 'u'; out[n++] = QM_DIAERESIS; continue; // ü
-            case 0xFA: out[n++] = 'u'; out[n++] = QM_ACUTE; continue; // ú
+            case 0x01: QM_EMIT1(0xA5); // C-Up
+            case 0x02: QM_EMIT1(0xA6); // C-Down
+            case 0x03: QM_EMIT1(0xA7); // C-Left
+            case 0x04: QM_EMIT1(0xA8); // C-Right
+            case 0x05: QM_EMIT1(0xA0); // B
+            case 0x06: QM_EMIT1(0xA2); // L
+            case 0x07: QM_EMIT1(0xA3); // R
+            case 0x08: QM_EMIT1(0x9F); // A
+            case 0xC0: QM_EMIT1(0x80); // À
+            case 0xC1: QM_EMIT2('A', QM_ACUTE); // Á
+            case 0xC2: QM_EMIT1(0x82); // Â
+            case 0xC3: QM_EMIT2('A', QM_TILDE); // Ã
+            case 0xC7: QM_EMIT1(0x84); // Ç
+            case 0xC9: QM_EMIT1(0x86); // É
+            case 0xCA: QM_EMIT1(0x87); // Ê
+            case 0xCD: QM_EMIT2('I', QM_ACUTE); // Í
+            case 0xD4: QM_EMIT1(0x8A); // Ô
+            case 0xD5: QM_EMIT2('O', QM_TILDE); // Õ
+            case 0xD3: QM_EMIT2('O', QM_ACUTE); // Ó
+            case 0xDC: QM_EMIT2('U', QM_DIAERESIS); // Ü
+            case 0xDA: QM_EMIT2('U', QM_ACUTE); // Ú
+            case 0xE0: QM_EMIT1(0x90); // à
+            case 0xE1: QM_EMIT1(0x91); // á
+            case 0xE2: QM_EMIT1(0x92); // â
+            case 0xE3: QM_EMIT2('a', QM_TILDE); // ã
+            case 0xE7: QM_EMIT1(0x94); // ç
+            case 0xE9: QM_EMIT1(0x96); // é
+            case 0xEA: QM_EMIT1(0x97); // ê
+            case 0xED: QM_EMIT2(QM_DOTLESS_I, QM_ACUTE); // í
+            case 0xF4: QM_EMIT1(0x9A); // ô
+            case 0xF5: QM_EMIT2('o', QM_TILDE); // õ
+            case 0xF3: QM_EMIT2('o', QM_ACUTE); // ó
+            case 0xFC: QM_EMIT2('u', QM_DIAERESIS); // ü
+            case 0xFA: QM_EMIT2('u', QM_ACUTE); // ú
         }
-        out[n++] = ((cp >= ' ') && (cp < 0x7F)) ? (u8)cp : '?';
+        QM_EMIT1(((cp >= ' ') && (cp < 0x7F)) ? (u8)cp : '?');
+    }
+full:
+    if (n < max) {
+        out[n] = '\0';
     }
     return n;
 }
+
+#undef QM_EMIT1
+#undef QM_EMIT2
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Drawing

@@ -132,6 +132,8 @@ Sail* Sail::Instance;
 
 #include "soh/config/ConfigUpdaters.h"
 #include "soh/ShipInit.hpp"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
+#include "soh/Enhancements/DefinitiveUI/DeMusic.h"
 
 extern "C" {
 #include "src/overlays/actors/ovl_En_Dns/z_en_dns.h"
@@ -436,6 +438,8 @@ OTRGlobals::OTRGlobals() {
     fontStandard = CreateFontWithSize(16.0f, "fonts/Montserrat-Regular.ttf");
     fontStandardLarger = CreateFontWithSize(20.0f, "fonts/Montserrat-Regular.ttf");
     fontStandardLargest = CreateFontWithSize(24.0f, "fonts/Montserrat-Regular.ttf");
+    // OOT D.E.: fonts of the Definitive Edition interface (soh/Enhancements/DefinitiveUI).
+    DefinitiveUI::LoadFonts();
     ImGui::GetIO().FontDefault = fontStandardLarger;
     ScaleImGui();
 
@@ -585,6 +589,9 @@ void OTRAudio_Thread() {
             AudioMgr_CreateNextAudioBuffer(audio_buffer + i * (num_audio_samples * NUM_AUDIO_CHANNELS),
                                            num_audio_samples);
         }
+
+        // OOT D.E.: music of the Definitive Edition main menu, mixed over the game's sound (DeMusic.h).
+        DefinitiveUI_MusicMix(audio_buffer, num_audio_samples * AUDIO_FRAMES_PER_UPDATE);
 
         AudioPlayer_Play((u8*)audio_buffer,
                          num_audio_samples * (sizeof(int16_t) * NUM_AUDIO_CHANNELS * AUDIO_FRAMES_PER_UPDATE));
@@ -1537,8 +1544,12 @@ extern "C" void Graph_ProcessGfxCommands(Gfx* commands) {
     // the Java side ignores calls that do not change anything.
     {
         static int sLastMenuVisible = -1;
+        // The Definitive Edition main menu is used by touching it directly, so the controls are hidden there too.
         const int menuVisible =
-            Ship::Context::GetInstance()->GetWindow()->GetGui()->GetMenuOrMenubarVisible() ? 1 : 0;
+            (Ship::Context::GetInstance()->GetWindow()->GetGui()->GetMenuOrMenubarVisible() ||
+             DefinitiveUI_TitleMenuVisible())
+                ? 1
+                : 0;
         if (menuVisible != sLastMenuVisible) {
             if (menuVisible) {
                 Ship::Mobile::DisableTouchArea();

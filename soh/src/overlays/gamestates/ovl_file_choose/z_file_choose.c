@@ -1,4 +1,5 @@
 ﻿#include "file_choose.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -1095,6 +1096,52 @@ void FileChoose_UpdateMainMenu(GameState* thisx) {
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
 
     FileChoose_UpdateRandomizer();
+
+    {
+        // OOT D.E.: the Definitive Edition menu (which covers this screen meanwhile) already asked the player
+        // everything. A new file is created here exactly as the name entry screen does when "END" is chosen, and a
+        // file to play is chosen as if the player had moved the cursor to it and pressed A, so everything below
+        // (checks, sounds, loading) runs unchanged.
+        u8 newName[8];
+        s32 newQuest;
+        s32 newFile = DefinitiveUI_TakeNewFileRequest(newName, &newQuest);
+
+        if ((newFile >= FS_BTN_MAIN_FILE_1) && (newFile <= FS_BTN_MAIN_FILE_3)) {
+            if (!Save_GetSaveMetaInfo(newFile)->valid) {
+                u16 dayTime;
+
+                this->buttonIndex = newFile;
+                this->questType[newFile] = newQuest;
+                gSaveContext.ship.quest.id = newQuest;
+                memcpy(Save_GetSaveMetaInfo(newFile)->playerName, newName, 8);
+                gSaveContext.fileNum = newFile;
+                dayTime = ((void)0, gSaveContext.dayTime);
+                Sram_InitSave(this);
+                gSaveContext.dayTime = dayTime;
+                this->nameBoxAlpha[newFile] = this->nameAlpha[newFile] = 200;
+                this->connectorAlpha[newFile] = 255;
+                // Played at the next update, once the file exists.
+                DefinitiveUI_NewFileCreated(newFile);
+            } else {
+                DefinitiveUI_CancelFileRequest();
+            }
+            return;
+        }
+
+        bool newGame;
+        s32 requested = DefinitiveUI_TakeFileRequest(&newGame);
+
+        if ((requested >= FS_BTN_MAIN_FILE_1) && (requested <= FS_BTN_MAIN_FILE_3) &&
+            Save_GetSaveMetaInfo(requested)->valid && !newGame &&
+            FileChoose_IsSaveCompatible(Save_GetSaveMetaInfo(requested)) &&
+            (this->n64ddFlags[requested] == this->n64ddFlag)) {
+            this->buttonIndex = requested;
+            input->press.button |= BTN_A;
+        } else {
+            // Nothing asked, or it cannot be played: this screen takes over, uncovered.
+            DefinitiveUI_CancelFileRequest();
+        }
+    }
 
     if (CHECK_BTN_ALL(input->press.button, BTN_START) || CHECK_BTN_ALL(input->press.button, BTN_A)) {
         if (this->buttonIndex <= FS_BTN_MAIN_FILE_3) {
@@ -3196,6 +3243,12 @@ void FileChoose_ConfirmFile(GameState* thisx) {
     Input* input = &this->state.input[0];
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
 
+    // OOT D.E.: Continuar of the main menu already chose this file: answer "Yes" for the player.
+    if (DefinitiveUI_TakeAutoConfirm()) {
+        this->confirmButtonIndex = FS_BTN_CONFIRM_YES;
+        input->press.button |= BTN_A;
+    }
+
     if (CHECK_BTN_ALL(input->press.button, BTN_START) || (CHECK_BTN_ALL(input->press.button, BTN_A))) {
         if (this->confirmButtonIndex == FS_BTN_CONFIRM_YES) {
             func_800AA000(300.0f, 180, 20, 100);
@@ -3581,6 +3634,17 @@ void FileChoose_Main(GameState* thisx) {
     gSPSegment(POLY_OPA_DISP++, 0x02, this->parameterSegment);
 
     Gfx_SetupFrame(this->state.gfxCtx, 0, 0, 0);
+
+    // OOT D.E.: while the Definitive Edition menu covers this screen (a file is being created or loaded for it),
+    // the controller is ignored and the music of this screen stays silent.
+    if (DefinitiveUI_CoverActive()) {
+        input->press.button = 0;
+        input->cur.button = 0;
+        input->rel.button = 0;
+        input->cur.stick_x = input->cur.stick_y = 0;
+        input->rel.stick_x = input->rel.stick_y = 0;
+        Audio_SetVolScale(SEQ_PLAYER_BGM_MAIN, 3, 0, 0);
+    }
 
     this->stickRelX = input->rel.stick_x;
     this->stickRelY = input->rel.stick_y;

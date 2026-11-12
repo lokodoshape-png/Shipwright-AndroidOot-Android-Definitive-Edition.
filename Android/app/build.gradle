@@ -10,7 +10,9 @@ else {
 android {
     ndkVersion "26.0.10792818"
     namespace 'com.dishii.soh'
-    compileSdkVersion 31
+    // compileSdk matches targetSdk (Android 13, API 33). Both stay at 33: API 35+ would force edge-to-edge drawing
+    // and other behavior changes that need testing on a device first.
+    compileSdkVersion 33
     buildFeatures {
         buildConfig = true
     }
@@ -20,8 +22,8 @@ android {
         }
         minSdkVersion 24
         targetSdkVersion 33
-        versionCode 17
-        versionName "0.7.1"
+        versionCode 21
+        versionName "0.9"
     }
     // Release signing must use one persistent keystore for every update.
     // Configure these GitHub Actions secrets before publishing:
@@ -120,8 +122,9 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 }
 
+// Same version as gradle/wrapper/gradle-wrapper.properties (AGP 8.10 needs Gradle 8.11.1 or newer).
 task wrapper(type: Wrapper) {
-    gradleVersion = '8.10.2'
+    gradleVersion = '8.11.1'
 }
 
 task prepareKotlinBuildScriptModel {

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 
 s16 sKaleidoSetupKscpPos0[] = { PAUSE_QUEST, PAUSE_EQUIP, PAUSE_ITEM, PAUSE_MAP };
 f32 sKaleidoSetupEyeX0[] = { 0.0f, 64.0f, 0.0f, -64.0f };
@@ -19,11 +20,19 @@ void KaleidoSetup_Update(PlayState* play) {
         gSaveContext.magicState != MAGIC_STATE_FILL &&
         (play->sceneNum != SCENE_BOMBCHU_BOWLING_ALLEY || !Flags_GetSwitch(play, 0x38))) {
 
-        if (CHECK_BTN_ALL(input->cur.button, BTN_L) && CHECK_BTN_ALL(input->press.button, BTN_CUP)) {
+        // OOT D.E.: "Diário de Quests" of the main menu opens the pause on the journal, as soon as the game can pause.
+        bool openJournal = DefinitiveUI_TakeJournalRequest();
+
+        if (!openJournal && CHECK_BTN_ALL(input->cur.button, BTN_L) && CHECK_BTN_ALL(input->press.button, BTN_CUP)) {
             if (BREG(0)) {
                 pauseCtx->debugState = 3;
             }
-        } else if (CHECK_BTN_ALL(input->press.button, BTN_START)) {
+        } else if (openJournal || CHECK_BTN_ALL(input->press.button, BTN_START)) {
+            if (openJournal) {
+                // The page before the Quest Status page in the turn below.
+                pauseCtx->pageIndex = (ZREG(48) == 0) ? 0 : 1;
+                pauseCtx->randoQuestMode = PAUSE_QUEST_MODE_LOG;
+            }
 
             gSaveContext.unk_13EE = gSaveContext.unk_13EA;
 
