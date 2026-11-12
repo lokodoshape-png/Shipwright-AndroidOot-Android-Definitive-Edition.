@@ -22,8 +22,8 @@ android {
         }
         minSdkVersion 24
         targetSdkVersion 33
-        versionCode 21
-        versionName "0.9"
+        versionCode 22
+        versionName "0.9.1-expansao"
     }
     // Release signing must use one persistent keystore for every update.
     // Configure these GitHub Actions secrets before publishing:

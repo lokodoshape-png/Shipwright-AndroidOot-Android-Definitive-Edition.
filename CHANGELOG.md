@@ -12,6 +12,24 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.9.1-expansao] — Definitive Expansion, Fase 1 (versão de teste)
+
+Build de teste da branch `feature/ootde-definitive-expansion`. O número é provisório, só para o APK instalar por
+cima das builds de teste anteriores; a versão oficial é definida quando a expansão entrar na `main`.
+
+- **Saves mais seguros.** O jogo agora grava o save novo por completo e só então troca o arquivo antigo por ele.
+  Antes o arquivo antigo era apagado primeiro, e fechar o app ou ficar sem espaço nesse instante perdia o save.
+- **Gerenciador de saves** (menu do jogo > Definitive > Saves): estado de cada slot (válido, inválido ou vazio),
+  backup manual, backups automáticos antes de gravar, exportar, importar e restaurar. Restaurar e importar
+  conferem o arquivo, guardam o save atual nos backups e pedem confirmação. Apagar ou copiar um save na seleção
+  de arquivos também guarda uma cópia antes.
+- **Configurações Definitive** (Definitive > Recursos): arquivo próprio e versionado (`OOT-DE/ootde/config.json`),
+  separado dos saves; perfis e botão de restaurar padrões.
+- Formato dos saves inalterado. Backups e exportações ficam em `OOT-DE/ootde/`.
+
+Pendências: os outros sistemas da expansão (Fases 2 a 9). Plano e auditoria em
+[docs/DEFINITIVE-EXPANSION.md](docs/DEFINITIVE-EXPANSION.md).
+
 ## [0.9] — Interface Definitive Edition: menu principal
 
 Primeira etapa da nova interface, publicada junto com as correções de estabilidade da 0.8.0 (seção abaixo), que
