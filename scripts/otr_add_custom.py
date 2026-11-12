@@ -189,9 +189,14 @@ def missing_textures(files):
     for folder, _, names in os.walk(CUSTOM):
         for fn in sorted(names):
             parts = fn.split(".")
+            rel = os.path.relpath(os.path.join(folder, fn), CUSTOM).replace(os.sep, "/")
+            # OOT D.E.: fonts are stored as they are (the game loads them by their file name).
+            if parts[-1] in ("ttf", "otf"):
+                if rel not in files:
+                    missing.append((rel, os.path.join(folder, fn)))
+                continue
             if len(parts) < 3 or parts[-1] != "png":
                 continue
-            rel = os.path.relpath(os.path.join(folder, fn), CUSTOM).replace(os.sep, "/")
             name = rel.rsplit(".", 2)[0]
             if name not in files:
                 if parts[-2] != "rgba32":
@@ -216,7 +221,11 @@ def main():
         print("soh.otr already has every custom texture.")
         return
     for name, png in missing:
-        res = texture_resource(png)
+        if png.endswith((".ttf", ".otf")):
+            with open(png, "rb") as f:
+                res = f.read()
+        else:
+            res = texture_resource(png)
         files[name] = (res, len(res), FILE_EXISTS | FILE_SINGLE_UNIT)
     # The attributes hold checksums of the old blocks; StormLib rebuilds without them.
     files.pop("(attributes)", None)

@@ -43,3 +43,8 @@
     MicTheMicrophone | Gwonam / The King
     Amphibibro | Link
     AceHeart | Zelda
+
+## OOT D.E. — Interface Definitive Edition
+    Cinzel (fonte dos títulos e botões) | Natanael Gama / The Cinzel Project Authors, SIL Open Font License 1.1 (docs/licenses/OFL-Cinzel.txt)
+    EB Garamond (fonte dos textos) | Georg Duffner, Octavio Pardo / The EB Garamond Project Authors, SIL Open Font License 1.1 (docs/licenses/OFL-EBGaramond.txt)
+    Dear ImGui | Omar Cornut e colaboradores, licença MIT (já usada pelo libultraship)
