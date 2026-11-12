@@ -8,6 +8,7 @@
 #include "objects/object_mag/object_mag.h"
 #include <soh/GameVersions.h>
 #include "soh/ResourceManagerHelpers.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 #include <string.h>
 
 #define FLAGS (ACTOR_FLAG_UPDATE_CULLING_DISABLED | ACTOR_FLAG_DRAW_CULLING_DISABLED)
@@ -146,6 +147,26 @@ void EnMag_Init(Actor* thisx, PlayState* play) {
 }
 
 void EnMag_Destroy(Actor* thisx, PlayState* play) {
+    // OOT D.E.: the title screen is gone, so is its main menu.
+    DefinitiveUI_TitleMenuClose();
+}
+
+// Leaves the title screen for the file select screen (the original Start/A/B press).
+static void EnMag_GoToFileSelect(EnMag* this, PlayState* play) {
+    if (play->transitionTrigger != TRANS_TRIGGER_START) {
+        Audio_SetCutsceneFlag(0);
+
+        Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+
+        gSaveContext.gameMode = GAMEMODE_FILE_SELECT;
+        play->transitionTrigger = TRANS_TRIGGER_START;
+        play->transitionType = TRANS_TYPE_FADE_BLACK;
+    }
+
+    this->copyrightAlphaStep = 15;
+    this->fadeOutAlphaStep = 25;
+    this->globalState = MAG_STATE_FADE_OUT;
 }
 
 void EnMag_Update(Actor* thisx, PlayState* play) {
@@ -191,24 +212,16 @@ void EnMag_Update(Actor* thisx, PlayState* play) {
             }
         } else if (this->globalState >= MAG_STATE_DISPLAY) {
             if (sDelayTimer == 0) {
-                if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
-                    CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
-                    CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
-
-                    if (play->transitionTrigger != TRANS_TRIGGER_START) {
-                        Audio_SetCutsceneFlag(0);
-
-                        Audio_PlaySoundGeneral(NA_SE_SY_PIECE_OF_HEART, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
-                                               &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
-
-                        gSaveContext.gameMode = GAMEMODE_FILE_SELECT;
-                        play->transitionTrigger = TRANS_TRIGGER_START;
-                        play->transitionType = TRANS_TYPE_FADE_BLACK;
+                if (DefinitiveUI_TitleMenuEnabled()) {
+                    // OOT D.E.: the Definitive Edition main menu takes the place of "PRESS START" and decides
+                    // when to go to file select.
+                    if (this->globalState == MAG_STATE_DISPLAY && DefinitiveUI_TitleMenuUpdate(play)) {
+                        EnMag_GoToFileSelect(this, play);
                     }
-
-                    this->copyrightAlphaStep = 15;
-                    this->fadeOutAlphaStep = 25;
-                    this->globalState = MAG_STATE_FADE_OUT;
+                } else if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
+                           CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
+                           CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
+                    EnMag_GoToFileSelect(this, play);
                 }
             } else {
                 sDelayTimer--;
@@ -482,7 +495,9 @@ bool EnMag_ShouldDrawPressStart(Font* font, Gfx** gfxP, bool isActualText) {
 // #endregion
 
 // Title logo is shifted to the left in Master Quest
-#define LOGO_X_SHIFT (isMQ ? 0 : -8)
+// OOT D.E.: moved further left while the Definitive Edition main menu is on (DefinitiveUI_TitleLogoShiftX).
+#define DE_SHIFT DefinitiveUI_TitleLogoShiftX()
+#define LOGO_X_SHIFT ((isMQ ? 0 : -8) + DE_SHIFT)
 #define LOGO_TEX (isMQ ? gTitleZeldaShieldLogoMQTex : gTitleZeldaShieldLogoTex)
 // Copyright texture is different depending on the version
 // JPN CE displays two slightly different 2004 copyrights when lang is jpn or not
@@ -496,7 +511,7 @@ bool EnMag_ShouldDrawPressStart(Font* font, Gfx** gfxP, bool isActualText) {
                  : gTitleCopyright1998Tex))
 // Copyright texture is larger on GC
 #define COPYRIGHT_TEX_WIDTH (isGC ? 160 : 128)
-#define COPYRIGHT_TEX_LEFT (isGC ? 78 : 94)
+#define COPYRIGHT_TEX_LEFT ((isGC ? 78 : 94) + DE_SHIFT)
 
 void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
     static s16 textAlpha = 0;
@@ -603,9 +618,9 @@ void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
             gDPSetPrimColor(gfx++, 0, 0, 255, 255, 255, (s16)this->subAlpha);
 
             if (gSaveContext.language == LANGUAGE_JPN || ResourceMgr_GetGameVersion(0) == OOT_NTSC_JP_MQ) {
-                EnMag_DrawImageRGBA32(&gfx, 235, 149, (u8*)gTitleUraLogoTex, 40, 40);
+                EnMag_DrawImageRGBA32(&gfx, 235 + DE_SHIFT, 149, (u8*)gTitleUraLogoTex, 40, 40);
             } else {
-                EnMag_DrawImageRGBA32(&gfx, 174, 145, (u8*)gTitleMasterQuestSubtitleTex, 128, 32);
+                EnMag_DrawImageRGBA32(&gfx, 174 + DE_SHIFT, 145, (u8*)gTitleMasterQuestSubtitleTex, 128, 32);
             }
         }
     }
@@ -637,7 +652,7 @@ void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
                               G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, 5, 5, 2, 1);
             gDPSetTileSize(gfx++, 1, this->unk_E30C & 0x7F, this->effectScroll & 0x7F,
                            (this->unk_E30C & 0x7F) + ((32 - 1) << 2), (this->effectScroll & 0x7F) + ((32 - 1) << 2));
-            gSPTextureRectangle(gfx++, 106 << 2, 144 << 2, (106 + 128) << 2, (144 + 16) << 2, G_TX_RENDERTILE, 0, 0,
+            gSPTextureRectangle(gfx++, (106 + DE_SHIFT) << 2, 144 << 2, (106 + DE_SHIFT + 128) << 2, (144 + 16) << 2, G_TX_RENDERTILE, 0, 0,
                                 1 << 10, 1 << 10);
         }
     }
@@ -699,8 +714,8 @@ void EnMag_DrawInner(Actor* thisx, PlayState* play, Gfx** gfxP) {
                 }
             }
         }
-    } else if (this->copyrightAlpha >= 200.0f) {
-        // Draw "PRESS START" Text
+    } else if (this->copyrightAlpha >= 200.0f && !DefinitiveUI_TitleMenuEnabled()) {
+        // Draw "PRESS START" Text (OOT D.E.: not with the main menu, which replaces it)
         textAlpha = textFadeTimer * 10;
         if (textAlpha >= 255) {
             textAlpha = 255;

@@ -1,4 +1,5 @@
 ﻿#include "file_choose.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -1095,6 +1096,21 @@ void FileChoose_UpdateMainMenu(GameState* thisx) {
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
 
     FileChoose_UpdateRandomizer();
+
+    {
+        // OOT D.E.: Continuar / Novo Jogo of the main menu. The file is chosen here as if the player had moved the
+        // cursor to it and pressed A, so everything below (checks, sounds, new file screens) runs unchanged.
+        bool newGame;
+        s32 requested = DefinitiveUI_TakeFileRequest(&newGame);
+
+        if ((requested >= FS_BTN_MAIN_FILE_1) && (requested <= FS_BTN_MAIN_FILE_3) &&
+            (Save_GetSaveMetaInfo(requested)->valid != newGame)) {
+            this->buttonIndex = requested;
+            input->press.button |= BTN_A;
+        } else {
+            DefinitiveUI_TakeAutoConfirm();
+        }
+    }
 
     if (CHECK_BTN_ALL(input->press.button, BTN_START) || CHECK_BTN_ALL(input->press.button, BTN_A)) {
         if (this->buttonIndex <= FS_BTN_MAIN_FILE_3) {
@@ -3195,6 +3211,12 @@ void FileChoose_ConfirmFile(GameState* thisx) {
     FileChooseContext* this = (FileChooseContext*)thisx;
     Input* input = &this->state.input[0];
     bool dpad = CVarGetInteger(CVAR_SETTING("DpadInText"), 0);
+
+    // OOT D.E.: Continuar of the main menu already chose this file: answer "Yes" for the player.
+    if (DefinitiveUI_TakeAutoConfirm()) {
+        this->confirmButtonIndex = FS_BTN_CONFIRM_YES;
+        input->press.button |= BTN_A;
+    }
 
     if (CHECK_BTN_ALL(input->press.button, BTN_START) || (CHECK_BTN_ALL(input->press.button, BTN_A))) {
         if (this->confirmButtonIndex == FS_BTN_CONFIRM_YES) {
