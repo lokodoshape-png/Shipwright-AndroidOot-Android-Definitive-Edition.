@@ -91,7 +91,7 @@ bool MusicAvailable() {
 }
 
 void MusicSetPlaying(bool playing) {
-    const int percent = CVarGetInteger(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"), 80);
+    const int percent = CVarGetInteger(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"), 0);
     sWanted = playing && percent > 0;
     // Like the game's own music, it follows the master volume.
     const int master = CVarGetInteger(CVAR_SETTING("Volume.Master"), 40);

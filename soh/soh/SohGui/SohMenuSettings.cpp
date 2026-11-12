@@ -121,18 +121,25 @@ void SohMenu::AddMenuSettings() {
         .CVar(CVAR_SETTING("DefinitiveUI.TitleMenu"))
         .RaceDisable(false)
         .Options(CheckboxOptions().DefaultValue(true).Tooltip(
-            "Mostra o novo menu principal na tela de título (Continuar, Novo Jogo, Selecionar Arquivo, Diário de "
-            "Quests, Mods, Configurações e Extras). Desligado, volta o \"PRESS START\" original."));
-    AddWidget(path, "Música do menu: %d %%", WIDGET_CVAR_SLIDER_INT)
+            "Mostra o novo menu principal no lugar da tela de título e da seleção de arquivos (Continuar, Novo "
+            "Jogo, Arquivos de Jogo, Diário de Quests, Mods, Configurações e Extras). Desligado, volta o \"PRESS "
+            "START\" original."));
+    AddWidget(path, "Imagem de abertura Definitive Edition", WIDGET_CVAR_CHECKBOX)
+        .CVar(CVAR_SETTING("DefinitiveUI.Splash"))
+        .RaceDisable(false)
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "Mostra a imagem \"Definitive Edition\" ao abrir o jogo, antes do menu principal. Um toque ou um botão "
+            "pula a imagem."));
+    AddWidget(path, "Música orquestrada do menu: %d %%", WIDGET_CVAR_SLIDER_INT)
         .CVar(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"))
         .RaceDisable(false)
         .Options(IntSliderOptions()
-                     .Tooltip("Volume da música orquestrada do menu principal (acompanha o volume geral). Em 0, toca "
-                              "a música original da tela de título. Para usar outra música, coloque um arquivo "
-                              "ootde-menu.ogg na pasta mods.")
+                     .Tooltip("Em 0 (padrão), toca a música original da tela de título. Acima de 0, toca no lugar "
+                              "a música orquestrada do menu, com este volume (acompanha o volume geral). Para "
+                              "usar outra música, coloque um arquivo ootde-menu.ogg na pasta mods.")
                      .Min(0)
                      .Max(100)
-                     .DefaultValue(80)
+                     .DefaultValue(0)
                      .ShowButtons(true)
                      .Format(""));
     AddWidget(path, "General Settings", WIDGET_SEPARATOR_TEXT);
