@@ -135,7 +135,20 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
 
     // ---- Background: Hyrule at dusk with the castle, Link and Navi. It comes out of the dark while drawing back,
     // then keeps breathing slowly closer and drifting sideways like a camera.
-    HyruleScene(dl, origin, end, s, time, alpha * sceneIn);
+    ImTextureID bgTex = GetTexture(TEX_TITLE_BG);
+    if (bgTex != (ImTextureID)0) {
+        const float zoom =
+            1.0f + 0.05f * (0.5f - 0.5f * cosf(time * 6.2831853f / 45.0f)) + 0.12f * (1.0f - sceneIn);
+        const ImVec2 focus(0.6f + 0.035f * sinf(time * 6.2831853f / 70.0f), 0.5f + 0.02f * sinf(time * 0.07f));
+        CoverImage(dl, bgTex, TextureSize(TEX_TITLE_BG), origin, end, zoom, focus,
+                   Fade(IM_COL32_WHITE, alpha * sceneIn));
+        // Sun rays from the glow of the sunset behind the castle.
+        SunRays(dl, ImVec2(origin.x + size.x * 0.70f, origin.y + size.y * 0.47f), size.x * 0.75f, time,
+                Fade(Col::Rgba(255, 226, 170), alpha * sceneIn * 0.16f));
+    } else {
+        // An older soh.otr without the picture: Hyrule at dusk drawn with shapes.
+        HyruleScene(dl, origin, end, s, time, alpha * sceneIn);
+    }
     // Fireflies over the landscape.
     mSceneParticles.UpdateDust(dt, ImVec2(colX1 + 120.0f * s, origin.y + size.y * 0.35f), end, s * 0.8f);
     mSceneParticles.Update(dt);
@@ -525,7 +538,13 @@ void TitleMenuRenderer::DrawLoading(ImDrawList* dl, ImVec2 origin, ImVec2 size, 
     Fonts& fonts = GetFonts();
     // Opaque: the game's own file select works underneath and is never seen.
     dl->AddRectFilled(origin, end, Fade(IM_COL32_BLACK, alpha));
-    HyruleScene(dl, origin, end, s, time, alpha);
+    ImTextureID bgTex = GetTexture(TEX_TITLE_BG);
+    if (bgTex != (ImTextureID)0) {
+        CoverImage(dl, bgTex, TextureSize(TEX_TITLE_BG), origin, end, 1.06f, ImVec2(0.6f, 0.5f),
+                   Fade(Col::Rgba(120, 120, 135), alpha));
+    } else {
+        HyruleScene(dl, origin, end, s, time, alpha);
+    }
     dl->AddRectFilled(origin, end, Fade(Col::Ink, alpha * 0.55f));
     const ImVec2 c(origin.x + size.x * 0.5f, origin.y + size.y * 0.46f);
     TriforceCrest(dl, c, 120.0f * s, alpha, time);

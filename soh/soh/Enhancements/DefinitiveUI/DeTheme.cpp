@@ -38,20 +38,6 @@ void SetTextureLookup(TextureLookup lookup) {
 }
 
 ImTextureID GetTexture(Texture tex) {
-    switch (tex) {
-        case TEX_TITLE_BG:
-        case TEX_LOGO:
-        case TEX_BUTTON_NORMAL:
-        case TEX_BUTTON_SELECTED:
-        case TEX_BUTTON_PRESSED:
-        case TEX_FRAME:
-            // The art cut from the reference image was enlarged about 5x and looked blurry on a phone screen. Those
-            // pieces are now drawn as shapes at the screen's own resolution (HyruleScene, TitleLogo and the plain
-            // geometry of the buttons and frames).
-            return (ImTextureID)0;
-        default:
-            break;
-    }
     return sTextureLookup != nullptr ? sTextureLookup(tex) : (ImTextureID)0;
 }
 
@@ -66,9 +52,9 @@ ImVec2 TextureSize(Texture tex) {
         case TEX_NAVI_WING:
             return ImVec2(96, 64);
         case TEX_TITLE_BG:
-            return ImVec2(1920, 834);
+            return ImVec2(2880, 1250);
         case TEX_LOGO:
-            return ImVec2(1215, 420);
+            return ImVec2(1944, 672);
         case TEX_BUTTON_SELECTED:
             return ImVec2(240, 136);
         case TEX_BUTTON_NORMAL:

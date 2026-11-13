@@ -12,6 +12,17 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.10.2] — Arte original nítida e menu que não trava
+
+- **A arte de antes voltou**, com o Link sentado olhando o castelo, o logo, os botões e as molduras, agora em
+  qualidade maior. As peças foram ampliadas de novo a partir da imagem de referência com a rede Real-ESRGAN, mais
+  nítida que a usada antes. O fundo passou por duas ampliações e tem 2880 px de largura; o logo, 1944 px.
+- **A abertura do jogo não roda mais atrás do menu.** Na 0.10.1 a cena ainda trocava (Link de Épona, Link correndo)
+  e o som dela tocava. Agora a cena fica parada desde o primeiro meio segundo. Continua tocando só a música da tela
+  de título.
+- **Navegação destravada de verdade.** O menu era comandado pelo logo da abertura, que some nas cenas de
+  demonstração, e aí parava de responder. Agora o próprio menu comanda a tela de título, a cada quadro.
+
 ## [0.10.1] — Menu Definitive refeito
 
 - **Nada do jogo por trás do menu.** A abertura original (Link de Épona e as outras cenas) não roda mais atrás do
@@ -22,9 +33,8 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 - **Navegação destravada.** O menu sumia e parava de responder sempre que a abertura do jogo trocava de cena; como a
   abertura agora fica parada, isso não acontece mais.
 - **Menu nítido.** O fundo, o logo, os botões e as molduras eram recortes pequenos da imagem de referência ampliados
-  cerca de 5 vezes. Agora são desenhados na resolução da tela: um Hyrule ao entardecer (castelo, Montanha da Morte,
-  campo), o título com a Triforce, e botões e molduras em vetor. Com o menu do Ship aberto na tela de título o
-  fundo dele também fica opaco.
+  cerca de 5 vezes, e foram trocados por desenhos em vetor (desfeito na 0.10.2, que volta com a arte original
+  ampliada de novo). Com o menu do Ship aberto na tela de título o fundo dele também fica opaco.
 
 ## [0.10.0] — Definitive Expansion
 

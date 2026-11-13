@@ -89,11 +89,6 @@ static void LoadTextures() {
     auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
     auto resources = Ship::Context::GetInstance()->GetResourceManager();
     for (int i = 0; i < TEX_COUNT; i++) {
-        if (i >= TEX_TITLE_BG && i <= TEX_FRAME) {
-            // Drawn with shapes now (see GetTexture in DeTheme.cpp): no need to keep them in memory.
-            sTextureAvailable[i] = false;
-            continue;
-        }
         // A soh.otr without the texture (an older one) must not crash: the shapes fall back to plain geometry.
         auto res = std::static_pointer_cast<Fast::Texture>(resources->LoadResource(kTexturePaths[i], true));
         sTextureAvailable[i] = res != nullptr;
@@ -717,7 +712,12 @@ static void DrawPage(float dt) {
     }
     ImDrawList* dl = ImGui::GetWindowDrawList();
     // Behind: the same Hyrule at dusk as the menu, darkened so the options read well.
-    HyruleScene(dl, origin, end, s, sPageTime + 30.0f, 1.0f);
+    ImTextureID bgTex = GetTexture(TEX_TITLE_BG);
+    if (bgTex != (ImTextureID)0) {
+        CoverImage(dl, bgTex, TextureSize(TEX_TITLE_BG), origin, end, 1.04f, ImVec2(0.6f, 0.5f), IM_COL32_WHITE);
+    } else {
+        HyruleScene(dl, origin, end, s, sPageTime + 30.0f, 1.0f);
+    }
     dl->AddRectFilled(origin, end, Fade(Col::Ink, 0.62f));
 
     // ---- Top: Voltar, the title and (Configurações) the groups of options.
@@ -1552,6 +1552,38 @@ extern "C" void DefinitiveUI_TitleMenuClose(void) {
         sDetached = true;
         sDetachedTime = 0.0f;
     }
+}
+
+// The first frames of the title screen run normally (half a second: the scene, its camera and its actors get ready,
+// under the opening image), then it stays still while the menu is up: no Link on Epona, no sounds of the opening.
+static constexpr u32 kTitleWarmupFrames = 10;
+
+extern "C" bool DefinitiveUI_TitleFrame(PlayState* play) {
+    if (play == nullptr || gSaveContext.gameMode != GAMEMODE_TITLE_SCREEN || !DefinitiveUI_TitleMenuEnabled()) {
+        return true;
+    }
+    if (DefinitiveUI_TitleMenuUpdate(play)) {
+        // What EnMag_GoToFileSelect does for "PRESS START".
+        if (play->transitionTrigger != TRANS_TRIGGER_START) {
+            Audio_SetCutsceneFlag(0);
+            gSaveContext.gameMode = GAMEMODE_FILE_SELECT;
+            play->transitionTrigger = TRANS_TRIGGER_START;
+            play->transitionType = TRANS_TYPE_FADE_BLACK;
+        }
+    }
+    if (sClosing || gSaveContext.gameMode != GAMEMODE_TITLE_SCREEN) {
+        return true; // on its way to file select: the scene runs the transition
+    }
+    if (play->state.frames <= kTitleWarmupFrames) {
+        return true;
+    }
+    // The title music, which the opening would have started a little later.
+    if (play->state.frames == kTitleWarmupFrames + 1) {
+        if (func_800FA0B4(SEQ_PLAYER_BGM_MAIN) != NA_BGM_TITLE) {
+            Audio_QueueSeqCmd(SEQ_PLAYER_BGM_MAIN << 24 | NA_BGM_TITLE);
+        }
+    }
+    return false;
 }
 
 extern "C" bool DefinitiveUI_TitleMenuHoldsTitle(void) {
