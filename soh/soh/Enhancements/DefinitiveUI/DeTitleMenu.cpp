@@ -12,6 +12,7 @@
 #include "DeTitleMenuText.h"
 #include "DeTitleMenuView.h"
 #include "DeMusic.h"
+#include "DeEffects.h"
 
 #include <libultraship/libultraship.h>
 #include <Window.h>
@@ -264,9 +265,15 @@ static int sJournalTimeout = 0;
 
 // The image shown before the menu when the game opens.
 static float sSplashTime = -1.0f; // seconds since it appeared; negative: not started
-static float sSplashOut = -1.0f;  // when it started to fade out; negative: still holding
 static bool sSplashDone = false;
 static bool sSplashSkip = false;
+static float sSplashBase = 0.0f;  // sSplashTime when the opening video ended (the image waits from there)
+static bool sSplashImage = true;  // the Definitive Edition image is shown (not after the opening video)
+// The opening video (Android: IntroVideo in MainActivity.java) is playing over everything.
+static bool sIntroVideo = false;
+static int sIntroMuteFrames = 0;
+// The way from the opening to the menu: fade, golden motes, light, Triforce, iris (DeEffects.h).
+static Fx::CinematicReveal sReveal;
 
 static Item sItems[kMaxItems];
 static TitleMenuItem sViewItems[kMaxItems];
@@ -288,6 +295,77 @@ static bool PortMenuOpen() {
 
 static bool SplashOn() {
     return sSplashTime >= 0.0f && !sSplashDone;
+}
+
+// The opening still keeps the menu from being seen and used (it can already be used while the iris opens).
+static bool SplashBlocks() {
+    return SplashOn() && !sReveal.MenuShown();
+}
+
+// ---- Opening video. MainActivity.java plays it over the game (a file the player puts in OOT-DE/intro.mp4, or
+// assets/intro.mp4 of the APK when there is one) and tells when it is over; the menu waits for it.
+#ifdef __ANDROID__
+#include <jni.h>
+static bool CallActivity(const char* name, const char* sig, int* result) {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+    if (env == nullptr || activity == nullptr) {
+        return false;
+    }
+    bool ok = false;
+    jclass cls = env->GetObjectClass(activity);
+    jmethodID method = env->GetMethodID(cls, name, sig);
+    if (method != nullptr) {
+        if (sig[2] == 'Z') {
+            *result = env->CallBooleanMethod(activity, method) ? 1 : 0;
+        } else if (sig[2] == 'I') {
+            *result = env->CallIntMethod(activity, method);
+        } else {
+            env->CallVoidMethod(activity, method);
+        }
+        ok = !env->ExceptionCheck();
+    }
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        ok = false;
+    }
+    env->DeleteLocalRef(cls);
+    env->DeleteLocalRef(activity);
+    return ok;
+}
+static bool StartIntroVideo() {
+    int started = 0;
+    return CallActivity("startIntroVideo", "()Z", &started) && started != 0;
+}
+// 1: playing, 2: over (or skipped, or failed).
+static int IntroVideoState() {
+    int state = 2;
+    return CallActivity("introVideoState", "()I", &state) ? state : 2;
+}
+static void SkipIntroVideo() {
+    int unused = 0;
+    CallActivity("skipIntroVideo", "()V", &unused);
+}
+#else
+static bool StartIntroVideo() {
+    return false;
+}
+static int IntroVideoState() {
+    return 2;
+}
+static void SkipIntroVideo() {
+}
+#endif
+
+// The player wants to go on: the video stops, or the opening goes straight to the menu.
+static void SkipOpening() {
+    if (sIntroVideo) {
+        SkipIntroVideo();
+    } else if (sReveal.Running()) {
+        sReveal.Skip();
+    } else {
+        sSplashSkip = true;
+    }
 }
 
 static bool FileValid(int file) {
@@ -1174,6 +1252,9 @@ void TitleMenuWindow::Draw() {
         sActive = false;
         sDetached = false;
         sSplashDone = true;
+        if (sIntroVideo) {
+            SkipIntroVideo();
+        }
     }
 
     // The image before the menu, once, when the game opens: it appears in 1.5 s, stays, and gives way to the menu
@@ -1181,6 +1262,12 @@ void TitleMenuWindow::Draw() {
     if (sSplashTime < 0.0f && !sSplashDone) {
         if (CVarGetInteger(CVAR_SETTING("DefinitiveUI.Splash"), 1) != 0) {
             sSplashTime = 0.0f;
+            // The opening video comes first, when there is one (it can be turned off).
+            if (CVarGetInteger(CVAR_SETTING("DefinitiveUI.IntroVideo"), 1) != 0 && StartIntroVideo()) {
+                sIntroVideo = true;
+                sSplashImage = false;
+                sIntroMuteFrames = 0;
+            }
         } else {
             sSplashDone = true;
         }
@@ -1188,17 +1275,31 @@ void TitleMenuWindow::Draw() {
     float splashAlpha = 0.0f;
     if (SplashOn()) {
         sSplashTime += dt;
-        if (sSplashOut < 0.0f &&
-            ((sSplashTime >= (sSplashSkip ? 0.6f : 4.0f) && sActive) || sSplashTime >= 14.0f)) {
-            sSplashOut = sSplashTime;
+        if (sIntroVideo) {
+            // The game's title music waits, silent, under the video (it is not stopped: it goes on afterwards).
+            if (sIntroMuteFrames-- <= 0) {
+                Audio_SetVolScale(SEQ_PLAYER_BGM_MAIN, kBgmVolScale, 0, 0);
+                sIntroMuteFrames = 10;
+            }
+            if (IntroVideoState() != 1) {
+                sIntroVideo = false;
+                sSplashBase = sSplashTime;
+                // Back to the volume the menu wants, rising slowly with the light.
+                const bool menuMusic = sBgmMuted;
+                Audio_SetVolScale(SEQ_PLAYER_BGM_MAIN, kBgmVolScale, menuMusic ? 0 : 0x7F, 40);
+            }
         }
-        splashAlpha = sSplashOut < 0.0f ? 1.0f : 1.0f - (sSplashTime - sSplashOut) / 1.0f;
-        if (splashAlpha <= 0.0f) {
-            sSplashDone = true;
-            splashAlpha = 0.0f;
+        // The light comes when the title screen is ready (or after a while, whatever happens).
+        if (!sIntroVideo && !sReveal.Running()) {
+            const float since = sSplashTime - sSplashBase;
+            const float hold = (sSplashSkip || !sSplashImage) ? 0.6f : 4.0f;
+            if ((since >= hold && sActive) || since >= 14.0f) {
+                sReveal.Start();
+            }
         }
+        splashAlpha = 1.0f;
     }
-    const bool splashHolding = SplashOn() && sSplashOut < 0.0f;
+    const bool splashHolding = SplashBlocks();
 
     // The cover while file select works for the menu. It never stays for ever.
     if (sCover) {
@@ -1272,8 +1373,8 @@ void TitleMenuWindow::Draw() {
     }
     if (pointer.tap) {
         sTouchMode = true;
-        if (SplashOn()) {
-            sSplashSkip = true;
+        if (SplashBlocks()) {
+            SkipOpening();
         }
     }
 
@@ -1326,7 +1427,7 @@ void TitleMenuWindow::Draw() {
         // their own opaque backgrounds).
         view.backdrop = ((sActive || sDetached) && !portMenu) ? 1.0f : 0.0f;
 
-        pointer.valid = sActive && !sClosing && !sDetached && !portMenu && !SplashOn() && !sCover;
+        pointer.valid = sActive && !sClosing && !sDetached && !portMenu && !SplashBlocks() && !sCover;
         const TitleMenuInput input = mRenderer.Draw(dl, origin, size, view, dt, mTime, pointer);
         if (input.activated >= 0) {
             sPendingTouch = input.activated;
@@ -1345,7 +1446,22 @@ void TitleMenuWindow::Draw() {
         mRenderer.DrawLoading(dl, origin, size, mTime, sCoverAlpha, sCover ? sCoverText : nullptr);
     }
     if (splashAlpha > 0.0f) {
-        mRenderer.DrawSplash(dl, origin, size, dt, sSplashTime, splashAlpha);
+        // Under the image: black, with the iris that opens on the menu. Then the image, fading. Then the light.
+        sReveal.Update(dt, origin, size);
+        if (sReveal.Running()) {
+            sReveal.DrawCover(dl, origin, size);
+        } else {
+            dl->AddRectFilled(origin, origin + size, IM_COL32_BLACK);
+        }
+        const float imageAlpha = sReveal.Running() ? sReveal.SplashAlpha() : 1.0f;
+        if (sSplashImage && imageAlpha > 0.0f) {
+            mRenderer.DrawSplash(dl, origin, size, dt, sSplashTime, imageAlpha);
+        }
+        sReveal.DrawEffects(dl, origin, size);
+        if (sReveal.Done()) {
+            sSplashDone = true;
+            sReveal.Release();
+        }
     }
 }
 
@@ -1375,7 +1491,8 @@ extern "C" bool DefinitiveUI_TitleMenuEnabled(void) {
 
 // The menu's own music (DeMusic) is optional: off, the game's title music plays as always.
 static void UpdateMusic() {
-    const bool wanted = !sClosing && CVarGetInteger(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"), 0) > 0;
+    const bool wanted =
+        !sClosing && !sIntroVideo && CVarGetInteger(CVAR_SETTING("DefinitiveUI.MenuMusicVolume"), 0) > 0;
     if (wanted) {
         MusicLoad();
     }
@@ -1408,10 +1525,10 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
         return false;
     }
     Input* input = &play->state.input[0];
-    // The image before the menu is still up: any button sends it away, and nothing reaches the menu yet.
-    if (SplashOn()) {
+    // The opening is still up: any button sends it away, and nothing reaches the menu yet.
+    if (SplashBlocks()) {
         if (input->press.button != 0) {
-            sSplashSkip = true;
+            SkipOpening();
         }
         sInputCooldown = 4;
         sPendingTouch = -1;

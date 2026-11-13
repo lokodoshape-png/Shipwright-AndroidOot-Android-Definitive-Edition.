@@ -12,6 +12,24 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.11.0] — Abertura cinematográfica
+
+- **Vídeo de abertura.** Ao abrir o jogo toca o vídeo de abertura do OOT D.E., embutido no APK, com o botão
+  **PULAR INTRO** (tocar na tela ou apertar qualquer botão do controle também pula). Um `intro.mp4` colocado na
+  pasta OOT-DE toca no lugar dele. A opção `DefinitiveUI.IntroVideo` desliga o vídeo.
+- **Transição da abertura para o menu.** Quando o vídeo termina (ou é pulado), a imagem se apaga, partículas
+  douradas entram pelas bordas da tela e se juntam no centro num brilho mágico, a Triforce aparece feita de luz com
+  ondas de "distorção do tempo" em volta, e o brilho se expande como uma íris revelando o menu principal. Sem o
+  vídeo, a mesma transição sai da imagem Definitive Edition. Durante a transição o menu já responde assim que
+  aparece, e um toque acelera a sequência.
+- **A música não reinicia.** A música da tela de título continua tocando, em silêncio, por baixo do vídeo e volta a
+  subir junto com a luz da transição.
+- **Efeitos novos e reutilizáveis** (`DeEffects`): fade, máscara em íris e em cortina, partículas mágicas que se
+  juntam ou explodem, brilho dourado, distorção do tempo, névoa ambiente, reflexo de lente e vinheta. Tudo com as
+  primitivas do ImGui, sem shader novo nem textura nova, com partículas em pool fixo liberadas ao fim da transição.
+- **No menu:** névoa baixa passando sobre o campo, um reflexo de luz no pôr do sol, e uma faixa de luz com
+  faíscas atravessando o painel quando a lista de botões muda. Nada disso segura o toque.
+
 ## [0.10.3] — Arte nítida dentro do APK
 
 - **A arte nova chegou de fato ao APK.** Na 0.10.2 as imagens em alta qualidade estavam no código, mas o APK
