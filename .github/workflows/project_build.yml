@@ -68,8 +68,13 @@ jobs:
 
       # soh.otr is committed (the build does not generate it). Before building: it must be a complete archive, with
       # the resources the game needs, the portVersion of this source tree and every PNG of soh/assets/custom.
+      # Pillow decodes the PNGs to check that soh.otr holds their current content. It is installed system-wide
+      # (apt) because the host test runs the script with python3 -I, which ignores the user site-packages of pip.
       - name: Verify soh.otr
-        run: python3 scripts/otr_add_custom.py --verify
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pil
+          python3 -I scripts/otr_add_custom.py --verify
 
       # Computer-side tests of the code changed for 0.8 (file checks of MainActivity, QM_Encode, the soh.otr check).
       - name: Run host tests
