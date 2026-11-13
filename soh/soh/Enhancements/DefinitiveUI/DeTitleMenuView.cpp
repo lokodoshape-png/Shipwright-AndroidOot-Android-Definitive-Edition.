@@ -86,7 +86,13 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
                                        float time, const PointerState& pointer) {
     TitleMenuInput result;
     const float alpha = ImClamp(view.alpha, 0.0f, 1.0f);
-    if (alpha <= 0.0f || size.x <= 0.0f || size.y <= 0.0f) {
+    if (size.x <= 0.0f || size.y <= 0.0f) {
+        return result;
+    }
+    if (view.backdrop > 0.0f) {
+        dl->AddRectFilled(origin, origin + size, Fade(Col::Ink, ImClamp(view.backdrop, 0.0f, 1.0f)));
+    }
+    if (alpha <= 0.0f) {
         return result;
     }
     dt = ImClamp(dt, 0.0f, 0.1f);
@@ -129,17 +135,7 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
 
     // ---- Background: Hyrule at dusk with the castle, Link and Navi. It comes out of the dark while drawing back,
     // then keeps breathing slowly closer and drifting sideways like a camera.
-    ImTextureID bgTex = GetTexture(TEX_TITLE_BG);
-    if (bgTex != (ImTextureID)0) {
-        const float zoom =
-            1.0f + 0.05f * (0.5f - 0.5f * cosf(time * 6.2831853f / 45.0f)) + 0.12f * (1.0f - sceneIn);
-        const ImVec2 focus(0.6f + 0.035f * sinf(time * 6.2831853f / 70.0f), 0.5f + 0.02f * sinf(time * 0.07f));
-        CoverImage(dl, bgTex, TextureSize(TEX_TITLE_BG), origin, end, zoom, focus,
-                   Fade(IM_COL32_WHITE, alpha * sceneIn));
-        // Sun rays from the glow of the sunset behind the castle.
-        SunRays(dl, ImVec2(origin.x + size.x * 0.70f, origin.y + size.y * 0.47f), size.x * 0.75f, time,
-                Fade(Col::Rgba(255, 226, 170), alpha * sceneIn * 0.16f));
-    }
+    HyruleScene(dl, origin, end, s, time, alpha * sceneIn);
     // Fireflies over the landscape.
     mSceneParticles.UpdateDust(dt, ImVec2(colX1 + 120.0f * s, origin.y + size.y * 0.35f), end, s * 0.8f);
     mSceneParticles.Update(dt);
@@ -187,12 +183,9 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
         }
         y += lh - 4.0f * s;
     } else {
-        const float sz = 48.0f * s;
-        GoldText(dl, fonts.display, sz, ImVec2(midX, y + 40.0f * s), "OCARINA OF TIME", 0.5f, sz * 0.08f,
-                 alpha * logoIn);
-        GoldText(dl, fonts.display, sz * 0.7f, ImVec2(midX, y + 100.0f * s), "DEFINITIVE EDITION", 0.5f, sz * 0.1f,
-                 alpha * logoIn);
-        y += 170.0f * s;
+        const float grow = 0.9f + 0.1f * EaseOutBack(ImClamp((mAge - 0.25f) / 0.8f, 0.0f, 1.0f));
+        TitleLogo(dl, ImVec2(midX, y), colW * grow, s * grow, alpha * logoIn, time);
+        y += 236.0f * s;
     }
 
     // ---- Panel: slides in from the left; two glints run around its frame.
@@ -516,9 +509,8 @@ void TitleMenuRenderer::DrawSplash(ImDrawList* dl, ImVec2 origin, ImVec2 size, f
         LightSweep(dl, c - half + ImVec2(half.x * 0.5f, half.y * 0.15f), c + half - ImVec2(0.0f, half.y * 0.06f),
                    (time - 1.4f) / 1.5f, 70.0f * s, Fade(Col::GoldPale, la * 0.4f));
     } else {
-        const float sz = 86.0f * s * zoom;
-        GoldText(dl, fonts.display, sz, ImVec2(c.x, c.y - sz * 1.1f), "OCARINA OF TIME", 0.5f, sz * 0.08f, la);
-        GoldText(dl, fonts.display, sz * 0.62f, ImVec2(c.x, c.y + sz * 0.2f), "DEFINITIVE EDITION", 0.5f, sz * 0.1f, la);
+        const float k = 1.45f * zoom;
+        TitleLogo(dl, ImVec2(c.x, c.y - 170.0f * s * k), size.y * 0.62f * k, s * k, la, time);
     }
 }
 
@@ -533,11 +525,7 @@ void TitleMenuRenderer::DrawLoading(ImDrawList* dl, ImVec2 origin, ImVec2 size, 
     Fonts& fonts = GetFonts();
     // Opaque: the game's own file select works underneath and is never seen.
     dl->AddRectFilled(origin, end, Fade(IM_COL32_BLACK, alpha));
-    ImTextureID bgTex = GetTexture(TEX_TITLE_BG);
-    if (bgTex != (ImTextureID)0) {
-        CoverImage(dl, bgTex, TextureSize(TEX_TITLE_BG), origin, end, 1.06f, ImVec2(0.6f, 0.5f),
-                   Fade(Col::Rgba(120, 120, 135), alpha));
-    }
+    HyruleScene(dl, origin, end, s, time, alpha);
     dl->AddRectFilled(origin, end, Fade(Col::Ink, alpha * 0.55f));
     const ImVec2 c(origin.x + size.x * 0.5f, origin.y + size.y * 0.46f);
     TriforceCrest(dl, c, 120.0f * s, alpha, time);

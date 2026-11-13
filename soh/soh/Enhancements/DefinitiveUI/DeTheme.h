@@ -133,6 +133,11 @@ void Divider(ImDrawList* dl, ImVec2 a, float width, float s, float alpha);
 void LightSweep(ImDrawList* dl, ImVec2 a, ImVec2 b, float t, float width, ImU32 col);
 // Soft rays of sunlight coming out of `center`, slowly turning and breathing.
 void SunRays(ImDrawList* dl, ImVec2 center, float length, float time, ImU32 col);
+// Hyrule at dusk (sky, Death Mountain, the castle on its hill, the field), drawn with shapes: opaque over a..b.
+void HyruleScene(ImDrawList* dl, ImVec2 a, ImVec2 b, float s, float time, float alpha);
+// The title: Triforce, "THE LEGEND OF ZELDA", "OCARINA OF TIME" and "DEFINITIVE EDITION", centered on top.x, about
+// 230 * s tall.
+void TitleLogo(ImDrawList* dl, ImVec2 top, float width, float s, float alpha, float time);
 
 // Animation curves (t = 0..1).
 float EaseOut(float t);

@@ -19,6 +19,7 @@
 #include <Fast3D/gfx_pc.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -33,6 +34,7 @@
 #include <SDL2/SDL.h>
 #include "soh/cvar_prefixes.h"
 #include "soh/SohGui/ModsMenu.h"
+#include "soh/SohGui/Menu.h"
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 
 extern "C" {
@@ -87,6 +89,11 @@ static void LoadTextures() {
     auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
     auto resources = Ship::Context::GetInstance()->GetResourceManager();
     for (int i = 0; i < TEX_COUNT; i++) {
+        if (i >= TEX_TITLE_BG && i <= TEX_FRAME) {
+            // Drawn with shapes now (see GetTexture in DeTheme.cpp): no need to keep them in memory.
+            sTextureAvailable[i] = false;
+            continue;
+        }
         // A soh.otr without the texture (an older one) must not crash: the shapes fall back to plain geometry.
         auto res = std::static_pointer_cast<Fast::Texture>(resources->LoadResource(kTexturePaths[i], true));
         sTextureAvailable[i] = res != nullptr;
@@ -151,7 +158,7 @@ void LoadFonts() {
     Fonts& f = GetFonts();
     // One size each, at the largest size the menu usually draws them. Latin-1 covers every Portuguese letter.
     const float k = ScreenFontScale();
-    f.display = AddFont(0, "fonts/Cinzel-Bold.ttf", 64.0f * k);
+    f.display = AddFont(0, "fonts/Cinzel-Bold.ttf", 88.0f * k);
     f.displayRegular = AddFont(1, "fonts/Cinzel-Regular.ttf", 28.0f * k);
     f.body = AddFont(2, "fonts/EBGaramond-Medium.ttf", 36.0f * k);
 }
@@ -226,6 +233,13 @@ static int sInputCooldown = 0; // frames to ignore the controller (after the por
 static int sHoldDirX = 0, sHoldDirY = 0;
 static int sHoldFrames = 0;
 static bool sPortMenuWasOpen = false;
+// A page of options shown inside the menu (Configurações, Mods, Definitive Features), instead of the port menu.
+static bool sPageOpen = false;
+static std::string sPageHeader;
+static std::string sPageSidebar;
+static bool sPageTabs = false;   // the headers of the port menu are offered as tabs (Configurações)
+static int sPageFocusFrames = 0; // frames to give it the focus after it opens
+static float sPageTime = 0.0f;
 #ifdef __ANDROID__
 static bool sTouchMode = true;
 #else
@@ -585,29 +599,229 @@ static void Back() {
     PlaySfx(NA_SE_SY_FSEL_CLOSE);
 }
 
-static void OpenPortMenu(const char* sidebar) {
-    CVarSetString(CVAR_SETTING("Menu.ActiveHeader"), "Settings");
-    CVarSetString(CVAR_SETTING("Menu.SettingsSidebarSection"), sidebar);
-    auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
-    if (gui->GetMenu() != nullptr) {
-        gui->GetMenu()->Show();
-        // Same as opening it with its key: let the controller move in it when that option is on.
-        if (CVarGetInteger(CVAR_IMGUI_CONTROLLER_NAV, 0)) {
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+// ---------------------------------------------------------------------------------------------------------------------
+// Pages: the options of the port menu (Configurações, Mods, Definitive Features) drawn inside the Definitive Edition
+// menu, with its own look, so the port menu never opens over the title screen.
+
+static std::shared_ptr<Ship::Menu> PortMenu() {
+    return std::dynamic_pointer_cast<Ship::Menu>(Ship::Context::GetInstance()->GetWindow()->GetGui()->GetMenu());
+}
+
+static void SetGamepadNav(bool on) {
+    if (on && CVarGetInteger(CVAR_IMGUI_CONTROLLER_NAV, 0)) {
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    } else if (!on && !PortMenuOpen()) {
+        ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
+    }
+}
+
+static void OpenPage(const char* header, const char* sidebar, bool tabs) {
+    auto menu = PortMenu();
+    if (menu == nullptr) {
+        return;
+    }
+    std::vector<std::string> order = menu->GetSidebarOrder(header);
+    if (order.empty()) {
+        return;
+    }
+    sPageHeader = header;
+    sPageSidebar = (sidebar != nullptr && std::find(order.begin(), order.end(), sidebar) != order.end())
+                       ? std::string(sidebar)
+                       : order.front();
+    sPageTabs = tabs;
+    sPageOpen = true;
+    sPageFocusFrames = 2;
+    sPageTime = 0.0f;
+    SetGamepadNav(true);
+}
+
+static void ClosePage() {
+    if (!sPageOpen) {
+        return;
+    }
+    sPageOpen = false;
+    sPortMenuWasOpen = true; // the button that closed it must not reach the menu
+    CVarSave();
+    SetGamepadNav(false);
+}
+
+// A Definitive Edition button that ImGui can press, touch and reach with the controller.
+static bool PageButton(const char* id, const char* label, ImVec2 size, bool selected, float s, float time) {
+    ImGui::PushID(id);
+    const ImVec2 a = ImGui::GetCursorScreenPos();
+    const bool pressed = ImGui::InvisibleButton("##b", size);
+    const bool hovered = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+    const bool held = ImGui::IsItemActive();
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const float hl = selected ? 1.0f : (hovered ? 0.6f : 0.0f);
+    Button(dl, a, a + size, s, label, hl, held ? 0.6f : 0.0f, BUTTON_NORMAL, 1.0f, time);
+    ImGui::PopID();
+    return pressed;
+}
+
+// Lets a finger drag the current window up and down (ImGui only scrolls with the wheel or the scroll bar). A drag that
+// goes more up/down than sideways scrolls; sideways drags still move sliders.
+static void TouchScroll() {
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantTextInput || !ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows |
+                                                    ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
+        return;
+    }
+    if (!ImGui::IsMouseDragging(ImGuiMouseButton_Left, 10.0f)) {
+        return;
+    }
+    const ImVec2 drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 10.0f);
+    if (fabsf(drag.y) > fabsf(drag.x) * 1.4f) {
+        ImGui::SetScrollY(ImGui::GetScrollY() - io.MouseDelta.y);
+        // The button the finger started on is not pressed by a scroll.
+        if (ImGui::GetActiveID() != 0) {
+            ImGui::ClearActiveID();
         }
     }
 }
 
-// Definitive Features: their pages live in the port menu, header "Definitive" (SohMenuDefinitive.cpp).
-static void OpenDefinitivePage(const char* sidebar) {
-    CVarSetString(CVAR_SETTING("Menu.ActiveHeader"), "Definitive");
-    CVarSetString(CVAR_SETTING("Menu.DefinitiveSidebarSection"), sidebar);
-    auto gui = Ship::Context::GetInstance()->GetWindow()->GetGui();
-    if (gui->GetMenu() != nullptr) {
-        gui->GetMenu()->Show();
-        if (CVarGetInteger(CVAR_IMGUI_CONTROLLER_NAV, 0)) {
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+static void DrawPage(float dt) {
+    auto menu = PortMenu();
+    if (menu == nullptr) {
+        ClosePage();
+        return;
+    }
+    sPageTime += dt;
+    Fonts& fonts = GetFonts();
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImVec2 origin = viewport->Pos;
+    const ImVec2 size = viewport->Size;
+    const ImVec2 end = origin + size;
+    const float s = size.y / 1080.0f;
+    const float in = ImClamp(sPageTime / 0.25f, 0.0f, 1.0f);
+
+    ImGui::SetNextWindowPos(origin);
+    ImGui::SetNextWindowSize(size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    if (sPageFocusFrames > 0) {
+        ImGui::SetNextWindowFocus();
+        sPageFocusFrames--;
+    }
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                                   ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking |
+                                   ImGuiWindowFlags_NoScrollWithMouse;
+    const bool open = ImGui::Begin("Definitive Edition##Page", nullptr, flags);
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
+    if (!open) {
+        ImGui::End();
+        return;
+    }
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    // Behind: the same Hyrule at dusk as the menu, darkened so the options read well.
+    HyruleScene(dl, origin, end, s, sPageTime + 30.0f, 1.0f);
+    dl->AddRectFilled(origin, end, Fade(Col::Ink, 0.62f));
+
+    // ---- Top: Voltar, the title and (Configurações) the groups of options.
+    const float pad = 28.0f * s;
+    const float topH = 96.0f * s;
+    ImGui::SetCursorScreenPos(origin + ImVec2(pad, 18.0f * s));
+    bool back = PageButton("back", Strings::kBack, ImVec2(250.0f * s, 64.0f * s), false, s, sPageTime);
+    const std::string title = sPageTabs ? std::string(Strings::kMainLabels[MAIN_SETTINGS])
+                                        : Ship::Menu::HeaderDisplayName(sPageHeader);
+    GoldText(dl, fonts.display, 44.0f * s, ImVec2(origin.x + size.x * 0.5f, origin.y + 26.0f * s), title.c_str(), 0.5f,
+             3.0f * s, in);
+
+    float y = origin.y + topH;
+    if (sPageTabs) {
+        // One tab per header of the port menu (Configurações, Melhorias, Randomizer...).
+        const std::vector<std::string>& headers = menu->GetHeaderOrder();
+        float x = origin.x + pad;
+        const float tabH = 54.0f * s;
+        ImGui::PushFont(OTRGlobals::Instance->fontStandardLargest);
+        for (size_t i = 0; i < headers.size(); i++) {
+            const std::string label = Ship::Menu::HeaderDisplayName(headers[i]);
+            const float tw = ImMax(170.0f * s, TextSize(fonts.display, 26.0f * s, label.c_str()).x + 90.0f * s);
+            if (x + tw > end.x - pad) {
+                break;
+            }
+            ImGui::SetCursorScreenPos(ImVec2(x, y));
+            if (PageButton(headers[i].c_str(), label.c_str(), ImVec2(tw, tabH), headers[i] == sPageHeader, s * 0.8f,
+                           sPageTime)) {
+                std::vector<std::string> order = menu->GetSidebarOrder(headers[i]);
+                if (!order.empty()) {
+                    sPageHeader = headers[i];
+                    sPageSidebar = order.front();
+                    PlaySfx(NA_SE_SY_FSEL_CURSOR);
+                }
+            }
+            x += tw + 8.0f * s;
         }
+        ImGui::PopFont();
+        y += tabH + 14.0f * s;
+    }
+    Divider(dl, ImVec2(origin.x + pad, y), size.x - pad * 2.0f, s, in);
+    y += 14.0f * s;
+
+    // ---- Left: the sections of this group. Right: the options of the chosen one.
+    std::vector<std::string> order = menu->GetSidebarOrder(sPageHeader);
+    if (std::find(order.begin(), order.end(), sPageSidebar) == order.end() && !order.empty()) {
+        sPageSidebar = order.front();
+    }
+    const float listW = ImMin(460.0f * s, size.x * 0.28f);
+    const float areaH = end.y - y - pad;
+    if (order.size() > 1) {
+        ImGui::SetCursorScreenPos(ImVec2(origin.x + pad, y));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
+        ImGui::BeginChild("##DEPageList", ImVec2(listW, areaH), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar);
+        const float bh = 62.0f * s;
+        for (const std::string& name : order) {
+            const std::string label = Ship::Menu::SidebarDisplayName(name);
+            if (PageButton(name.c_str(), label.c_str(), ImVec2(listW - 12.0f * s, bh), name == sPageSidebar, s * 0.82f,
+                           sPageTime)) {
+                if (name != sPageSidebar) {
+                    sPageSidebar = name;
+                    PlaySfx(NA_SE_SY_FSEL_CURSOR);
+                    ImGui::SetScrollY(ImGui::GetScrollY()); // keep the list where it is
+                }
+            }
+            ImGui::Dummy(ImVec2(1.0f, 4.0f * s));
+        }
+        TouchScroll();
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+    }
+    const float contentX = origin.x + pad + (order.size() > 1 ? listW + 18.0f * s : 0.0f);
+    const ImVec2 ca(contentX, y);
+    const ImVec2 cb(end.x - pad, y + areaH);
+    Panel(dl, ca, cb, s, 0.96f);
+    const float inner = 34.0f * s;
+    ImGui::SetCursorScreenPos(ca + ImVec2(inner, inner));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f * s, 8.0f * s));
+    ImGui::BeginChild("##DEPageContent", (cb - ca) - ImVec2(inner * 2.0f, inner * 2.0f), ImGuiChildFlags_AlwaysUseWindowPadding,
+                      ImGuiWindowFlags_None);
+    // A new section starts at its top.
+    static std::string sShown;
+    if (sShown != sPageHeader + "/" + sPageSidebar) {
+        sShown = sPageHeader + "/" + sPageSidebar;
+        ImGui::SetScrollY(0.0f);
+    }
+    if (!menu->DrawSection(sPageHeader, sPageSidebar, ImGui::GetContentRegionAvail().x)) {
+        ImGui::TextUnformatted("-");
+    }
+    TouchScroll();
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+
+    // B on the controller, or Esc, goes back too (when nothing is being typed or held).
+    if (!ImGui::IsAnyItemActive() && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        (ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false) || ImGui::IsKeyPressed(ImGuiKey_Escape, false))) {
+        back = true;
+    }
+    ImGui::End();
+    if (back) {
+        PlaySfx(NA_SE_SY_FSEL_CLOSE);
+        ClosePage();
     }
 }
 
@@ -694,11 +908,11 @@ static bool Activate(int index) {
             return false;
         case ACT_MODS:
             PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
-            OpenPortMenu("Mods");
+            OpenPage("Settings", "Mods", false);
             return false;
         case ACT_SETTINGS:
             PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
-            OpenPortMenu("General");
+            OpenPage("Settings", "General", true);
             return false;
         case ACT_FEATURES:
             PlaySfx(NA_SE_SY_WIN_OPEN);
@@ -711,7 +925,7 @@ static bool Activate(int index) {
         case ACT_FEATURE:
             if (item.arg >= 0 && item.arg < FEATURE_COUNT) {
                 PlaySfx(NA_SE_SY_FSEL_DECIDE_L);
-                OpenDefinitivePage(Strings::kFeatureSidebars[item.arg]);
+                OpenPage("Definitive", Strings::kFeatureSidebars[item.arg], false);
             }
             return false;
         case ACT_EXTRAS:
@@ -931,7 +1145,22 @@ class TitleMenuWindow : public Ship::GuiWindow {
 void TitleMenuWindow::Draw() {
     const float dt = ImClamp(ImGui::GetIO().DeltaTime, 0.0f, 0.1f);
     const bool enabled = CVarGetInteger(CVAR_TITLE_MENU, 1) != 0;
-    const bool portMenu = PortMenuOpen();
+    // A page is open and the port menu was opened on top of it (its key, or the back key on Android): that key
+    // means "back" here.
+    if (sPageOpen && PortMenuOpen()) {
+        auto menu = PortMenu();
+        if (menu != nullptr && menu->IsVisible()) {
+            menu->ToggleVisibility();
+        }
+        ClosePage();
+    }
+    if (sPageOpen && (!enabled || (!sActive && !sDetached) || sClosing)) {
+        ClosePage();
+    }
+    const bool portMenu = PortMenuOpen() || sPageOpen;
+    if (sPageOpen) {
+        DrawPage(dt);
+    }
 
     // The title screen restarts its opening now and then, and its logo actor with it: the menu waits for it.
     if (sDetached) {
@@ -1093,6 +1322,9 @@ void TitleMenuWindow::Draw() {
         }
         view.alpha = sAlpha;
         view.slide = (1.0f - sAlpha) * (1.0f - sAlpha);
+        // Nothing of the game's title screen shows through, unless a page or the port menu is on top (they have
+        // their own opaque backgrounds).
+        view.backdrop = ((sActive || sDetached) && !portMenu) ? 1.0f : 0.0f;
 
         pointer.valid = sActive && !sClosing && !sDetached && !portMenu && !SplashOn() && !sCover;
         const TitleMenuInput input = mRenderer.Draw(dl, origin, size, view, dt, mTime, pointer);
@@ -1193,8 +1425,9 @@ extern "C" bool DefinitiveUI_TitleMenuUpdate(PlayState* play) {
         sPressTimer--;
     }
 
-    // The port menu (Mods, Configurações) is on top: leave the controller to it, and ignore the button that closes it.
-    if (PortMenuOpen()) {
+    // A page (Mods, Configurações...) or the port menu is on top: leave the controller to it, and ignore the button
+    // that closes it.
+    if (PortMenuOpen() || sPageOpen) {
         sPortMenuWasOpen = true;
         sPendingTouch = -1;
         sPendingKey = -1;
@@ -1319,6 +1552,10 @@ extern "C" void DefinitiveUI_TitleMenuClose(void) {
         sDetached = true;
         sDetachedTime = 0.0f;
     }
+}
+
+extern "C" bool DefinitiveUI_TitleMenuHoldsTitle(void) {
+    return CVarGetInteger(CVAR_TITLE_MENU, 1) != 0 && (sActive || sDetached) && !sClosing;
 }
 
 extern "C" bool DefinitiveUI_TitleMenuVisible(void) {
