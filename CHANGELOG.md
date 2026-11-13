@@ -12,6 +12,14 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.10.3] — Arte nítida dentro do APK
+
+- **A arte nova chegou de fato ao APK.** Na 0.10.2 as imagens em alta qualidade estavam no código, mas o APK
+  continuou levando as antigas: o arquivo `soh.otr` do app só recebia imagens que ainda não existiam nele e não
+  substituía as que já estavam lá. Agora o fundo (2880 px), o logo (1944 px), os botões e as molduras novos estão
+  dentro do APK, e a verificação da build falha se alguma imagem do APK ficar diferente da do código.
+- As correções de menu da 0.10.2 (abertura parada, sem o som da demonstração, navegação destravada) continuam.
+
 ## [0.10.2] — Arte original nítida e menu que não trava
 
 - **A arte de antes voltou**, com o Link sentado olhando o castelo, o logo, os botões e as molduras, agora em

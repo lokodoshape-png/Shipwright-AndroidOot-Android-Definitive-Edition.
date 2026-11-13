@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""OOT D.E.: add the custom textures that are missing from the prebuilt soh.otr of the Android app.
+"""OOT D.E.: add the custom textures that are missing from (or outdated in) the prebuilt soh.otr of the Android app.
 
 The Android build ships Android/app/src/main/assets/soh.otr as a committed file; it is not generated from
 soh/assets/custom/ by the build. This script copies every file of that archive as it is and adds, as OTR texture
 resources, the RGBA32 PNGs of soh/assets/custom/ that it does not have yet (the same resources that OTRExporter
-writes for them). Run it after adding a texture under soh/assets/custom/:
+writes for them). Custom files already in the archive whose PNG changed are replaced. Run it after adding or
+editing a texture under soh/assets/custom/:
 
     python3 scripts/otr_add_custom.py            # update the archive
     python3 scripts/otr_add_custom.py --check    # only list what is missing; exit 1 if anything is
@@ -191,6 +192,32 @@ def texture_resource(png):
     return bytes(header) + struct.pack("<IIII", TEXTURE_RGBA32, w, h, len(pixels)) + pixels
 
 
+def custom_resource(path):
+    if path.endswith((".ttf", ".otf", ".ogg")):
+        with open(path, "rb") as f:
+            return f.read()
+    return texture_resource(path)
+
+
+def outdated_textures(files, unpack):
+    """Custom files already in the archive whose content differs from soh/assets/custom (an edited PNG)."""
+    outdated = []
+    for folder, _, names in os.walk(CUSTOM):
+        for fn in sorted(names):
+            parts = fn.split(".")
+            path = os.path.join(folder, fn)
+            rel = os.path.relpath(path, CUSTOM).replace(os.sep, "/")
+            if parts[-1] in ("ttf", "otf", "ogg"):
+                name = rel
+            elif len(parts) >= 3 and parts[-1] == "png" and parts[-2] == "rgba32":
+                name = rel.rsplit(".", 2)[0]
+            else:
+                continue
+            if name in files and unpack(name) != custom_resource(path):
+                outdated.append((name, path))
+    return outdated
+
+
 def missing_textures(files):
     missing = []
     for folder, _, names in os.walk(CUSTOM):
@@ -287,6 +314,9 @@ def verify(path):
             problems.append("portVersion is too short")
     for name, _ in missing_textures(files):
         problems.append(f"missing custom texture: {name} (run python3 scripts/otr_add_custom.py)")
+    for name, _ in outdated_textures(files, unpack):
+        problems.append(f"outdated custom texture: {name} differs from soh/assets/custom "
+                        "(run python3 scripts/otr_add_custom.py)")
     return problems
 
 
@@ -310,21 +340,20 @@ def main():
     if not os.path.isfile(args.otr):
         sys.exit(f"{args.otr}: file not found")
 
-    shift, files = read_mpq(args.otr)
+    shift, files, unpack, _ = read_mpq(args.otr, want_unpack=True)
     missing = missing_textures(files)
+    outdated = outdated_textures(files, unpack)
     for name, _ in missing:
         print(("missing: " if args.check else "adding: ") + name)
+    for name, _ in outdated:
+        print(("outdated: " if args.check else "replacing: ") + name)
     if args.check:
-        sys.exit(1 if missing else 0)
-    if not missing:
-        print("soh.otr already has every custom texture.")
+        sys.exit(1 if missing or outdated else 0)
+    if not missing and not outdated:
+        print("soh.otr already has every custom texture, up to date.")
         return
-    for name, png in missing:
-        if png.endswith((".ttf", ".otf", ".ogg")):
-            with open(png, "rb") as f:
-                res = f.read()
-        else:
-            res = texture_resource(png)
+    for name, path in missing + outdated:
+        res = custom_resource(path)
         files[name] = (res, len(res), FILE_EXISTS | FILE_SINGLE_UNIT)
     # The attributes hold checksums of the old blocks; StormLib rebuilds without them.
     files.pop("(attributes)", None)
