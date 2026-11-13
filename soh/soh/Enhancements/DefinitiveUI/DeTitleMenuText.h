@@ -26,6 +26,7 @@ enum TitleExtrasItem {
 };
 
 namespace Strings {
+constexpr const char* kSkipIntro = "PULAR INTRO";
 constexpr const char* kMainLabels[MAIN_COUNT] = {
     "Continuar", "Novo Jogo", "Arquivos de Jogo", "Diário de Quests", "Definitive Features", "Mods", "Configurações",
     "Extras",
