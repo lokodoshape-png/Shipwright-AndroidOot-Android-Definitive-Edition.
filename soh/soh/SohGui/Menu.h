@@ -28,6 +28,17 @@ class Menu : public GuiWindow {
     void AddMenuEntry(std::string entryName, const char* entryCvar);
     std::unordered_map<uint32_t, disabledInfo>& GetDisabledMap();
 
+    // OOT D.E.: the Definitive Edition main menu shows the pages of this menu inside its own screens.
+    const std::vector<std::string>& GetHeaderOrder() const;
+    // The sidebars of a header, in order (empty when the header does not exist).
+    std::vector<std::string> GetSidebarOrder(const std::string& header) const;
+    // Translated names, as this menu shows them.
+    static std::string HeaderDisplayName(const std::string& header);
+    static std::string SidebarDisplayName(const std::string& sidebar);
+    // Draws the options of one sidebar in the current window (same widgets and rules as this menu), using up to
+    // `width` pixels. Returns false when the sidebar does not exist.
+    bool DrawSection(const std::string& header, const std::string& sidebar, float width);
+
   protected:
     ImVec2 mOriginalSize;
     std::string mName;

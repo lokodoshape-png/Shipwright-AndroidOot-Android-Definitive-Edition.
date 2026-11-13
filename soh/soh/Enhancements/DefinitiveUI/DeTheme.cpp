@@ -38,6 +38,20 @@ void SetTextureLookup(TextureLookup lookup) {
 }
 
 ImTextureID GetTexture(Texture tex) {
+    switch (tex) {
+        case TEX_TITLE_BG:
+        case TEX_LOGO:
+        case TEX_BUTTON_NORMAL:
+        case TEX_BUTTON_SELECTED:
+        case TEX_BUTTON_PRESSED:
+        case TEX_FRAME:
+            // The art cut from the reference image was enlarged about 5x and looked blurry on a phone screen. Those
+            // pieces are now drawn as shapes at the screen's own resolution (HyruleScene, TitleLogo and the plain
+            // geometry of the buttons and frames).
+            return (ImTextureID)0;
+        default:
+            break;
+    }
     return sTextureLookup != nullptr ? sTextureLookup(tex) : (ImTextureID)0;
 }
 
@@ -876,6 +890,236 @@ void SunRays(ImDrawList* dl, ImVec2 center, float length, float time, ImU32 col)
             dl->PrimWriteIdx((ImDrawIdx)(v + 3));
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Hyrule at dusk, drawn with shapes (so it is sharp at any screen resolution).
+
+static float Hash(float x) {
+    const float v = sinf(x * 127.1f + 311.7f) * 43758.5453f;
+    return v - floorf(v);
+}
+
+// Smooth noise along x (0..1).
+static float Noise1(float x) {
+    const float i = floorf(x);
+    const float f = x - i;
+    const float u = f * f * (3.0f - 2.0f * f);
+    return Hash(i) * (1.0f - u) + Hash(i + 1.0f) * u;
+}
+
+// A band of ground from the ridge line height(x) down to `bottom`, with a vertical gradient (top -> low).
+template <typename F>
+static void Ridge(ImDrawList* dl, float x0, float x1, float bottom, F height, ImU32 top, ImU32 low, float step) {
+    const ImVec2 uv = dl->_Data->TexUvWhitePixel;
+    const int n = ImMax(2, (int)((x1 - x0) / step) + 1);
+    for (int i = 0; i < n; i++) {
+        const float xa = x0 + (x1 - x0) * i / n;
+        const float xb = x0 + (x1 - x0) * (i + 1) / n;
+        const float ya = height(xa);
+        const float yb = height(xb);
+        dl->PrimReserve(6, 4);
+        const ImDrawIdx base = (ImDrawIdx)dl->_VtxCurrentIdx;
+        dl->PrimWriteVtx(ImVec2(xa, ya), uv, top);
+        dl->PrimWriteVtx(ImVec2(xb, yb), uv, top);
+        dl->PrimWriteVtx(ImVec2(xb, bottom), uv, low);
+        dl->PrimWriteVtx(ImVec2(xa, bottom), uv, low);
+        dl->PrimWriteIdx(base);
+        dl->PrimWriteIdx((ImDrawIdx)(base + 1));
+        dl->PrimWriteIdx((ImDrawIdx)(base + 2));
+        dl->PrimWriteIdx(base);
+        dl->PrimWriteIdx((ImDrawIdx)(base + 2));
+        dl->PrimWriteIdx((ImDrawIdx)(base + 3));
+    }
+}
+
+// A soft cloud: a wide ellipse of light (the glow texture) or, without it, a faint band.
+static void Cloud(ImDrawList* dl, ImVec2 c, ImVec2 half, ImU32 col) {
+    ImTextureID tex = GetTexture(TEX_GLOW);
+    if (tex != (ImTextureID)0) {
+        dl->AddImage(tex, c - half, c + half, ImVec2(0, 0), ImVec2(1, 1), col);
+    } else {
+        dl->AddEllipseFilled(c, half * 0.5f, Fade(col, 0.4f), 0.0f, 32);
+    }
+}
+
+static void Tower(ImDrawList* dl, float cx, float base, float w, float h, float roof, ImU32 wall, ImU32 roofCol,
+                  ImU32 light, float s) {
+    dl->AddRectFilled(ImVec2(cx - w * 0.5f, base - h), ImVec2(cx + w * 0.5f, base), wall);
+    // Crenels.
+    const float m = w * 0.18f;
+    dl->AddRectFilled(ImVec2(cx - w * 0.62f, base - h - m * 0.2f), ImVec2(cx + w * 0.62f, base - h + m), wall);
+    if (roof > 0.0f) {
+        dl->AddTriangleFilled(ImVec2(cx - w * 0.66f, base - h), ImVec2(cx + w * 0.66f, base - h),
+                              ImVec2(cx, base - h - roof), roofCol);
+        dl->AddLine(ImVec2(cx, base - h - roof), ImVec2(cx, base - h - roof - roof * 0.22f), roofCol,
+                    ImMax(1.0f, 1.5f * s));
+    }
+    // A lit window.
+    if ((light >> 24) != 0) {
+        const float ww = ImMax(2.0f, w * 0.16f);
+        dl->AddRectFilled(ImVec2(cx - ww * 0.5f, base - h * 0.62f), ImVec2(cx + ww * 0.5f, base - h * 0.62f + ww * 1.8f),
+                          light, ww * 0.4f);
+    }
+}
+
+void HyruleScene(ImDrawList* dl, ImVec2 a, ImVec2 b, float s, float time, float alpha) {
+    if (alpha <= 0.0f) {
+        return;
+    }
+    const float w = b.x - a.x;
+    const float h = b.y - a.y;
+    const float horizon = a.y + h * 0.60f;
+    const auto A = [alpha](ImU32 c) { return Fade(c, alpha); };
+
+    // Sky: night blue at the top, violet, then the warm sunset at the horizon.
+    const ImU32 skyTop = A(Col::Rgba(10, 16, 40));
+    const ImU32 skyMid = A(Col::Rgba(58, 44, 92));
+    const ImU32 skyLow = A(Col::Rgba(214, 120, 84));
+    const ImU32 skyHorizon = A(Col::Rgba(252, 196, 120));
+    const float yMid = a.y + h * 0.30f;
+    const float yLow = a.y + h * 0.50f;
+    dl->AddRectFilledMultiColor(a, ImVec2(b.x, yMid), skyTop, skyTop, skyMid, skyMid);
+    dl->AddRectFilledMultiColor(ImVec2(a.x, yMid), ImVec2(b.x, yLow), skyMid, skyMid, skyLow, skyLow);
+    dl->AddRectFilledMultiColor(ImVec2(a.x, yLow), ImVec2(b.x, horizon + 2.0f), skyLow, skyLow, skyHorizon,
+                                skyHorizon);
+
+    // Stars in the upper sky, twinkling.
+    for (int i = 0; i < 90; i++) {
+        const float x = a.x + Hash(i * 1.37f) * w;
+        const float y = a.y + Hash(i * 2.91f + 4.0f) * h * 0.38f;
+        const float fade = 1.0f - (y - a.y) / (h * 0.38f);
+        const float tw = 0.55f + 0.45f * sinf(time * (0.8f + Hash(i * 0.7f) * 1.6f) + i);
+        const float r = (0.8f + Hash(i * 5.3f) * 1.4f) * s;
+        dl->AddCircleFilled(ImVec2(x, y), r, A(Fade(Col::Rgba(255, 246, 228), fade * tw * 0.9f)), 6);
+    }
+
+    // The sun going down behind the castle hill.
+    const ImVec2 sun(a.x + w * 0.82f, horizon - h * 0.10f);
+    Glow(dl, sun, h * 0.75f, A(Fade(Col::Rgba(255, 170, 90), 0.55f)));
+    Glow(dl, sun, h * 0.30f, A(Fade(Col::Rgba(255, 226, 160), 0.75f)));
+    dl->AddCircleFilled(sun, h * 0.045f, A(Col::Rgba(255, 244, 214)), 48);
+    SunRays(dl, sun, w * 0.75f, time, A(Fade(Col::Rgba(255, 226, 170), 0.14f)));
+
+    // Long clouds lit from below, drifting slowly.
+    for (int i = 0; i < 7; i++) {
+        const float drift = fmodf(Hash(i * 3.1f) * w + time * (6.0f + i * 1.5f) * s, w * 1.4f) - w * 0.2f;
+        const ImVec2 c(a.x + drift, a.y + h * (0.20f + 0.05f * i + 0.02f * Hash(i * 9.1f)));
+        const ImVec2 half(w * (0.16f + 0.08f * Hash(i * 4.3f)), h * (0.030f + 0.012f * Hash(i * 6.7f)));
+        const ImU32 col = Mix(Col::Rgba(150, 96, 150), Col::Rgba(255, 170, 120), (float)i / 6.0f);
+        Cloud(dl, c, half, A(Fade(col, 0.85f)));
+        Cloud(dl, c + ImVec2(-half.x * 0.35f, half.y * 0.2f), half * 0.7f, A(Fade(col, 0.6f)));
+        Cloud(dl, c + ImVec2(half.x * 0.3f, half.y * 0.35f), half * 0.6f, A(Fade(Col::Rgba(255, 214, 170), 0.55f)));
+    }
+
+    // Far mountains; Death Mountain on the left with its ring of smoke.
+    const float dmX = a.x + w * 0.40f;
+    const float dmTop = horizon - h * 0.30f;
+    Ridge(
+        dl, a.x, b.x, b.y,
+        [&](float x) {
+            const float u = (x - a.x) / w;
+            float y = horizon - h * (0.04f + 0.09f * Noise1(u * 7.0f) + 0.035f * Noise1(u * 19.0f + 7.0f) +
+                                     0.012f * Noise1(u * 61.0f + 3.0f));
+            // Death Mountain.
+            const float d = fabsf(x - dmX) / (w * 0.17f);
+            if (d < 1.0f) {
+                y = ImMin(y, dmTop + (horizon - dmTop) * d * (0.85f + 0.15f * Noise1(u * 30.0f)));
+            }
+            return y;
+        },
+        A(Col::Rgba(96, 72, 118)), A(Col::Rgba(150, 96, 112)), 6.0f * s);
+    {
+        const ImVec2 ring(dmX, dmTop - h * 0.035f);
+        Cloud(dl, ring, ImVec2(w * 0.07f, h * 0.035f), A(Fade(Col::Rgba(255, 190, 150), 0.45f)));
+    }
+    // Haze where the mountains meet the field.
+    dl->AddRectFilledMultiColor(ImVec2(a.x, horizon - h * 0.06f), ImVec2(b.x, horizon + h * 0.04f),
+                                A(Fade(Col::Rgba(255, 200, 150), 0.0f)), A(Fade(Col::Rgba(255, 200, 150), 0.0f)),
+                                A(Fade(Col::Rgba(255, 190, 140), 0.45f)), A(Fade(Col::Rgba(255, 190, 140), 0.45f)));
+
+    // The castle on its hill, dark against the sunset, with a few lit windows.
+    const float hillX = a.x + w * 0.66f;
+    const float hillTop = horizon - h * 0.02f;
+    Ridge(
+        dl, a.x, b.x, b.y,
+        [&](float x) {
+            const float u = (x - a.x) / w;
+            const float d = (x - hillX) / (w * 0.11f);
+            const float hill = hillTop + h * 0.07f * d * d;
+            const float rolling = horizon + h * (0.03f + 0.04f * Noise1(u * 6.0f + 2.0f));
+            return ImMin(hill, rolling);
+        },
+        A(Col::Rgba(40, 46, 58)), A(Col::Rgba(18, 26, 26)), 5.0f * s);
+    {
+        const ImU32 wall = A(Col::Rgba(46, 46, 62));
+        const ImU32 roof = A(Col::Rgba(40, 42, 70));
+        const ImU32 light = A(Col::Rgba(255, 210, 130));
+        const float u = h / 1080.0f; // castle unit
+        const float base = hillTop + 6.0f * u;
+        dl->AddRectFilled(ImVec2(hillX - 120.0f * u, base - 70.0f * u), ImVec2(hillX + 120.0f * u, base), wall);
+        Tower(dl, hillX - 120.0f * u, base, 34.0f * u, 120.0f * u, 46.0f * u, wall, roof, light, s);
+        Tower(dl, hillX + 120.0f * u, base, 34.0f * u, 112.0f * u, 44.0f * u, wall, roof, 0, s);
+        Tower(dl, hillX - 55.0f * u, base, 40.0f * u, 150.0f * u, 54.0f * u, wall, roof, light, s);
+        Tower(dl, hillX + 50.0f * u, base, 44.0f * u, 170.0f * u, 60.0f * u, wall, roof, light, s);
+        Tower(dl, hillX, base, 64.0f * u, 210.0f * u, 92.0f * u, wall, roof, light, s);
+        // Rim light from the sun on the right edges.
+        const ImU32 rim = A(Fade(Col::Rgba(255, 190, 120), 0.35f));
+        dl->AddLine(ImVec2(hillX + 32.0f * u, base - 210.0f * u), ImVec2(hillX + 32.0f * u, base - 70.0f * u), rim,
+                    ImMax(1.0f, 2.0f * u));
+        dl->AddLine(ImVec2(hillX + 72.0f * u, base - 170.0f * u), ImVec2(hillX + 72.0f * u, base - 70.0f * u), rim,
+                    ImMax(1.0f, 2.0f * u));
+    }
+
+    // Hyrule Field in front, rolling and darker, with a lone tree.
+    Ridge(
+        dl, a.x, b.x, b.y,
+        [&](float x) {
+            const float u = (x - a.x) / w;
+            return a.y + h * (0.74f + 0.06f * Noise1(u * 3.0f + 11.0f) + 0.02f * Noise1(u * 9.0f));
+        },
+        A(Col::Rgba(30, 50, 34)), A(Col::Rgba(10, 16, 14)), 5.0f * s);
+    {
+        const float tx = a.x + w * 0.88f;
+        const float ty = a.y + h * 0.79f;
+        const ImU32 dark = A(Col::Rgba(12, 18, 16));
+        dl->AddRectFilled(ImVec2(tx - 7.0f * s, ty - 90.0f * s), ImVec2(tx + 7.0f * s, ty + 4.0f * s), dark);
+        dl->AddCircleFilled(ImVec2(tx, ty - 120.0f * s), 62.0f * s, dark, 40);
+        dl->AddCircleFilled(ImVec2(tx - 52.0f * s, ty - 95.0f * s), 40.0f * s, dark, 32);
+        dl->AddCircleFilled(ImVec2(tx + 50.0f * s, ty - 100.0f * s), 44.0f * s, dark, 32);
+    }
+    Ridge(
+        dl, a.x, b.x, b.y,
+        [&](float x) {
+            const float u = (x - a.x) / w;
+            return a.y + h * (0.88f + 0.05f * Noise1(u * 2.2f + 21.0f));
+        },
+        A(Col::Rgba(16, 24, 20)), A(Col::Rgba(4, 6, 8)), 6.0f * s);
+
+    // Vignette.
+    const ImU32 k0 = A(Fade(Col::Ink, 0.0f));
+    const ImU32 k1 = A(Fade(Col::Ink, 0.55f));
+    dl->AddRectFilledMultiColor(a, ImVec2(b.x, a.y + h * 0.18f), k1, k1, k0, k0);
+    dl->AddRectFilledMultiColor(ImVec2(b.x - w * 0.12f, a.y), b, k0, k1, k1, k0);
+}
+
+void TitleLogo(ImDrawList* dl, ImVec2 top, float width, float s, float alpha, float time) {
+    Fonts& f = GetFonts();
+    const float cx = top.x;
+    Triforce(dl, ImVec2(cx, top.y + 34.0f * s), 56.0f * s, alpha, 0.35f + 0.15f * sinf(time * 1.4f));
+    Text(dl, f.displayRegular, 22.0f * s, ImVec2(cx, top.y + 72.0f * s), Fade(Col::GoldLight, alpha * 0.9f),
+         "THE LEGEND OF ZELDA", 0.5f, 6.0f * s);
+    float big = 58.0f * s;
+    const float spacing = big * 0.06f;
+    const float tw = TextSize(f.display, big, "OCARINA OF TIME", spacing).x;
+    if (tw > width) {
+        big *= width / tw;
+    }
+    GoldText(dl, f.display, big, ImVec2(cx, top.y + 100.0f * s), "OCARINA OF TIME", 0.5f, big * 0.06f, alpha);
+    const float lineY = top.y + 100.0f * s + big * 1.12f;
+    Divider(dl, ImVec2(cx - width * 0.45f, lineY), width * 0.9f, s, alpha);
+    Text(dl, f.display, 26.0f * s, ImVec2(cx, lineY + 10.0f * s), Fade(Col::MagicLight, alpha), "DEFINITIVE EDITION",
+         0.5f, 8.0f * s);
 }
 
 } // namespace DefinitiveUI

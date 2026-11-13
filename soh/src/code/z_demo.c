@@ -35,6 +35,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 
 u16 D_8011E1C0 = 0;
 u16 D_8011E1C4 = 0;
@@ -496,6 +497,12 @@ void func_80065134(PlayState* play, CutsceneContext* csCtx, CsCmdDayTime* cmd) {
 void Cutscene_Command_Terminator(PlayState* play, CutsceneContext* csCtx, CsCmdBase* cmd) {
     Player* player = GET_PLAYER(play);
     s32 temp = 0;
+
+    // OOT D.E.: while the Definitive Edition menu is on the title screen, the opening never moves on to its other
+    // scenes (Link riding Epona...): the menu stays, with nothing of the game behind it.
+    if (gSaveContext.gameMode == GAMEMODE_TITLE_SCREEN && DefinitiveUI_TitleMenuHoldsTitle()) {
+        return;
+    }
 
     bool shouldSkipCommand = false;
 

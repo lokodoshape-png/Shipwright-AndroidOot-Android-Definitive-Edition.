@@ -57,6 +57,8 @@ struct TitleMenuView {
 
     float alpha = 1.0f;   // opening / closing fade
     float slide = 0.0f;   // 0 = in place, 1 = fully slid out to the right
+    // 0..1: an opaque dark screen under everything, whatever `alpha` is (the game's own title screen is never seen).
+    float backdrop = 0.0f;
 };
 
 // Mouse or touch, in the same coordinates as the drawing.

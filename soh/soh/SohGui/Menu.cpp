@@ -1,3 +1,4 @@
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 #include "Menu.h"
 #include "UIWidgets.hpp"
 #include "soh/OTRGlobals.h"
@@ -257,6 +258,78 @@ void Menu::AddMenuEntry(std::string entryName, const char* entryCvar) {
 
 std::unordered_map<uint32_t, disabledInfo>& Menu::GetDisabledMap() {
     return disabledMap;
+}
+
+const std::vector<std::string>& Menu::GetHeaderOrder() const {
+    return menuOrder;
+}
+
+std::vector<std::string> Menu::GetSidebarOrder(const std::string& header) const {
+    auto it = menuEntries.find(header);
+    if (it == menuEntries.end()) {
+        return {};
+    }
+    return it->second.sidebarOrder;
+}
+
+std::string Menu::HeaderDisplayName(const std::string& header) {
+    return MenuHeaderLabel(header);
+}
+
+std::string Menu::SidebarDisplayName(const std::string& sidebar) {
+    return TranslateMenuNavigationLabel(sidebar);
+}
+
+bool Menu::DrawSection(const std::string& header, const std::string& sidebarName, float width) {
+    auto entry = menuEntries.find(header);
+    if (entry == menuEntries.end()) {
+        return false;
+    }
+    auto section = entry->second.sidebars.find(sidebarName);
+    if (section == entry->second.sidebars.end()) {
+        return false;
+    }
+    for (auto& [reason, info] : disabledMap) {
+        info.active = info.evaluation(info);
+    }
+    raceDisableActive = CVarGetInteger(CVAR_SETTING("DisableChanges"), 0);
+    menuThemeIndex = static_cast<UIWidgets::Colors>(CVarGetInteger(CVAR_SETTING("Menu.Theme"), defaultThemeIndex));
+    if (MenuInit::GetUpdateFuncs().contains(header) && MenuInit::GetUpdateFuncs()[header].contains(sidebarName)) {
+        for (auto& updateFunc : MenuInit::GetUpdateFuncs()[header][sidebarName]) {
+            updateFunc();
+        }
+    }
+    ImGuiStyle& style = ImGui::GetStyle();
+    const SidebarEntry& sidebar = section->second;
+    int columns = (int)sidebar.columnCount;
+    const float minColumnWidth = ImGui::GetFontSize() * 17.0f;
+    while (columns > 1 && (width - style.ItemSpacing.x * columns) / columns < minColumnWidth) {
+        columns--;
+    }
+    columns = std::max(columns, 1);
+    const float columnWidth = (width - style.ItemSpacing.x * (columns - 1)) / columns;
+    const size_t groups = sidebar.columnWidgets.size();
+    if (columns == 1) {
+        // One column: every group one after the other.
+        for (size_t i = 0; i < groups; i++) {
+            for (auto& item : section->second.columnWidgets.at(i)) {
+                MenuDrawItem(item, 90, menuThemeIndex);
+            }
+        }
+        return true;
+    }
+    for (size_t i = 0; i < groups; i++) {
+        ImGui::BeginChild(fmt::format("DESection{}Column{}", sidebarName, i).c_str(), ImVec2(columnWidth, 0),
+                          ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+        for (auto& item : section->second.columnWidgets.at(i)) {
+            MenuDrawItem(item, 90 / columns, menuThemeIndex);
+        }
+        ImGui::EndChild();
+        if ((int)(i % columns) < columns - 1 && i + 1 < groups) {
+            ImGui::SameLine();
+        }
+    }
+    return true;
 }
 
 void Menu::MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors menuThemeIndex) {
@@ -561,8 +634,12 @@ void Menu::DrawElement() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     }
 
+    // OOT D.E.: on the title screen the menu is opaque, so the game's opening never shows behind it.
     ImGui::PushStyleColor(ImGuiCol_WindowBg,
-                          ImVec4(0, 0, 0, CVarGetFloat(CVAR_SETTING("Menu.BackgroundOpacity"), 0.85f)));
+                          ImVec4(0, 0, 0,
+                                 DefinitiveUI_TitleMenuVisible()
+                                     ? 1.0f
+                                     : CVarGetFloat(CVAR_SETTING("Menu.BackgroundOpacity"), 0.85f)));
 
     if (!ImGui::Begin("Main Menu", NULL, windowFlags)) {
         if (!popout) {

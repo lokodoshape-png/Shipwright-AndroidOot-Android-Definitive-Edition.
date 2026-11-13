@@ -28,6 +28,9 @@ void DefinitiveUI_TitleMenuClose(void);
 // The menu is on screen (the touch controls are hidden meanwhile).
 bool DefinitiveUI_TitleMenuVisible(void);
 
+// The menu holds the title screen: its opening does not go on to the next scenes (z_demo.c).
+bool DefinitiveUI_TitleMenuHoldsTitle(void);
+
 // File select is working for the menu under the "loading" screen: it takes no input and plays no music.
 bool DefinitiveUI_CoverActive(void);
 

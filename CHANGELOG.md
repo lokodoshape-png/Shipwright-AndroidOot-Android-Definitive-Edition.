@@ -12,6 +12,20 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.10.1] — Menu Definitive refeito
+
+- **Nada do jogo por trás do menu.** A abertura original (Link de Épona e as outras cenas) não roda mais atrás do
+  menu Definitive: o fundo é sempre opaco e a abertura fica parada enquanto o menu está na tela.
+- **Configurações, Mods e Definitive Features abrem dentro do menu novo**, com o visual dele, em vez do menu do Ship.
+  Configurações tem abas para todos os grupos de opções (Configurações, Melhorias, Randomizer, Definitive...).
+  Toque e arraste para rolar; Voltar, B ou o botão voltar do Android retornam ao menu.
+- **Navegação destravada.** O menu sumia e parava de responder sempre que a abertura do jogo trocava de cena; como a
+  abertura agora fica parada, isso não acontece mais.
+- **Menu nítido.** O fundo, o logo, os botões e as molduras eram recortes pequenos da imagem de referência ampliados
+  cerca de 5 vezes. Agora são desenhados na resolução da tela: um Hyrule ao entardecer (castelo, Montanha da Morte,
+  campo), o título com a Triforce, e botões e molduras em vetor. Com o menu do Ship aberto na tela de título o
+  fundo dele também fica opaco.
+
 ## [0.10.0] — Definitive Expansion
 
 Dez sistemas novos, todos opcionais: a aventura original continua igual sem ligar nenhum deles. Ficam no menu
