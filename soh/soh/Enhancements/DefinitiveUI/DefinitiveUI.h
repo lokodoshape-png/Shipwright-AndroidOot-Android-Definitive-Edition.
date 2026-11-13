@@ -28,6 +28,10 @@ void DefinitiveUI_TitleMenuClose(void);
 // The menu is on screen (the touch controls are hidden meanwhile).
 bool DefinitiveUI_TitleMenuVisible(void);
 
+// Called by Play_Main every frame, before the scene updates. On the title screen with the menu on, runs the menu (and
+// sends the game to file select when it is time). Returns false when the scene must not update this frame (the
+// opening stays still behind the menu).
+bool DefinitiveUI_TitleFrame(struct PlayState* play);
 // The menu holds the title screen: its opening does not go on to the next scenes (z_demo.c).
 bool DefinitiveUI_TitleMenuHoldsTitle(void);
 

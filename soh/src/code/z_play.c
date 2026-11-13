@@ -15,6 +15,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/SaveManager.h"
 #include "soh/framebuffer_effects.h"
+#include "soh/Enhancements/DefinitiveUI/DefinitiveUI.h"
 
 #include <libultraship/libultraship.h>
 
@@ -202,6 +203,11 @@ Gfx* Play_SetFog(PlayState* play, Gfx* gfx) {
 void Play_Destroy(GameState* thisx) {
     PlayState* play = (PlayState*)thisx;
     Player* player = GET_PLAYER(play);
+
+    // OOT D.E.: leaving the title screen for file select closes its menu (also when the logo actor is not there).
+    if (gSaveContext.gameMode == GAMEMODE_FILE_SELECT) {
+        DefinitiveUI_TitleMenuClose();
+    }
 
     GameInteractor_ExecuteOnPlayDestroy();
 
@@ -1719,7 +1725,11 @@ void Play_Main(GameState* thisx) {
         HREG(94) = 10;
     }
 
-    if ((HREG(80) != 10) || (HREG(81) != 0)) {
+    // OOT D.E.: on the title screen the Definitive Edition menu runs here, every frame, whatever the opening does;
+    // it returns false while the opening must stay still (no Link riding or running, no sounds of it).
+    bool deRunScene = DefinitiveUI_TitleFrame(play);
+
+    if (deRunScene && ((HREG(80) != 10) || (HREG(81) != 0))) {
         Play_Update(play);
         // Hold B to fast-forward cutscenes (soh/Enhancements/HoldBFastForward.cpp): extra logic frames, one draw.
         s32 extraFrames = HoldBFastForward_GetExtraFrames(play);

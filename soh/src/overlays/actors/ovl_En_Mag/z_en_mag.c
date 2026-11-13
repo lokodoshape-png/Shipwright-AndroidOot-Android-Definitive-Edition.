@@ -219,11 +219,8 @@ void EnMag_Update(Actor* thisx, PlayState* play) {
         } else if (this->globalState >= MAG_STATE_DISPLAY) {
             if (sDelayTimer == 0) {
                 if (DefinitiveUI_TitleMenuEnabled()) {
-                    // OOT D.E.: the Definitive Edition main menu takes the place of "PRESS START" and decides
-                    // when to go to file select.
-                    if (this->globalState == MAG_STATE_DISPLAY && DefinitiveUI_TitleMenuUpdate(play)) {
-                        EnMag_GoToFileSelect(this, play);
-                    }
+                    // OOT D.E.: the Definitive Edition main menu takes the place of "PRESS START"; it runs from
+                    // Play_Main (DefinitiveUI_TitleFrame) and sends the game to file select itself.
                 } else if (CHECK_BTN_ALL(play->state.input[0].press.button, BTN_START) ||
                            CHECK_BTN_ALL(play->state.input[0].press.button, BTN_A) ||
                            CHECK_BTN_ALL(play->state.input[0].press.button, BTN_B)) {
