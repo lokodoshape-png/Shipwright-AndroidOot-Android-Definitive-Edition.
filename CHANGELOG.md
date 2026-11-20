@@ -12,6 +12,14 @@ Como as versões são organizadas está em [docs/VERSOES.md](docs/VERSOES.md).
 
 ## Base Ship of Harkinian 9.0.2 (branch `main`)
 
+## [0.11.1] — Toque do menu destravado
+
+- **O menu Definitive responde a toques rápidos.** Um toque curto no celular costuma encostar e soltar entre dois
+  quadros, e o menu lia só a posição do dedo naquele instante, então não via o toque: a opção ficava marcada mas não
+  abria, e só funcionava deslizando o dedo. Agora o menu lê a fila de toques, que guarda cada encostar e soltar,
+  e nenhum toque se perde. Vale para todas as telas do menu, inclusive o teclado do nome.
+- Traz tudo da 0.11.0 (vídeo de abertura e transição dourada) para a `main`.
+
 ## [0.11.0] — Abertura cinematográfica
 
 - **Vídeo de abertura.** Ao abrir o jogo toca o vídeo de abertura do OOT D.E., embutido no APK, com o botão

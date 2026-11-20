@@ -1340,14 +1340,15 @@ void TitleMenuWindow::Draw() {
         size = ImVec2((float)gfx_current_game_window_viewport.width, (float)gfx_current_game_window_viewport.height);
     }
 
-    // Touch / mouse, as the Diário de Quests reads it (window coordinates). A touch counts when the finger is let go
-    // without having been dragged, at the place it was last seen.
+    // Touch / mouse. A touch counts when the finger is let go without having been dragged, at the place it was last
+    // seen. Read from ImGui's input queue, not from SDL's current mouse state: a quick tap on a phone often goes
+    // down and up between two frames, and the current state never shows it (the menu then looked stuck and only
+    // reacted to long touches or slides). ImGui spreads a down and an up that arrive together over two frames.
     PointerState pointer;
     {
-        auto window = Ship::Context::GetInstance()->GetWindow();
-        const Ship::Coords mouse = window->GetMousePos();
-        const bool down = window->GetMouseState(Ship::LUS_MOUSE_BTN_LEFT);
-        const ImVec2 pos = viewport->Pos + ImVec2((float)mouse.x, (float)mouse.y);
+        ImGuiIO& io = ImGui::GetIO();
+        const bool down = io.MouseDown[ImGuiMouseButton_Left];
+        const ImVec2 pos = ImGui::IsMousePosValid(&io.MousePos) ? io.MousePos : mLastPos;
         if (down) {
             mDownFrames = mWasDown ? mDownFrames + 1 : 1;
             if (mDownFrames == 1) {
