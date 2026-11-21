@@ -56,6 +56,8 @@ void TitleMenuRenderer::Reset() {
     }
     mKeyFlash = -1;
     mKeyFlashTime = 0.0f;
+    mMist.Clear();
+    mSweep = -1.0f;
 }
 
 static bool Inside(ImVec2 p, ImVec2 a, ImVec2 b) {
@@ -106,6 +108,7 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
         if (mScreen >= 0) {
             mScreenAge = 0.0f;
             mScreenDir = view.screen > mScreen ? 1.0f : -1.0f;
+            mSweep = 0.0f;
         }
         mScreen = view.screen;
         mLastSelected = -1;
@@ -148,6 +151,14 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
     } else {
         // An older soh.otr without the picture: Hyrule at dusk drawn with shapes.
         HyruleScene(dl, origin, end, s, time, alpha * sceneIn);
+    }
+    // Low mist over the field, and a small flare twinkling on the sunset.
+    mMist.Update(dt, ImVec2(origin.x, origin.y + size.y * 0.45f), end, s);
+    mMist.Draw(dl, alpha * sceneIn, Col::Rgba(205, 200, 230));
+    if (bgTex != (ImTextureID)0) {
+        const float tw = 0.55f + 0.45f * sinf(time * 0.9f) * sinf(time * 0.37f + 1.0f);
+        Fx::LensFlare(dl, ImVec2(origin.x + size.x * 0.70f, origin.y + size.y * 0.47f), 46.0f * s,
+                      alpha * sceneIn * 0.35f * tw, time);
     }
     // Fireflies over the landscape.
     mSceneParticles.UpdateDust(dt, ImVec2(colX1 + 120.0f * s, origin.y + size.y * 0.35f), end, s * 0.8f);
@@ -222,6 +233,19 @@ TitleMenuInput TitleMenuRenderer::Draw(ImDrawList* dl, ImVec2 origin, ImVec2 siz
         Spark(dl, p, 13.0f * s, Fade(Col::GoldPale, pa * 0.9f), time * 1.5f);
     }
     mParticles.UpdateDust(dt, ImVec2(pX0, panelY0), ImVec2(pX1, panelY1), s);
+    // Changing list: a light crosses the panel with a few sparks (it never holds the input).
+    if (mSweep >= 0.0f) {
+        if (mSweep == 0.0f) {
+            mParticles.EmitBurst(ImVec2(pX0 + 40.0f * s, panelY0 + 20.0f * s), ImVec2(pX1 - 40.0f * s, panelY0 + 70.0f * s),
+                                 s, 10);
+        }
+        mSweep += dt;
+        LightSweep(dl, ImVec2(pX0, panelY0), ImVec2(pX1, panelY1), mSweep / 0.45f, 90.0f * s,
+                   Fade(Col::GoldPale, pa * 0.22f));
+        if (mSweep > 0.45f) {
+            mSweep = -1.0f;
+        }
+    }
     mParticles.Update(dt);
     mParticles.Draw(dl, pa);
 
@@ -524,6 +548,22 @@ void TitleMenuRenderer::DrawSplash(ImDrawList* dl, ImVec2 origin, ImVec2 size, f
     } else {
         const float k = 1.45f * zoom;
         TitleLogo(dl, ImVec2(c.x, c.y - 170.0f * s * k), size.y * 0.62f * k, s * k, la, time);
+    }
+
+    // "PULAR INTRO" in the corner: any touch or button skips.
+    const float hint = alpha * Appear(time, 1.2f, 0.6f) * (0.75f + 0.25f * sinf(time * 2.4f));
+    if (hint > 0.0f && fonts.displayRegular != nullptr) {
+        const float fs = 26.0f * s;
+        const ImVec2 ts = TextSize(fonts.displayRegular, fs, Strings::kSkipIntro, 3.0f * s);
+        const ImVec2 b(end.x - 48.0f * s, end.y - 44.0f * s);
+        const ImVec2 a(b.x - ts.x - 64.0f * s, b.y - ts.y - 22.0f * s);
+        dl->AddRectFilled(a, b, Fade(Col::Ink, hint * 0.55f), 6.0f * s);
+        dl->AddRect(a, b, Fade(Col::Gold, hint * 0.8f), 6.0f * s, 0, 1.5f * s);
+        Text(dl, fonts.displayRegular, fs, ImVec2(a.x + 20.0f * s, a.y + 11.0f * s), Fade(Col::GoldLight, hint),
+             Strings::kSkipIntro, 0.0f, 3.0f * s);
+        const ImVec2 tip(b.x - 22.0f * s, (a.y + b.y) * 0.5f);
+        dl->AddTriangleFilled(tip + ImVec2(-12.0f * s, -9.0f * s), tip + ImVec2(-12.0f * s, 9.0f * s), tip,
+                              Fade(Col::GoldLight, hint));
     }
 }
 

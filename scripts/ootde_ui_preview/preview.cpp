@@ -363,6 +363,7 @@ int main(int argc, char** argv) {
         };
         const Step steps[] = {
             { 0.0f, SCENE_SPLASH, 0, false },          { 4.5f, SCENE_MAIN, MAIN_CONTINUE, false },
+            { 7.0f, SCENE_MAIN, MAIN_CONTINUE, false },
             { 7.2f, SCENE_MAIN, MAIN_NEW_GAME, false }, { 7.6f, SCENE_MAIN, MAIN_FILES, false },
             { 8.6f, SCENE_MAIN, MAIN_FILES, true },    { 8.85f, SCENE_FILES, 0, false },
             { 10.0f, SCENE_FILES, 1, false },          { 10.6f, SCENE_FILES, 2, false },
@@ -380,6 +381,8 @@ int main(int argc, char** argv) {
         TitleMenuRenderer renderer;
         int fileNo = 0;
         float menuStart = -1.0f;
+        Fx::CinematicReveal reveal;
+        bool revealDone = false;
         for (int fr = 0; fr < frames; fr++) {
             const float t = fr / fps;
             const Step* st = &steps[0];
@@ -391,10 +394,15 @@ int main(int argc, char** argv) {
             io.DeltaTime = 1.0f / fps;
             ImGui::NewFrame();
             ImDrawList* dl = ImGui::GetBackgroundDrawList();
-            if (st->kind == SCENE_SPLASH) {
-                // As in the game: 1.5 s in, then out in the last second.
-                const float alpha = ImMin(1.0f, ImMin(t / 1.5f, (steps[1].at - t) / 1.0f));
-                renderer.DrawSplash(dl, ImVec2(0, 0), io.DisplaySize, io.DeltaTime, t, ImMax(0.0f, alpha));
+            // As in the game: the opening image, then the light (Fx::CinematicReveal) opening on the menu.
+            if (st->kind != SCENE_SPLASH && !reveal.Running() && !revealDone) {
+                reveal.Start();
+            }
+            if (reveal.Running()) {
+                reveal.Update(io.DeltaTime, ImVec2(0, 0), io.DisplaySize);
+            }
+            if (st->kind == SCENE_SPLASH || (reveal.Running() && !reveal.MenuShown())) {
+                dl->AddRectFilled(ImVec2(0, 0), io.DisplaySize, IM_COL32_BLACK);
             } else {
                 if (menuStart < 0.0f) {
                     menuStart = t;
@@ -409,6 +417,20 @@ int main(int argc, char** argv) {
                 if (st->kind == SCENE_LOADING) {
                     renderer.DrawLoading(dl, ImVec2(0, 0), io.DisplaySize, t, ImMin(1.0f, (t - st->at) / 0.3f),
                                          Strings::kCreating);
+                }
+            }
+            if (st->kind == SCENE_SPLASH || reveal.Running()) {
+                if (reveal.Running()) {
+                    reveal.DrawCover(dl, ImVec2(0, 0), io.DisplaySize);
+                }
+                const float imageAlpha = reveal.Running() ? reveal.SplashAlpha() : ImMin(1.0f, t / 1.5f);
+                if (imageAlpha > 0.0f) {
+                    renderer.DrawSplash(dl, ImVec2(0, 0), io.DisplaySize, io.DeltaTime, t, imageAlpha);
+                }
+                reveal.DrawEffects(dl, ImVec2(0, 0), io.DisplaySize);
+                if (reveal.Done()) {
+                    reveal.Release();
+                    revealDone = true;
                 }
             }
             ImGui::Render();

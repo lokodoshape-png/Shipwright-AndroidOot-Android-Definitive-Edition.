@@ -5,6 +5,7 @@
 
 #include <imgui.h>
 #include "DeTheme.h"
+#include "DeEffects.h"
 
 namespace DefinitiveUI {
 
@@ -97,6 +98,8 @@ class TitleMenuRenderer {
     Particles mParticles;       // over the panel (dust, Navi's trail, bursts)
     Particles mSceneParticles;  // fireflies over the landscape
     Particles mSplashParticles; // dust around the logo of the opening image
+    Fx::Mist mMist;             // low mist drifting over the landscape
+    float mSweep = -1.0f;       // light crossing the panel when the list changes (seconds; negative: none)
     int mPressedItem = -1;
     float mKeyGlow[64] = {};
     int mKeyFlash = -1;

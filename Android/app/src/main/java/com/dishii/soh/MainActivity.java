@@ -108,9 +108,31 @@ public class MainActivity extends SDLActivity{
         attachController();
     }
 
+    // OOT D.E.: the opening video before the menu (IntroVideo.java), started and watched by DeTitleMenu.cpp.
+    private final IntroVideo introVideo = new IntroVideo(this);
+
+    public boolean startIntroVideo() {
+        return introVideo.start();
+    }
+
+    public int introVideoState() {
+        return introVideo.getState();
+    }
+
+    public void skipIntroVideo() {
+        introVideo.skip();
+    }
+
+    @Override
+    protected void onPause() {
+        introVideo.onPause();
+        super.onPause();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        introVideo.onResume();
         // The permission may have been granted in the system settings while the app was in the background.
         if (getSetupState() == SetupState.PENDING && !permissionRequestInFlight && hasStoragePermission()) {
             if (permissionDialog != null && permissionDialog.isShowing()) {
@@ -130,6 +152,7 @@ public class MainActivity extends SDLActivity{
         if (sCurrentActivity.get() == this) {
             sCurrentActivity = new WeakReference<>(null);
         }
+        introVideo.release();
         super.onDestroy();
     }
 

@@ -35,7 +35,7 @@ PY
 src="$root/soh/soh/Enhancements/DefinitiveUI"
 # Same ImTextureID as libultraship (a macro for void*), so code that only builds in the preview is caught here.
 g++ -O2 -std=c++20 -DIMGUI_DEFINE_MATH_OPERATORS "-DImTextureID=void*" -I"$imgui" -I"$src" \
-    "$here/preview.cpp" "$src/DeTheme.cpp" "$src/DeTitleMenuView.cpp" \
+    "$here/preview.cpp" "$src/DeTheme.cpp" "$src/DeEffects.cpp" "$src/DeTitleMenuView.cpp" \
     "$imgui/imgui.cpp" "$imgui/imgui_draw.cpp" "$imgui/imgui_widgets.cpp" "$imgui/imgui_tables.cpp" \
     -o "$work/preview"
 if [ "${5:-}" = "video" ]; then
